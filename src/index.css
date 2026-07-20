@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Pacifico&family=Quicksand:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-body bg-paper text-ink overflow-x-hidden antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+  ::selection {
+    @apply bg-secondary/50 text-ink;
+  }
+}
+
+:root {
+  /* Default theme channels — overwritten at runtime by ThemeProvider from
+     src/config.ts. Kept here so there's no flash of unstyled color.
+     Jimmy's palette: royal blue / periwinkle / navy ink / powder paper. */
+  --color-primary: 29 78 148;
+  --color-secondary: 124 143 203;
+  --color-ink: 30 42 78;
+  --color-paper: 211 223 230;
+  --color-surface: 242 247 249;
+  --color-accent: 242 169 59;
+  --font-display: 'Baloo 2', sans-serif;
+  --font-body: 'Quicksand', sans-serif;
+  --font-script: 'Pacifico', cursive;
+
+  line-height: 1.5;
+  font-weight: 500;
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+/* Subtle film grain over the whole page. Fixed + pointer-events-none so it
+   never repaints on scroll. */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+/* Retro two-row checkerboard strip, straight off Jimmy's Coffee & Cars
+   poster. Height = 2 squares. */
+.checker {
+  height: 16px;
+  background-image: conic-gradient(
+    rgb(var(--color-accent)) 90deg,
+    transparent 90deg 180deg,
+    rgb(var(--color-accent)) 180deg 270deg,
+    transparent 270deg
+  );
+  background-size: 16px 16px;
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

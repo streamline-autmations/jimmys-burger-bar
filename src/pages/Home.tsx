@@ -1,0 +1,487 @@
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Star, Quote, Clock, MapPin } from 'lucide-react';
+import { config } from '../config';
+import { Starburst } from '../components/Starburst';
+import { GoogleBadge } from '../components/GoogleBadge';
+import { Magnetic } from '../components/Magnetic';
+import { fadeInUp, staggerContainer, riseChild, heroItem } from '../lib/motion';
+
+const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
+  `Hi! I'd like to book a table at ${config.venue.name}.`
+)}`;
+
+// The one signature scroll moment on the page: the hero dish in the bento
+// breathes in slightly as it passes through view, echoing the hero parallax
+// without a full pin-hijack. Every other tile stays a plain hover-zoom.
+const FeaturedTile: React.FC<{ item: (typeof config.menu.featured)[number]; idx: number }> = ({ item, idx }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const heroTileScale = useTransform(scrollYProgress, [0, 0.5, 1], [1.08, 1, 1.08]);
+
+  return (
+    <motion.div
+      ref={ref}
+      variants={riseChild}
+      className={`relative rounded-2xl overflow-hidden group min-h-[260px] ${idx === 0 ? 'md:col-span-2 md:row-span-2 md:min-h-[544px]' : ''}`}
+    >
+      <motion.img
+        src={item.image}
+        alt={item.name}
+        loading="lazy"
+        style={idx === 0 && !shouldReduceMotion ? { scale: heroTileScale } : undefined}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/25 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-6">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h3 className={`font-display font-bold text-surface ${idx === 0 ? 'text-2xl md:text-3xl' : 'text-xl'}`}>{item.name}</h3>
+            {idx === 0 && <p className="text-paper/80 text-sm mt-1.5 max-w-sm hidden md:block">{item.description}</p>}
+          </div>
+          <span className="bg-accent text-ink font-display font-bold text-sm px-3.5 py-1.5 rounded-full whitespace-nowrap shadow-md">
+            {item.price}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export const Home: React.FC = () => {
+  const { venue, specials, menu, testimonials } = config;
+
+  const [taglineLead] = [venue.tagline.split(venue.taglineAccent)[0]];
+
+  const heroRef = useRef<HTMLElement>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const heroY = useTransform(heroProgress, [0, 1], [0, shouldReduceMotion ? 0 : 140]);
+  const heroScale = useTransform(heroProgress, [0, 1], [1, shouldReduceMotion ? 1 : 1.12]);
+
+  return (
+    <div className="flex flex-col w-full">
+      {/* ============ Hero: grill video under a navy wash ============ */}
+      <section ref={heroRef} className="relative min-h-[100dvh] w-full flex items-end overflow-hidden">
+        <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 z-0">
+          {venue.hero.type === 'video' ? (
+            <video
+              src={venue.hero.video}
+              poster={venue.hero.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img src={venue.hero.poster} alt="" className="w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/30" />
+        </motion.div>
+
+        {/* Google rating badge, pinned with its own top clearance so the
+            fixed navbar never overlaps it, independent of hero copy length */}
+        <div className="absolute top-24 md:top-28 left-0 right-0 z-10 px-4 md:px-8">
+          <motion.div {...heroItem(0.1)} className="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
+            <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} />
+            <span className="text-sm font-semibold text-surface bg-ink/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              57 Loch Street, Meyerton
+            </span>
+          </motion.div>
+        </div>
+
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-8 md:pb-12">
+          <div className="max-w-2xl">
+            <motion.h1
+              {...heroItem(0.22)}
+              className="font-display text-[2.6rem] leading-[1.05] md:text-6xl lg:text-7xl font-extrabold text-surface mb-6"
+            >
+              {taglineLead}
+              <span className="font-script font-normal text-secondary block leading-[1.25] pb-2 text-[0.85em]">
+                {venue.taglineAccent}
+              </span>
+            </motion.h1>
+
+            <motion.p
+              {...heroItem(0.34)}
+              className="text-lg text-paper/85 leading-relaxed mb-10 max-w-md"
+            >
+              {venue.description}
+            </motion.p>
+
+            <motion.div {...heroItem(0.46)} className="flex flex-col sm:flex-row items-start gap-4">
+              <Magnetic className="w-full sm:w-auto">
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full sm:w-auto text-center bg-surface text-ink px-8 py-4 rounded-full font-display font-bold shadow-lg shadow-ink/40 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
+                >
+                  Book a Table
+                </a>
+              </Magnetic>
+              <Link
+                to="/menu"
+                className="w-full sm:w-auto text-center border-2 border-paper/40 text-surface px-8 py-4 rounded-full font-display font-bold hover:bg-surface hover:text-ink hover:border-surface transition-colors duration-200"
+              >
+                View the Menu
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Retro checker strip, straight off Jimmy's posters */}
+      <div className="checker opacity-80" aria-hidden="true" />
+
+      {/* ============ Friday specials: the poster wall ============ */}
+      <section className="py-20 md:py-24 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-4">
+            <div>
+              <span className="font-script text-2xl text-primary">every week, one big one</span>
+              <h2 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1">Friday specials</h2>
+            </div>
+            <Link to="/specials" className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
+              <span>All specials</span>
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </motion.div>
+          <motion.p {...fadeInUp} className="text-ink/60 max-w-md mb-12">
+            Straight from Jimmy's own poster wall. One rotates in every Friday, while stocks last.
+          </motion.p>
+        </div>
+
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="whileInView"
+          viewport={{ once: true, amount: 0.15 }}
+          className="flex gap-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 md:px-8 pt-6 pb-4 lg:max-w-7xl lg:mx-auto"
+        >
+          {specials.fridays.map((s, i) => (
+            <motion.div
+              key={s.title}
+              variants={riseChild}
+              className={`snap-start shrink-0 w-[272px] md:w-[300px] rounded-2xl relative overflow-hidden transition-transform duration-300 hover:rotate-0 hover:-translate-y-1 ${
+                i % 2 === 0 ? 'rotate-[-1.4deg]' : 'rotate-[1.2deg]'
+              } ${s.poster ? 'shadow-xl shadow-ink/20' : 'bg-ink p-7 pt-9'}`}
+            >
+              {s.poster ? (
+                <img
+                  src={s.poster}
+                  alt={`${s.title} special poster`}
+                  loading="lazy"
+                  className="w-full h-full aspect-[4/5] object-cover"
+                />
+              ) : (
+                <>
+                  {s.price && (
+                    <Starburst value={s.price} className="absolute -top-5 -right-3 w-[86px] h-[86px] text-[26px]" />
+                  )}
+                  <span className="font-script text-secondary text-xl block">Friday special</span>
+                  <h3 className="font-display text-[28px] font-extrabold text-surface leading-tight mt-1.5 pr-10">{s.title}</h3>
+                  <p className="text-paper/75 text-sm leading-relaxed mt-3.5 min-h-[84px]">{s.description}</p>
+                  <p className="text-xs font-bold text-accent mt-4">{s.note}</p>
+                </>
+              )}
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <div className="sm:hidden text-center mt-6">
+          <Link to="/specials" className="inline-flex items-center gap-2 text-primary font-bold">
+            <span>All specials</span>
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </section>
+
+      {/* ============ Food: bento of the favourites, real prices ============ */}
+      <section className="py-20 md:py-24 bg-surface/70">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <motion.div {...fadeInUp} className="max-w-lg mb-12">
+            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-3">Crowd favourites</h2>
+            <p className="text-ink/60">180g patties smashed to order, platters built for the table, steaks off the flame.</p>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true, amount: 0.1 }}
+            className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4"
+          >
+            {menu.featured.map((item, idx) => (
+              <FeaturedTile key={item.name} item={item} idx={idx} />
+            ))}
+          </motion.div>
+
+          <div className="text-center mt-12">
+            <Link to="/menu" className="inline-flex items-center gap-2 text-primary font-bold group">
+              <span>The full menu</span>
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ Coffee & Cars: Jimmy's monthly ritual ============ */}
+      <section className="relative py-20 md:py-28">
+        <div className="checker absolute top-0 left-0 right-0 opacity-70" aria-hidden="true" />
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center pt-6">
+          <motion.div {...fadeInUp} className="relative">
+            <div className="rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15">
+              <img
+                src={specials.event.image}
+                alt="Classic car at a Coffee & Cars morning"
+                loading="lazy"
+                className="w-full h-[320px] md:h-[420px] object-cover"
+              />
+            </div>
+            <Starburst label="breakfast" value="R95" className="absolute -bottom-6 -right-2 md:-right-6 w-24 h-24 md:w-28 md:h-28 text-[28px] md:text-[32px]" />
+          </motion.div>
+
+          <motion.div {...fadeInUp}>
+            <span className="font-script text-2xl text-primary">start your engines</span>
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-ink mt-1 mb-5">{specials.event.title}</h2>
+            <p className="text-ink/65 text-lg leading-relaxed max-w-md mb-7">
+              {specials.event.description}
+            </p>
+            <div className="inline-flex items-center gap-2.5 bg-ink text-paper px-5 py-2.5 rounded-full text-sm font-bold">
+              <Clock size={16} className="text-secondary" />
+              <span>{specials.event.schedule}</span>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ============ Drinks band: ambience video under navy ============ */}
+      <section className="relative py-28 md:py-40 overflow-hidden bg-ink">
+        <div className="absolute inset-0 z-0">
+          {venue.ambience.type === 'video' ? (
+            <video
+              src={venue.ambience.video}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover opacity-45"
+            />
+          ) : (
+            <img src={venue.ambience.image} alt="" className="w-full h-full object-cover opacity-45" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/30" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8">
+          <motion.div {...fadeInUp} className="max-w-xl">
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-surface mb-5">
+              Cold ones,
+              <span className="font-script font-normal text-secondary block leading-[1.3] pb-2 text-[0.8em]">sorted.</span>
+            </h2>
+            <p className="text-lg text-paper/85 leading-relaxed mb-9 max-w-md">
+              Local lagers at R28, Savannas by the bucket, and a house cocktail
+              called the Frikkie van Zyl. Ask the bar, they'll explain.
+            </p>
+            <Link
+              to="/drinks"
+              className="group inline-flex items-center gap-3 bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
+            >
+              <span>The bar list</span>
+              <span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform">
+                <ArrowRight size={18} />
+              </span>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ============ Story ============ */}
+      <section className="py-20 md:py-28 bg-surface/70">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <motion.div {...fadeInUp} className="rounded-2xl overflow-hidden order-2 lg:order-1 ring-8 ring-paper">
+            <img
+              src="/images/about-banner.jpg"
+              alt="Inside Jimmy's Burger Bar"
+              loading="lazy"
+              className="w-full h-[420px] md:h-[520px] object-cover"
+            />
+          </motion.div>
+
+          <motion.div {...fadeInUp} className="order-1 lg:order-2">
+            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-6">
+              Built for Meyerton, one burger at a time
+            </h2>
+            <div className="space-y-4 text-ink/70 leading-relaxed max-w-md">
+              <p>
+                Jimmy's started with one idea: proper burgers, proper portions,
+                and a bar that never runs dry. No shortcuts on the grill, no
+                watered-down pours.
+              </p>
+              <p>
+                The patties are smashed to order. The fryer never sits idle.
+                And once you've had the Smash Burger, you'll understand why
+                Meyerton keeps coming back.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6 mt-10 pt-8 border-t border-ink/15 max-w-md">
+              <div>
+                <p className="font-display text-3xl font-extrabold text-primary">{venue.rating}★</p>
+                <p className="text-sm text-ink/55 mt-1">Google rating</p>
+              </div>
+              <div>
+                <p className="font-display text-3xl font-extrabold text-primary">{venue.reviewCount}+</p>
+                <p className="text-sm text-ink/55 mt-1">local reviews</p>
+              </div>
+              <div>
+                <p className="font-display text-3xl font-extrabold text-primary">180g</p>
+                <p className="text-sm text-ink/55 mt-1">smash-pressed patties</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ============ Regulars say ============ */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <motion.div {...fadeInUp} className="flex flex-wrap items-end justify-between gap-6 mb-12">
+            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-ink max-w-lg">
+              Take it from the regulars
+            </h2>
+            <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} variant="light" />
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div {...fadeInUp} className="bg-surface p-9 md:p-10 rounded-2xl flex flex-col justify-between shadow-[0_8px_30px_-12px_rgb(var(--color-ink)/0.18)] ring-1 ring-ink/[0.04]">
+              <div>
+                <Quote className="text-secondary/60 mb-5" size={36} fill="currentColor" strokeWidth={0} />
+                <p className="font-display text-xl md:text-2xl text-ink/90 leading-snug mb-8">{testimonials[0].text}</p>
+              </div>
+              <div className="flex items-center justify-between pt-5 border-t border-ink/10">
+                <span className="font-semibold text-ink/80">{testimonials[0].name}</span>
+                <div className="flex text-accent">
+                  {[...Array(testimonials[0].rating)].map((_, i) => (
+                    <Star key={i} size={14} fill="currentColor" strokeWidth={0} />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+
+            <div className="flex flex-col gap-6">
+              {testimonials.slice(1).map((t) => (
+                <motion.div key={t.name} {...fadeInUp} className="bg-surface p-8 rounded-2xl flex-1 shadow-[0_8px_30px_-12px_rgb(var(--color-ink)/0.18)] ring-1 ring-ink/[0.04]">
+                  <p className="text-ink/75 leading-relaxed mb-6">{t.text}</p>
+                  <div className="flex items-center justify-between pt-4 border-t border-ink/10">
+                    <span className="font-semibold text-ink/80 text-sm">{t.name}</span>
+                    <div className="flex text-accent">
+                      {[...Array(t.rating)].map((_, i) => (
+                        <Star key={i} size={13} fill="currentColor" strokeWidth={0} />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ Gallery teaser: the place, in photos ============ */}
+      <section className="py-20 md:py-24 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-10">
+            <div>
+              <span className="font-script text-2xl text-primary">the food, the crowd, the place</span>
+              <h2 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1">See it for yourself</h2>
+            </div>
+            <Link to="/gallery" className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
+              <span>Full gallery</span>
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </motion.div>
+        </div>
+
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="whileInView"
+          viewport={{ once: true, amount: 0.15 }}
+          className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 md:px-8"
+        >
+          {[
+            { src: '/images/gallery/burger-macro.jpg', tall: true },
+            { src: '/images/gallery/heritage-day-team.jpg', tall: false },
+            { src: '/images/gallery/quesadilla-corona.jpg', tall: true },
+            { src: '/images/gallery/fireplace-corner.jpg', tall: false },
+            { src: '/images/gallery/greek-meze.jpg', tall: true },
+            { src: '/images/gallery/corona-sunset.jpg', tall: false },
+          ].map((img, i) => (
+            <motion.div
+              key={img.src}
+              variants={riseChild}
+              className={`snap-start shrink-0 rounded-2xl overflow-hidden ring-1 ring-ink/[0.06] shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.25)] ${
+                img.tall ? 'w-[220px] md:w-[260px] aspect-[3/4]' : 'w-[280px] md:w-[340px] aspect-[4/3]'
+              } ${i % 3 === 1 ? 'md:mt-8' : ''}`}
+            >
+              <img src={img.src} alt="" loading="lazy" className="w-full h-full object-cover" />
+            </motion.div>
+          ))}
+          <Link
+            to="/gallery"
+            className="snap-start shrink-0 w-[220px] md:w-[260px] rounded-2xl bg-ink flex flex-col items-center justify-center gap-3 text-surface font-display font-bold text-center px-6"
+          >
+            <span>See the full gallery</span>
+            <ArrowRight size={20} />
+          </Link>
+        </motion.div>
+      </section>
+
+      {/* ============ Visit strip ============ */}
+      <section className="py-20 md:py-24 bg-surface/70 border-t border-ink/10">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+          <motion.div {...fadeInUp} className="space-y-7">
+            <h2 className="font-display text-2xl md:text-3xl font-extrabold text-ink flex items-center gap-3">
+              <Clock className="text-primary" size={24} />
+              <span>Opening hours</span>
+            </h2>
+            <div>
+              {venue.hours.map((h) => (
+                <div key={h.day} className="flex justify-between items-center py-3.5 border-b border-ink/10">
+                  <span className="text-ink/60">{h.day}</span>
+                  <span className="font-semibold text-ink">{h.time}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div {...fadeInUp} className="space-y-7">
+            <h2 className="font-display text-2xl md:text-3xl font-extrabold text-ink flex items-center gap-3">
+              <MapPin className="text-primary" size={24} />
+              <span>Find us</span>
+            </h2>
+            <div className="bg-ink p-8 rounded-2xl text-paper">
+              <p className="text-lg leading-relaxed mb-8">{venue.address}</p>
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center justify-center gap-3 w-full bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold hover:bg-secondary transition-colors duration-200"
+              >
+                <span>Book a Table</span>
+                <span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform">
+                  <ArrowRight size={18} />
+                </span>
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+};

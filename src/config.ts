@@ -212,14 +212,19 @@ export const config = {
         ]
       },
     ],
-    // Photo tiles for the home-page favourites bento. Warrior Platter is a
-    // real Jimmy's photo (sourced from their Mr D listing). Smash Burger and
-    // Rump Steak are bespoke generated shots styled to match Jimmy's real
-    // photography (no stock placeholders left).
+    // Photo tiles for the home-page favourites bento.
+    // EVERY tile here is a real photograph of Jimmy's own food, taken from
+    // their Instagram. Nothing generated, nothing stock.
+    //
+    // The three featured items are chosen to match the real photos we have -
+    // not the other way round. If you want to feature a different dish, get a
+    // real photo of it first; do not generate one to fill the tile. Generated
+    // food on a real restaurant's site misrepresents what a customer will
+    // actually be served.
     featured: [
-      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: "R100", image: "/images/menu/smash-burger.jpg" },
+      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: "R100", image: "/images/gallery/burger-macro.jpg" },
       { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: "R350", image: "/images/menu/warrior-platter.jpeg" },
-      { name: "200g Rump Steak", description: "Flame-grilled, with chips and onion rings", price: "R110", image: "/images/menu/rump-steak.jpg" },
+      { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12.", price: "R70", image: "/images/gallery/breakfast-plate.jpg" },
     ],
   },
 

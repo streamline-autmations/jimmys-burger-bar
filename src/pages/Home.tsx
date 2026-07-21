@@ -6,7 +6,7 @@ import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { GoogleBadge } from '../components/GoogleBadge';
 import { Magnetic } from '../components/Magnetic';
-import { fadeInUp, staggerContainer, riseChild, heroItem } from '../lib/motion';
+import { fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampChild } from '../lib/motion';
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
   `Hi! I'd like to book a table at ${config.venue.name}.`
@@ -155,8 +155,10 @@ export const Home: React.FC = () => {
           </motion.p>
         </div>
 
+        {/* The signature moment: posters stamp down like stickers on the wall.
+            This is the ONLY place on the page that moves with intent. */}
         <motion.div
-          variants={staggerContainer}
+          variants={stampContainer}
           initial="initial"
           whileInView="whileInView"
           viewport={{ once: true, amount: 0.15 }}
@@ -165,10 +167,12 @@ export const Home: React.FC = () => {
           {specials.fridays.map((s, i) => (
             <motion.div
               key={s.title}
-              variants={riseChild}
-              className={`snap-start shrink-0 w-[272px] md:w-[300px] rounded-2xl relative overflow-hidden transition-transform duration-300 hover:rotate-0 hover:-translate-y-1 ${
-                i % 2 === 0 ? 'rotate-[-1.4deg]' : 'rotate-[1.2deg]'
-              } ${s.poster ? 'shadow-xl shadow-ink/20' : 'bg-ink p-7 pt-9'}`}
+              variants={shouldReduceMotion ? riseChild : stampChild}
+              custom={i % 2 === 0 ? -1.4 : 1.2}
+              whileHover={shouldReduceMotion ? undefined : { rotate: 0, y: -6, scale: 1.015 }}
+              className={`snap-start shrink-0 w-[272px] md:w-[300px] rounded-2xl relative overflow-hidden ${
+                s.poster ? 'shadow-xl shadow-ink/20' : 'bg-ink p-7 pt-9'
+              }`}
             >
               {s.poster ? (
                 <img

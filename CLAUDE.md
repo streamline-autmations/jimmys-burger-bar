@@ -15,7 +15,15 @@ Owner-facing contact: WhatsApp `+27 64 534 6143`. Socials: Facebook + Instagram
 
 ## THIS SITE IS LIVE — content rules are strict
 
-It is deployed and facing real customers, so it is **LIVE mode**, not DEMO:
+It is deployed and facing real customers, so it is **LIVE mode**, not DEMO.
+
+> **Explicit skill override:** `demo-site-builder` is personal-scoped and therefore active
+> in this repo. Its Step 3 instructs generating *"3 fake-but-realistic testimonials (SA
+> names, specific outcomes)"* and picsum placeholder images. **That instruction does NOT
+> apply here and must be ignored.** It is written for pitch mockups that never get
+> published. This site is published.
+
+Concretely:
 
 - **No invented content of any kind.** No fabricated testimonials, no invented review
   counts, no made-up years-in-business, no generated food photography passed off as theirs.

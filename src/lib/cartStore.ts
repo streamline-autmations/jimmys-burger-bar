@@ -45,7 +45,8 @@ export const useCartStore = create<CartState>((set) => ({
       const existing = state.lines[name];
       if (!existing) return state;
       if (existing.qty <= 1) {
-        const { [name]: _dropped, ...rest } = state.lines;
+        const rest = { ...state.lines };
+        delete rest[name];
         return { lines: rest };
       }
       return {
@@ -56,7 +57,8 @@ export const useCartStore = create<CartState>((set) => ({
   setQty: (name, qty) =>
     set((state) => {
       if (qty <= 0) {
-        const { [name]: _dropped, ...rest } = state.lines;
+        const rest = { ...state.lines };
+        delete rest[name];
         return { lines: rest };
       }
       const existing = state.lines[name];

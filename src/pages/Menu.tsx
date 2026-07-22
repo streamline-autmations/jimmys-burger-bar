@@ -65,6 +65,14 @@ export const Menu: React.FC = () => {
           <p className="text-ink/60 text-lg">Big breakfasts, 180g smash burgers and steaks off the grill. Real menu, real prices.</p>
         </motion.div>
 
+        <motion.div {...fadeInUp} className="relative overflow-hidden bg-ink min-h-[260px] md:min-h-[330px] mb-12 grid grid-cols-1 md:grid-cols-[1fr_0.9fr] items-center">
+          <div className="relative z-10 px-7 py-8 md:px-12 md:py-12 max-w-lg">
+            <span className="text-xs font-bold tracking-[0.16em] uppercase text-accent">Fresh off the grill</span>
+            <h2 className="font-display text-3xl md:text-5xl font-extrabold text-surface leading-[0.95] mt-3">The menu starts with a proper burger.</h2>
+          </div>
+          <img src="/images/campaign/gourmet-burger.webp" alt="Gourmet burger from Jimmy's" loading="eager" className="absolute md:relative inset-0 md:inset-auto w-full h-full md:h-[330px] object-cover opacity-45 md:opacity-100 md:order-2" />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/70 to-transparent md:hidden" />
+        </motion.div>
         <motion.div {...fadeInUp} className="mb-12 flex flex-wrap items-center gap-3">
           <button
             onClick={downloadMenu}

@@ -28,7 +28,7 @@ export const Specials: React.FC = () => {
         >
           <div className="relative min-h-[260px]">
             <img
-              src={specials.event.image}
+              src="/images/campaign/coffee-cars.webp"
               alt="Classic car at a Coffee & Cars morning"
               loading="lazy"
               className="absolute inset-0 w-full h-full object-cover"

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Quote, Clock, MapPin } from 'lucide-react';
@@ -11,6 +11,15 @@ import { fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampC
 import { useRailSkew } from '../lib/useRailSkew';
 import { RevealHeading } from '../components/RevealHeading';
 import { Marquee } from '../components/Marquee';
+import { WaveDivider, CheckerDivider } from '../components/SectionDivider';
+import { BurgerAssembly } from '../components/BurgerAssembly';
+
+const coffeeAndCarsImages = [
+  { src: '/images/campaign/coffee-cars.webp', label: 'Coffee and Cars morning' },
+  { src: '/images/campaign/car-3.webp', label: 'Classic car at Coffee and Cars' },
+  { src: '/images/campaign/car-4.webp', label: 'Coffee and Cars regulars' },
+  { src: '/images/campaign/car-5.webp', label: 'Coffee and Cars line-up' },
+];
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
   `Hi! I'd like to book a table at ${config.venue.name}.`
@@ -41,63 +50,11 @@ const PostedOnGoogle: React.FC = () => (
   </span>
 );
 
-// The one signature scroll moment on the page: the hero dish in the bento
-// breathes in slightly as it passes through view, echoing the hero parallax
-// without a full pin-hijack. Every other tile stays a plain hover-zoom.
-const FeaturedTile: React.FC<{ item: (typeof config.menu.featured)[number]; idx: number }> = ({ item, idx }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const shouldReduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const heroTileScale = useTransform(scrollYProgress, [0, 0.5, 1], [1.08, 1, 1.08]);
-
-  return (
-    <motion.div
-      ref={ref}
-      variants={riseChild}
-      className={`relative rounded-2xl overflow-hidden group min-h-[260px] ${idx === 0 ? 'md:col-span-2 md:row-span-2 md:min-h-[544px]' : ''}`}
-    >
-      <motion.img
-        src={item.image}
-        alt={item.name}
-        loading="lazy"
-        style={idx === 0 && !shouldReduceMotion ? { scale: heroTileScale } : undefined}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/25 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-6">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <h3 className={`font-display font-bold text-surface ${idx === 0 ? 'text-2xl md:text-3xl' : 'text-xl'}`}>{item.name}</h3>
-            {idx === 0 && <p className="text-paper/80 text-sm mt-1.5 max-w-sm hidden md:block">{item.description}</p>}
-          </div>
-          <span className="bg-accent text-ink font-display font-bold text-sm px-3.5 py-1.5 rounded-full whitespace-nowrap shadow-md">
-            {item.price}
-          </span>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 export const Home: React.FC = () => {
-  const { venue, specials, menu, testimonials } = config;
+  const { venue, specials, testimonials } = config;
 
-  const [taglineLead] = [venue.tagline.split(venue.taglineAccent)[0]];
-
-  // Serve the portrait hero crop to phones. Resolved once at mount: a mid-
-  // session orientation change keeping the landscape file is fine, and it
-  // avoids reloading a video on every resize event.
-  const [isPortraitHero] = React.useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
-  );
-  const heroVideoSrc = isPortraitHero && venue.hero.videoMobile ? venue.hero.videoMobile : venue.hero.video;
-  const heroPosterSrc = isPortraitHero && venue.hero.posterMobile ? venue.hero.posterMobile : venue.hero.poster;
-
-  const heroRef = useRef<HTMLElement>(null);
   const shouldReduceMotion = useReducedMotion();
-  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const heroY = useTransform(heroProgress, [0, 1], [0, shouldReduceMotion ? 0 : 140]);
-  const heroScale = useTransform(heroProgress, [0, 1], [1, shouldReduceMotion ? 1 : 1.12]);
+  const [coffeeImage, setCoffeeImage] = useState(coffeeAndCarsImages[0].src);
 
   // The poster rails lean with drag velocity — same sticker physics as the
   // stamp, applied to the track only (Framer owns the cards' transforms).
@@ -112,78 +69,29 @@ export const Home: React.FC = () => {
 
   return (
     <div className="flex flex-col w-full">
-      {/* ============ Hero: grill video under a navy wash ============ */}
-      <section ref={heroRef} className="relative min-h-[100dvh] w-full flex items-end overflow-hidden">
-        <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 z-0">
-          {venue.hero.type === 'video' ? (
-            <video
-              key={heroVideoSrc}
-              src={heroVideoSrc}
-              poster={heroPosterSrc}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <img src={heroPosterSrc} alt="" className="w-full h-full object-cover" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/30" />
-        </motion.div>
+      {/* ============ Hero: a flat-top stage for the assembling burger ============ */}
+      <section className="relative min-h-[100dvh] w-full overflow-hidden bg-ink text-surface">
 
-        {/* Google rating badge, pinned with its own top clearance so the
-            fixed navbar never overlaps it, independent of hero copy length */}
-        <div className="absolute top-24 md:top-28 left-0 right-0 z-10 px-4 md:px-8">
-          <motion.div {...heroItem(0.1)} className="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
-            <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} />
-            <span className="text-sm font-semibold text-surface bg-ink/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
-              57 Loch Street, Meyerton
-            </span>
-          </motion.div>
-        </div>
-
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-8 md:pb-12">
-          <div className="max-w-2xl">
-            <motion.h1
-              {...heroItem(0.22)}
-              className="font-display text-[2.6rem] leading-[1.05] md:text-6xl lg:text-7xl font-extrabold text-surface mb-6"
-            >
-              {taglineLead}
-              <span className="font-script font-normal text-secondary block leading-[1.25] pb-2 text-[0.85em]">
-                {venue.taglineAccent}
-              </span>
+        <div className="absolute top-0 right-0 w-[58vw] h-full border-l border-surface/10 hidden lg:block" aria-hidden="true" />
+        <div className="relative z-10 max-w-7xl mx-auto min-h-[100dvh] px-4 md:px-8 pt-24 md:pt-28 pb-10 grid grid-cols-1 lg:grid-cols-[minmax(0,0.82fr)_minmax(440px,1.18fr)] gap-4 lg:gap-10 items-center">
+          <div className="order-2 lg:order-1 max-w-xl pb-3 lg:pb-0">
+            <motion.div {...heroItem(0.1)} className="flex flex-wrap items-center gap-3 mb-7">
+              <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} />
+              <span className="text-xs md:text-sm font-bold tracking-[0.08em] uppercase text-accent">Meyerton, SA</span>
+            </motion.div>
+            <motion.p {...heroItem(0.18)} className="text-xs font-bold tracking-[0.18em] uppercase text-secondary mb-4">The Jimmy's smash</motion.p>
+            <motion.h1 {...heroItem(0.28)} className="font-display text-[3.2rem] sm:text-6xl md:text-7xl lg:text-[5.4rem] leading-[0.92] font-extrabold mb-6">
+              Proper food.<span className="font-script font-normal text-accent block leading-[1.15] text-[0.8em] pb-2">Done right.</span>
             </motion.h1>
-
-            <motion.p
-              {...heroItem(0.34)}
-              className="text-lg text-paper/85 leading-relaxed mb-10 max-w-md"
-            >
-              {venue.description}
-            </motion.p>
-
-            <motion.div {...heroItem(0.46)} className="flex flex-col sm:flex-row items-start gap-4">
-              <Magnetic className="w-full sm:w-auto">
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full sm:w-auto text-center bg-surface text-ink px-8 py-4 rounded-full font-display font-bold shadow-lg shadow-ink/40 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
-                >
-                  Book a Table
-                </a>
-              </Magnetic>
-              <Link
-                to="/menu"
-                className="w-full sm:w-auto text-center border-2 border-paper/40 text-surface px-8 py-4 rounded-full font-display font-bold hover:bg-surface hover:text-ink hover:border-surface transition-colors duration-200"
-              >
-                View the Menu
-              </Link>
+            <motion.p {...heroItem(0.4)} className="text-base md:text-lg text-paper/80 leading-relaxed mb-8 max-w-md">{venue.description}</motion.p>
+            <motion.div {...heroItem(0.5)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <Magnetic className="w-full sm:w-auto"><a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="block w-full sm:w-auto text-center bg-accent text-ink px-7 py-3.5 rounded-full font-display font-bold shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]">Book a Table</a></Magnetic>
+              <Link to="/menu" className="w-full sm:w-auto text-center border border-surface/35 text-surface px-7 py-3.5 rounded-full font-display font-bold hover:bg-surface hover:text-ink hover:border-surface transition-colors duration-200">View the Menu</Link>
             </motion.div>
           </div>
+          <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0"><BurgerAssembly /></motion.div>
         </div>
       </section>
-
       {/* Golden marquee band: constant life in the sticker voice */}
       <Marquee />
 
@@ -256,37 +164,40 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* ============ Food: bento of the favourites, real prices ============ */}
-      <section className="relative py-20 md:py-24 bg-surface/70 overflow-hidden">
-        <Doodle name="burger" className="absolute top-10 -right-6 w-40 h-40 text-primary/[0.07] rotate-[18deg] pointer-events-none" />
-        <Doodle name="fries" className="absolute bottom-8 -left-8 w-36 h-36 text-primary/[0.06] -rotate-12 pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
-          <motion.div {...fadeInUp} className="max-w-lg mb-12">
-            <RevealHeading text="Crowd favourites" className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-3" />
-            <p className="text-ink/60">180g patties smashed to order, platters built for the table, steaks off the flame.</p>
+      {/* Divider experiment 1: soft wave into Crowd favourites */}
+      <WaveDivider fill="rgb(var(--color-surface))" />
+
+      {/* ============ Food: the hands-on choice ============ */}
+      <section className="relative py-20 md:py-28 bg-surface overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <motion.div {...fadeInUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10 md:mb-14">
+            <div className="max-w-xl">
+              <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">Pick your hunger</span>
+              <RevealHeading text="Made to hold with both hands" className="font-display text-4xl md:text-6xl font-extrabold text-ink leading-[0.96] mt-3" />
+            </div>
+            <p className="text-ink/60 max-w-sm leading-relaxed">Big patties, crisp edges and the kind of burger that needs a proper grip.</p>
           </motion.div>
 
-          <motion.div
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="whileInView"
-            viewport={{ once: true, amount: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4"
-          >
-            {menu.featured.map((item, idx) => (
-              <FeaturedTile key={item.name} item={item} idx={idx} />
-            ))}
-          </motion.div>
-
-          <div className="text-center mt-12">
-            <Link to="/menu" className="inline-flex items-center gap-2 text-primary font-bold group">
-              <span>The full menu</span>
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <Link to="/menu" className="group relative min-h-[440px] md:min-h-[620px] overflow-hidden bg-ink block">
+              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
+              <div className="absolute left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
+                <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The classic</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Beef Burgers</h3></div>
+                <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
+              </div>
+            </Link>
+            <Link to="/menu" className="group relative min-h-[440px] md:min-h-[620px] overflow-hidden bg-primary block md:mt-12">
+              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
+              <div className="absolute left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
+                <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The other favourite</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Chicken Burgers</h3></div>
+                <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
+              </div>
             </Link>
           </div>
         </div>
       </section>
-
       {/* ============ Coffee & Cars: Jimmy's monthly ritual ============ */}
       <section className="relative py-20 md:py-28 overflow-hidden">
         <div className="checker absolute top-0 left-0 right-0 opacity-70" aria-hidden="true" />
@@ -294,16 +205,16 @@ export const Home: React.FC = () => {
         <Doodle name="coffee" className="absolute top-16 left-[3%] w-24 h-24 text-primary/[0.07] rotate-6 pointer-events-none hidden md:block" />
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center pt-6">
           <motion.div {...fadeInUp} className="relative">
-            <div className="rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15">
-              <motion.img
-                {...imageSettle}
-                src={specials.event.image}
-                alt="Classic car at a Coffee & Cars morning"
-                loading="lazy"
-                className="w-full h-[320px] md:h-[420px] object-cover"
-              />
-            </div>
-            <Starburst label="breakfast" value="R95" className="absolute -bottom-6 -right-2 md:-right-6 w-24 h-24 md:w-28 md:h-28 text-[28px] md:text-[32px]" />
+            <div className="rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15 relative">
+              <motion.img {...imageSettle} src={coffeeImage} alt="Classic car at a Coffee and Cars morning" loading="lazy" className="w-full h-[320px] md:h-[420px] object-cover" />
+              <div className="absolute left-3 top-3 flex gap-2" aria-label="Coffee and Cars photos">
+                {coffeeAndCarsImages.map((image) => (
+                  <button key={image.src} type="button" onMouseEnter={() => setCoffeeImage(image.src)} onFocus={() => setCoffeeImage(image.src)} onClick={() => setCoffeeImage(image.src)} aria-label={image.label} className={`w-11 h-11 overflow-hidden border-2 transition-all ${coffeeImage === image.src ? 'border-accent scale-105' : 'border-surface/70 hover:border-accent'}`}>
+                    <img src={image.src} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>            <Starburst label="breakfast" value="R95" className="absolute -bottom-6 -right-2 md:-right-6 w-24 h-24 md:w-28 md:h-28 text-[28px] md:text-[32px]" />
           </motion.div>
 
           <motion.div {...fadeInUp}>
@@ -322,95 +233,42 @@ export const Home: React.FC = () => {
 
       {/* ============ Drinks band: ambience video under navy ============ */}
       <section ref={drinksRef} className="relative py-28 md:py-40 overflow-hidden bg-ink">
-        {/* Oversized on the y-axis so the parallax drift never exposes an edge */}
         <motion.div style={{ y: drinksY }} className="absolute inset-x-0 -inset-y-12 z-0">
           {venue.ambience.type === 'video' ? (
-            <video
-              src={venue.ambience.video}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover opacity-45"
-            />
+            <video src={venue.ambience.video} autoPlay muted loop playsInline className="w-full h-full object-cover opacity-45" />
           ) : (
             <img src={venue.ambience.image} alt="" className="w-full h-full object-cover opacity-45" />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/30" />
         </motion.div>
-
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="max-w-xl">
-            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-surface mb-5">
-              Cold ones,
-              <span className="font-script font-normal text-secondary block leading-[1.3] pb-2 text-[0.8em]">sorted.</span>
-            </h2>
-            <p className="text-lg text-paper/85 leading-relaxed mb-9 max-w-md">
-              Local lagers at R28, Savannas by the bucket, and a house cocktail
-              called the Frikkie van Zyl. Ask the bar, they'll explain.
-            </p>
-            <Link
-              to="/drinks"
-              className="group inline-flex items-center gap-3 bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
-            >
-              <span>The bar list</span>
-              <span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform">
-                <ArrowRight size={18} />
-              </span>
-            </Link>
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-surface mb-5">Cold ones,<span className="font-script font-normal text-secondary block leading-[1.3] pb-2 text-[0.8em]">sorted.</span></h2>
+            <p className="text-lg text-paper/85 leading-relaxed mb-9 max-w-md">Local lagers at R28, Savannas by the bucket, and a house cocktail called the Frikkie van Zyl. Ask the bar, they'll explain.</p>
+            <Link to="/drinks" className="group inline-flex items-center gap-3 bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"><span>The bar list</span><span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform"><ArrowRight size={18} /></span></Link>
           </motion.div>
         </div>
       </section>
+      {/* Divider experiment 2: checkered-flag edge into Story - the site's
+          existing racing/Coffee&Cars motif, bent into a section break rather
+          than the flat .checker strip */}
+      <CheckerDivider fill="rgb(var(--color-surface))" />
 
-      {/* ============ Story ============ */}
-      <section className="py-20 md:py-28 bg-surface/70">
+      {/* ============ Story: the place after the plate ============ */}
+      <section className="py-20 md:py-28 bg-surface overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <motion.div {...fadeInUp} className="rounded-2xl overflow-hidden order-2 lg:order-1 ring-8 ring-paper">
-            <motion.img
-              {...imageSettle}
-              src="/images/gallery/fireplace-corner.jpg"
-              alt="The fireplace corner inside Jimmy's Burger Bar"
-              loading="lazy"
-              className="w-full h-[420px] md:h-[520px] object-cover"
-            />
+          <motion.div {...fadeInUp} className="relative min-h-[480px] md:min-h-[620px] order-2 lg:order-1">
+            <img src="/images/campaign/atmosphere.webp" alt="Atmosphere at Jimmy's Burger Bar" loading="lazy" className="absolute top-0 left-0 w-[78%] h-[78%] object-cover" />
+            <img src="/images/campaign/live-music.webp" alt="Live music at Jimmy's Burger Bar" loading="lazy" className="absolute right-0 bottom-0 w-[54%] h-[56%] object-cover border-[10px] border-surface shadow-xl shadow-ink/20" />
           </motion.div>
-
           <motion.div {...fadeInUp} className="order-1 lg:order-2">
-            <RevealHeading
-              text="Built for Meyerton, one burger at a time"
-              className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-6"
-            />
-            <div className="space-y-4 text-ink/70 leading-relaxed max-w-md">
-              <p>
-                Jimmy's started with one idea: proper burgers, proper portions,
-                and a bar that never runs dry. No shortcuts on the grill, no
-                watered-down pours.
-              </p>
-              <p>
-                The patties are smashed to order. The fryer never sits idle.
-                And once you've had the Smash Burger, you'll understand why
-                Meyerton keeps coming back.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 mt-10 pt-8 border-t border-ink/15 max-w-md">
-              <div>
-                <p className="font-display text-3xl font-extrabold text-primary">{venue.rating}★</p>
-                <p className="text-sm text-ink/55 mt-1">Google rating</p>
-              </div>
-              <div>
-                <p className="font-display text-3xl font-extrabold text-primary">{venue.reviewCount}+</p>
-                <p className="text-sm text-ink/55 mt-1">local reviews</p>
-              </div>
-              <div>
-                <p className="font-display text-3xl font-extrabold text-primary">180g</p>
-                <p className="text-sm text-ink/55 mt-1">smash-pressed patties</p>
-              </div>
-            </div>
+            <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">More than a quick stop</span>
+            <RevealHeading text="The food brings you in. The place keeps you here." className="font-display text-4xl md:text-5xl font-extrabold text-ink leading-[0.96] mt-4 mb-6" />
+            <div className="space-y-4 text-ink/70 leading-relaxed max-w-md"><p>Jimmy's is where the table turns into another round, the bar gets louder and the regulars already know your order.</p><p>Come through for proper food, live music, Coffee & Cars and a night that does not need a reason.</p></div>
+            <div className="grid grid-cols-3 gap-5 mt-10 pt-7 border-t border-ink/15 max-w-md"><div><p className="font-display text-3xl font-extrabold text-primary">{venue.rating}?</p><p className="text-sm text-ink/55 mt-1">Google rating</p></div><div><p className="font-display text-3xl font-extrabold text-primary">{venue.reviewCount}+</p><p className="text-sm text-ink/55 mt-1">local reviews</p></div><div><p className="font-display text-3xl font-extrabold text-primary">180g</p><p className="text-sm text-ink/55 mt-1">smash patties</p></div></div>
           </motion.div>
         </div>
       </section>
-
       {/* ============ Regulars say ============ */}
       <section className="relative py-20 md:py-28 overflow-hidden">
         <Doodle name="shake" className="absolute top-12 -right-4 w-32 h-32 text-primary/[0.06] rotate-12 pointer-events-none" />

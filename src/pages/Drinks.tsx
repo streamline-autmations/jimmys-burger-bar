@@ -34,6 +34,10 @@ export const Drinks: React.FC = () => {
           <p className="text-ink/60 text-lg">{drinks.intro}</p>
         </motion.div>
 
+        <motion.div {...fadeInUp} className="grid grid-cols-2 gap-4 mb-14 md:max-w-4xl">
+          <div className="relative min-h-[260px] md:min-h-[360px] overflow-hidden bg-ink"><img src="/images/campaign/drink-special.webp" alt="Signature drink at Jimmy's" loading="eager" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" /></div>
+          <div className="relative min-h-[260px] md:min-h-[360px] overflow-hidden bg-primary md:mt-10"><img src="/images/campaign/drink-special-2.webp" alt="Cold drink at Jimmy's" loading="eager" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105" /></div>
+        </motion.div>
         {/* Drinks board */}
         <motion.div
           variants={staggerContainer}

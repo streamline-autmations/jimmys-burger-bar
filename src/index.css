@@ -82,10 +82,71 @@
 .starburst-spin {
   animation: spin-slow 24s linear infinite;
 }
+.burger-stage { perspective: 900px; }
+
+/* A light-blue silhouette guides the assembly without competing with the food. */
+.burger-outline {
+  z-index: 0;
+  opacity: 0.5;
+  background: rgb(var(--color-secondary));
+  -webkit-mask: url('/images/burger-layers/burger-complete.webp') center / contain no-repeat;
+  mask: url('/images/burger-layers/burger-complete.webp') center / contain no-repeat;
+  transform: scale(1.028);
+}
+.burger-outline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--color-ink));
+  -webkit-mask: url('/images/burger-layers/burger-complete.webp') center / contain no-repeat;
+  mask: url('/images/burger-layers/burger-complete.webp') center / contain no-repeat;
+  transform: scale(0.978);
+}
+
+.burger-steam {
+  position: absolute;
+  z-index: 20;
+  left: 21%;
+  top: 7%;
+  width: 58%;
+  height: 43%;
+  pointer-events: none;
+}
+.burger-steam span {
+  position: absolute;
+  bottom: 0;
+  width: 12%;
+  height: 86%;
+  border-radius: 999px;
+  background: rgb(var(--color-surface) / 0.54);
+  filter: blur(11px);
+  opacity: 0;
+  --drift: 0px;
+  animation: burger-steam 5.8s ease-in-out infinite;
+}
+.burger-steam span:nth-child(1) { left: 0%; height: 58%; --drift: -38px; animation-delay: 3.9s; }
+.burger-steam span:nth-child(2) { left: 8%; height: 78%; --drift: -28px; animation-delay: 4.16s; }
+.burger-steam span:nth-child(3) { left: 17%; height: 94%; --drift: -18px; animation-delay: 4.42s; }
+.burger-steam span:nth-child(4) { left: 27%; height: 70%; --drift: -12px; animation-delay: 4.68s; }
+.burger-steam span:nth-child(5) { left: 37%; height: 100%; --drift: -4px; animation-delay: 4.94s; }
+.burger-steam span:nth-child(6) { left: 47%; height: 78%; --drift: 5px; animation-delay: 5.2s; }
+.burger-steam span:nth-child(7) { left: 57%; height: 96%; --drift: 12px; animation-delay: 5.46s; }
+.burger-steam span:nth-child(8) { left: 67%; height: 68%; --drift: 20px; animation-delay: 5.72s; }
+.burger-steam span:nth-child(9) { left: 77%; height: 92%; --drift: 30px; animation-delay: 5.98s; }
+.burger-steam span:nth-child(10) { left: 87%; height: 62%; --drift: 40px; animation-delay: 6.24s; }
+.burger-steam span:nth-child(11) { left: 31%; height: 84%; --drift: -24px; animation-delay: 6.5s; }
+.burger-steam span:nth-child(12) { left: 62%; height: 88%; --drift: 26px; animation-delay: 6.76s; }
+@keyframes burger-steam {
+  0%, 10% { opacity: 0; transform: translate3d(0, 18px, 0) scaleX(0.46); }
+  25% { opacity: 0.74; }
+  74% { opacity: 0; transform: translate3d(var(--drift), -96px, 0) scaleX(2.25); }
+  100% { opacity: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .marquee-track,
-  .starburst-spin {
+  .starburst-spin,
+  .burger-steam span {
     animation: none;
   }
 }

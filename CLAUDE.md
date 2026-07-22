@@ -33,14 +33,21 @@ Concretely:
   misrepresents what a customer will actually be served, and this is a restaurant whose
   customers will physically arrive expecting that plate.
 
+> **2026-07-22 client override on the rule above:** Christiaan explicitly approved
+> generating AI food imagery/video (via Higgsfield) for the Crav-tier visual upgrade,
+> with the misrepresentation risk stated and understood, until real photography can be
+> arranged. Any AI-generated food asset added under this override MUST be logged in the
+> table below so it can be swapped out when a real shoot happens. The rule above is not
+> deleted because it remains the target state.
+
 ### Known outstanding content issues (do not ship more of these)
 
 | Issue | Where | Status |
 |---|---|---|
-| 3 fabricated testimonials | `config.ts` → `testimonials`, rendered `Home.tsx` | **Unresolved.** They are invented. Jimmy's has 4.6★ / 54 real Google reviews — pull verbatim ones and replace. |
-| Hero video is AI-generated | `public/videos/hero-burger-loop.mp4` | Derived from their real hero shot via image-to-video. Replace with real footage when available. |
-| Trading hours unconfirmed | `config.ts` → `venue.hours` | **Unconfirmed.** Wrong hours send customers to a closed door. Confirm with Jimmy's. |
-| Email is invented | `config.ts` → `venue.email` | `hello@jimmysburgerbar.co.za` is a placeholder. |
+| 3 fabricated testimonials | `config.ts` → `testimonials`, rendered `Home.tsx` | **Resolved 2026-07-22.** Replaced with verbatim Google reviews (Nicole Delport, Linda Terblanche, Eugene Prins) supplied by Christiaan. Listing is now 4.7★ / 64 reviews; config updated to match. |
+| Hero video is AI-generated | `public/videos/hero-burger-cinematic.mp4` (active), `hero-burger-loop.mp4` (old, kept for rollback) | **Covered by the 2026-07-22 override.** Both derived from Jimmy's real hero shot via image-to-video (v2: Seedance 2.0, push-in/ease-out loop + steam). Poster `images/hero-burger-poster.jpg` is the video's first frame (AI-derived, same asset). Replace with real footage when available. |
+| Trading hours unconfirmed | `config.ts` → `venue.hours` | **Resolved 2026-07-22.** Real hours from Christiaan: Mon–Tue 09:00–20:00, Wed–Thu 09:00–21:00, Fri–Sat 09:00–00:00, Sun closed. Note: Coffee & Cars still runs one Sunday a month — they open for the event. |
+| Email is invented | `config.ts` → `venue.email` | **Resolved 2026-07-22.** Real inbox: `jimmysburgerbar1@gmail.com`. |
 
 ---
 
@@ -72,21 +79,67 @@ real brand collateral. Loaded via Google Fonts in `src/index.css`.
 
 ---
 
-## Motion signature: "stamp"
+## Motion system: the "stamp" world (expanded 2026-07-22)
 
-The site has **one** signature movement, and it is derived from the subject: Jimmy's brand is
-a poster wall with jagged golden starburst price stickers slapped on top.
+The signature is still the stamp — Jimmy's brand is a poster wall with jagged golden
+starburst price stickers slapped on top, and posters/stickers still land with overshoot
+(`stampChild` / `stampContainer` / `stampSticker` in `src/lib/motion.ts`). But on
+2026-07-22 Christiaan directed a full motion expansion (reference: cravburgers.shop),
+so the site is no longer "one signature, everything else still." The current system:
 
-- **Posters and price stickers land.** Scale overshoot that settles, plus the card animating
-  to its resting tilt so it lands crooked — the way a sticker actually goes on.
-  See `stampChild` / `stampContainer` / `stampSticker` in `src/lib/motion.ts`.
-- **Everything else holds still.** `fadeInUp` and `riseChild` are **opacity-only**. The name
-  `fadeInUp` is historical (~35 call sites); it no longer translates. **Do not add `y` back.**
-- Reason: what makes a site look AI-generated is not bad motion, it is *undifferentiated*
-  motion — every element entering identically. One element moving with intent and the rest
-  calm reads as designed.
+- **Stamp (signature, unchanged):** posters and price stickers land with scale overshoot
+  and settle crooked. Still the ONLY overshoot on the site.
+- **Entrances translate again:** `fadeInUp` / `riseChild` are opacity + y rise (the
+  earlier opacity-only doctrine was deliberately reversed at client direction — do not
+  "restore" it without asking Christiaan).
+- **Word-mask headings:** `<RevealHeading>` — words rise out of per-word overflow masks.
+  Used on major section headings and page titles.
+- **Image settle:** `imageSettle` — imgs arrive oversized, settle to scale 1. Apply to the
+  `<img>` inside an overflow-hidden wrapper, never the wrapper (rings/tilts would clip).
+- **Route curtain (v2):** two layers in `App.tsx` — a gold accent edge leads, the navy
+  curtain follows, and the real logo (`/images/logo.png`) stamps onto the curtain with
+  `STAMP_EASE` while the page changes. Reveal is the reverse order so every wipe
+  flashes gold between ink and page. `ScrollToTop` is delayed 430ms to hide the jump.
+- **Marquee band** (`<Marquee>`): infinite gold strip under the hero, CSS-only. Content
+  must stay factual (menu/specials/address) — no invented claims.
+- **Starburst spin:** the jagged SVG rotates slowly (24s) behind static price text.
+- **Rail lean:** poster rails skew with drag velocity (`useRailSkew`, GSAP on track only).
+- **Drinks band drift:** ±40px scroll parallax, oversized wrapper.
+- **The pinned Smash showcase** (`<SmashStory>`): the site's one scroll-choreographed
+  scene — pinned ~1.8 screens on Home, GSAP-scrubbed: giant Baloo type slides in from
+  both sides ("SMASHED" filled / "TO ORDER" outlined via `.text-outline-surface`), the
+  real burger photo scales up and settles to a sticker tilt, the R100 starburst stamps
+  in late. Full-bleed `bg-primary` — the only section allowed to colour-block primary.
+  GSAP owns everything inside it; no Framer in that tree. **Gotcha:** the route
+  transition wrapper is `display:flex`, which makes ScrollTrigger silently auto-disable
+  pin spacing — `pinSpacing: true` must stay explicit or later sections scroll straight
+  over the pinned scene. Do not add a second pinned scene without a strong reason.
+- **Ink doodles** (`<Doodle>`): hand-drawn stroke SVG food/drink sketches in royal blue,
+  used as faint watermarks on menu/drinks panels (mapped per category) and scattered in
+  section backgrounds at ≤8% opacity. Chalkboard voice, never above ~13% opacity, never
+  a substitute for real photography.
 
-If you add a new section, use `fadeInUp`. The stamp is reserved for posters and price stickers.
+**Reviewer presentation rule:** review cards use Google-style INITIAL avatars plus a
+"Posted on Google" chip. Never attach internet/stock photos to real named reviewers —
+that fabricates identity, same class of violation as invented testimonials.
+
+Coherence rules that keep this from becoming slop: everything derives from the
+poster/sticker world; ONE easing curve (`EASE`) for all entrances; overshoot stays
+exclusive to the stamp; infinite loops are CSS-only, subtle, and pause under
+`prefers-reduced-motion`; `MotionConfig reducedMotion="user"` guards all Framer
+transforms globally.
+
+**Secondary physics, same world (added 2026-07-22, Crav-tier interaction pass):**
+
+- The horizontal poster rails lean slightly with drag velocity and settle upright
+  (`src/lib/useRailSkew.ts`, GSAP `quickTo` on skewX). This is sticker physics extending
+  the stamp, not a second signature. The skew is applied to the rail **track only** —
+  never the cards, because Framer owns each card's inline transform (see gotcha below).
+- The drinks band video drifts ±40px against scroll (Framer `useScroll`, same pattern as
+  the hero). Its wrapper is oversized (`-inset-y-12`) so the drift never exposes an edge.
+- Lenis is now driven by `gsap.ticker` with `ScrollTrigger.update` synced on its scroll
+  event (`src/lib/useLenis.ts`) so any future ScrollTrigger work reads accurate positions.
+  Do not reintroduce a separate `requestAnimationFrame` loop for Lenis.
 
 **Gotcha:** the poster cards' tilt lives in the Framer variant, **not** a Tailwind
 `rotate-[]` class. Framer writes an inline `transform` which clobbers Tailwind's transform

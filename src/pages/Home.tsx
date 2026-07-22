@@ -11,7 +11,6 @@ import { fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampC
 import { useRailSkew } from '../lib/useRailSkew';
 import { RevealHeading } from '../components/RevealHeading';
 import { Marquee } from '../components/Marquee';
-import { SmashStory } from '../components/SmashStory';
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
   `Hi! I'd like to book a table at ${config.venue.name}.`
@@ -85,6 +84,15 @@ export const Home: React.FC = () => {
 
   const [taglineLead] = [venue.tagline.split(venue.taglineAccent)[0]];
 
+  // Serve the portrait hero crop to phones. Resolved once at mount: a mid-
+  // session orientation change keeping the landscape file is fine, and it
+  // avoids reloading a video on every resize event.
+  const [isPortraitHero] = React.useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+  const heroVideoSrc = isPortraitHero && venue.hero.videoMobile ? venue.hero.videoMobile : venue.hero.video;
+  const heroPosterSrc = isPortraitHero && venue.hero.posterMobile ? venue.hero.posterMobile : venue.hero.poster;
+
   const heroRef = useRef<HTMLElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -109,8 +117,9 @@ export const Home: React.FC = () => {
         <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 z-0">
           {venue.hero.type === 'video' ? (
             <video
-              src={venue.hero.video}
-              poster={venue.hero.poster}
+              key={heroVideoSrc}
+              src={heroVideoSrc}
+              poster={heroPosterSrc}
               autoPlay
               muted
               loop
@@ -118,7 +127,7 @@ export const Home: React.FC = () => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <img src={venue.hero.poster} alt="" className="w-full h-full object-cover" />
+            <img src={heroPosterSrc} alt="" className="w-full h-full object-cover" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/30" />
         </motion.div>
@@ -177,9 +186,6 @@ export const Home: React.FC = () => {
 
       {/* Golden marquee band: constant life in the sticker voice */}
       <Marquee />
-
-      {/* ============ The pinned Smash showcase: scroll choreography ============ */}
-      <SmashStory />
 
       {/* ============ Friday specials: the poster wall ============ */}
       <section className="relative py-20 md:py-24 overflow-hidden bg-secondary/10">
@@ -362,8 +368,8 @@ export const Home: React.FC = () => {
           <motion.div {...fadeInUp} className="rounded-2xl overflow-hidden order-2 lg:order-1 ring-8 ring-paper">
             <motion.img
               {...imageSettle}
-              src="/images/about-banner.jpg"
-              alt="Inside Jimmy's Burger Bar"
+              src="/images/gallery/fireplace-corner.jpg"
+              alt="The fireplace corner inside Jimmy's Burger Bar"
               loading="lazy"
               className="w-full h-[420px] md:h-[520px] object-cover"
             />

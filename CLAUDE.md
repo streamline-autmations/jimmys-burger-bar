@@ -105,15 +105,15 @@ so the site is no longer "one signature, everything else still." The current sys
 - **Starburst spin:** the jagged SVG rotates slowly (24s) behind static price text.
 - **Rail lean:** poster rails skew with drag velocity (`useRailSkew`, GSAP on track only).
 - **Drinks band drift:** ±40px scroll parallax, oversized wrapper.
-- **The pinned Smash showcase** (`<SmashStory>`): the site's one scroll-choreographed
-  scene — pinned ~1.8 screens on Home, GSAP-scrubbed: giant Baloo type slides in from
-  both sides ("SMASHED" filled / "TO ORDER" outlined via `.text-outline-surface`), the
-  real burger photo scales up and settles to a sticker tilt, the R100 starburst stamps
-  in late. Full-bleed `bg-primary` — the only section allowed to colour-block primary.
-  GSAP owns everything inside it; no Framer in that tree. **Gotcha:** the route
-  transition wrapper is `display:flex`, which makes ScrollTrigger silently auto-disable
-  pin spacing — `pinSpacing: true` must stay explicit or later sections scroll straight
-  over the pinned scene. Do not add a second pinned scene without a strong reason.
+- **The pinned Smash showcase** (`<SmashStory>`): **currently UNMOUNTED** — built
+  2026-07-22, then pulled from Home the same day at client direction ("nice touch but
+  doesn't fit, remove for now"). The component is kept in `src/components/SmashStory.tsx`
+  for a future placement. If remounting: it is a ~1.8-screen GSAP pin+scrub scene
+  (giant filled/outlined Baloo type, real burger photo settling to a sticker tilt, R100
+  starburst stamp, full-bleed `bg-primary`). GSAP owns everything inside it; no Framer
+  in that tree. **Gotcha:** the route transition wrapper is `display:flex`, which makes
+  ScrollTrigger silently auto-disable pin spacing — `pinSpacing: true` must stay
+  explicit or later sections scroll straight over the pinned scene.
 - **Ink doodles** (`<Doodle>`): hand-drawn stroke SVG food/drink sketches in royal blue,
   used as faint watermarks on menu/drinks panels (mapped per category) and scattered in
   section backgrounds at ≤8% opacity. Chalkboard voice, never above ~13% opacity, never
@@ -157,7 +157,10 @@ chain and flattens the cards. Keep the tilt in the variant.
   paid upsells, **OFF** by default. The ordering implementation lives in the
   `restaurant_demo` sibling and is ported in only when a client pays.
 - **Hero** supports `type: "video" | "image"`. For a live client site the file must be local
-  in `/public` — never hot-link a CDN.
+  in `/public` — never hot-link a CDN. Phones get a dedicated 9:16 centre-crop of the same
+  clip (`hero.videoMobile` / `posterMobile`, chosen once at mount in `Home.tsx`) — the
+  16:9 file under `object-cover` on a portrait screen loses the composition entirely and
+  wastes mobile data (portrait crop is ~0.6MB vs 1.9MB).
 - Motion presets live in `src/lib/motion.ts`. One easing curve. Entry-only, no infinite loops.
 - Mobile-first: most traffic is phones arriving from a WhatsApp link.
 

@@ -72,6 +72,11 @@ export const config = {
       type: "video" as "video" | "image",
       video: "/videos/hero-burger-cinematic.mp4",
       poster: "/images/hero-burger-poster.jpg",
+      // 9:16 centre crop of the same clip for phones - object-cover on a
+      // portrait screen butchers the 16:9 composition, and this file is a
+      // third of the weight on mobile data.
+      videoMobile: "/videos/hero-burger-cinematic-mobile.mp4",
+      posterMobile: "/images/hero-burger-poster-mobile.jpg",
     },
     // Backdrop for the drinks band on the home page. Bespoke pour loop
     // (pour is already mid-stream from frame one, no dead lead-in). Falls

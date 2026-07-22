@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ShoppingBag } from 'lucide-react';
 import { config } from '../config';
 import { Logo } from './Logo';
 import { Magnetic } from './Magnetic';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { EASE } from '../lib/motion';
+import { useCartStore, selectCartCount } from '../lib/cartStore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,6 +26,7 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const lastScrollY = useRef(0);
   const { scrollY } = useScroll();
+  const cartCount = useCartStore(selectCartCount);
 
   // Driven by Motion's batched scroll value (not a raw scroll listener) so
   // this stays passive and frame-aligned with Lenis's smooth scroll.
@@ -87,10 +89,53 @@ export const Navbar: React.FC = () => {
               )}
             </Link>
           ))}
+          {config.features.ordering && (
+            <Link
+              to="/order"
+              className={cn(
+                'relative py-1 text-[15px] font-medium transition-colors',
+                location.pathname === '/order' ? 'text-ink' : 'text-ink/55 hover:text-ink'
+              )}
+            >
+              Order
+              {location.pathname === '/order' && (
+                <motion.span
+                  layoutId="nav-underline"
+                  className="absolute -bottom-0.5 left-0 w-full h-px bg-primary"
+                />
+              )}
+            </Link>
+          )}
         </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
+          {config.features.ordering && (
+            <Magnetic className="hidden sm:inline-block" strength={0.25}>
+              <Link
+                to="/order"
+                className="relative inline-flex items-center gap-2 bg-accent text-ink px-5 py-2.5 rounded-full text-sm font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97] shadow-lg shadow-accent/25"
+              >
+                <ShoppingBag size={16} />
+                Order Online
+                <AnimatePresence>
+                  {cartCount > 0 && (
+                    <motion.span
+                      key={cartCount}
+                      initial={{ scale: 0.4, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.4, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                      className="absolute -top-2 -right-2 bg-ink text-paper text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            </Magnetic>
+          )}
+
           <Magnetic className="hidden sm:inline-block" strength={0.25}>
             <a
               href={whatsappHref}
@@ -143,6 +188,46 @@ export const Navbar: React.FC = () => {
               </motion.div>
             ))}
 
+            {config.features.ordering && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.06 * config.nav.links.length, ease: EASE }}
+              >
+                <Link
+                  to="/order"
+                  className={cn(
+                    'block py-3 font-display text-4xl font-bold transition-colors',
+                    location.pathname === '/order' ? 'text-primary' : 'text-ink/85'
+                  )}
+                >
+                  Order
+                </Link>
+              </motion.div>
+            )}
+
+            {config.features.ordering && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3, ease: EASE }}
+                className="mt-6"
+              >
+                <Link
+                  to="/order"
+                  className="relative inline-flex items-center gap-2 bg-accent text-ink px-8 py-3.5 rounded-full font-display font-bold text-base shadow-xl shadow-accent/25"
+                >
+                  <ShoppingBag size={18} />
+                  Order Online
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-ink text-paper text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </motion.div>
+            )}
+
             <motion.a
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -150,7 +235,7 @@ export const Navbar: React.FC = () => {
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-8 bg-primary text-surface px-9 py-4 rounded-full font-display font-bold text-lg shadow-xl shadow-primary/20"
+              className="mt-4 bg-primary text-surface px-9 py-4 rounded-full font-display font-bold text-lg shadow-xl shadow-primary/20"
             >
               Book a Table
             </motion.a>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { Download, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { config } from '../config';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
 
@@ -42,7 +43,7 @@ export const Menu: React.FC = () => {
           <p className="text-ink/60 text-lg">Big breakfasts, 180g smash burgers and steaks off the grill. Real menu, real prices.</p>
         </motion.div>
 
-        <motion.div {...fadeInUp} className="mb-12">
+        <motion.div {...fadeInUp} className="mb-12 flex flex-wrap items-center gap-3">
           <button
             onClick={downloadMenu}
             disabled={isGeneratingPdf}
@@ -53,6 +54,18 @@ export const Menu: React.FC = () => {
               <Download size={15} />
             </span>
           </button>
+
+          {config.features.ordering && (
+            <Link
+              to="/order"
+              className="inline-flex items-center gap-2.5 bg-accent text-ink pl-5 pr-2 py-2 rounded-full font-display font-bold text-sm transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-lg shadow-accent/25"
+            >
+              <span>Order Online</span>
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-ink/10">
+                <ShoppingBag size={15} />
+              </span>
+            </Link>
+          )}
         </motion.div>
       </div>
 

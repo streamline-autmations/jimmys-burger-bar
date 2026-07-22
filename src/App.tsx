@@ -9,6 +9,7 @@ import { Drinks } from './pages/Drinks';
 import { Specials } from './pages/Specials';
 import { Gallery } from './pages/Gallery';
 import { Visit } from './pages/Visit';
+import { Order } from './pages/Order';
 import { useLenis } from './lib/useLenis';
 
 const NotFound: React.FC = () => (
@@ -52,6 +53,7 @@ const App: React.FC = () => {
             <Route path="/specials" element={<Specials />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/visit" element={<Visit />} />
+            <Route path="/order" element={<Order />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

@@ -9,7 +9,7 @@ export const config = {
   // ---- Feature flags -------------------------------------------------------
   // Premium/paid features stay OFF by default — they are the upsell.
   features: {
-    ordering: false,      // online ordering + cart (dormant, kept for upsell)
+    ordering: true,       // online ordering + cart — upsell demo, now live
     reservations: false,  // table booking system (not yet built)
     scrollVideo: false,   // experimental scroll-scrubbed hero (R&D)
   },
@@ -86,6 +86,17 @@ export const config = {
       { name: "Gallery", path: "/gallery" },
       { name: "Visit", path: "/visit" },
     ]
+  },
+
+  // ---- Online ordering (upsell demo) ---------------------------------------
+  // Client-side only: cart -> WhatsApp deep link. The wait time and order
+  // tracking below are illustrative (demo of what the paid feature looks
+  // like), never real kitchen data — gated entirely behind features.ordering.
+  ordering: {
+    avgWaitMins: 18,
+    orderPrefix: "JB",
+    collectionNote: "Ready for collection at 57 Loch Street.",
+    tableNote: "We'll bring it straight to your table.",
   },
 
   // ---- Specials -----------------------------------------------------------

@@ -44,28 +44,34 @@ export const config = {
     tagline: "Meyerton's go-to spot for juicy burgers and ice-cold beers.",
     taglineAccent: "ice-cold beers.",
     description: "180g patties smashed to order, big breakfasts, flame-grilled steaks and a bar that never runs dry. Right on Loch Street, done right every time.",
-    // PLACEHOLDER — landline unknown; the number below is the one Jimmy's
-    // publishes on their specials posters. Confirm it takes bookings.
+    // Confirmed by Christiaan 2026-07-22.
     phone: "064 534 6143",
     whatsapp: "27645346143",
-    // PLACEHOLDER — swap in the real inbox before launch.
-    email: "hello@jimmysburgerbar.co.za",
+    // Real inbox, confirmed by Christiaan 2026-07-22.
+    email: "jimmysburgerbar1@gmail.com",
     address: "57 Loch Street, Meyerton, Gauteng",
     googleMapsEmbed: "https://maps.google.com/maps?q=Jimmy%27s+Burger+Bar+Meyerton&output=embed",
-    // PLACEHOLDER hours — confirm real trading hours with Jimmy's before launch.
+    // Real trading hours, confirmed by Christiaan 2026-07-22.
+    // NOTE: Sundays are closed EXCEPT the monthly Coffee & Cars morning
+    // (specials.event) — that one Sunday they open for the event.
     hours: [
-      { day: "Mon – Thu", time: "08:00 – 21:00" },
-      { day: "Fri – Sat", time: "08:00 – 22:00" },
-      { day: "Sunday", time: "08:00 – 20:00" },
+      { day: "Mon – Tue", time: "09:00 – 20:00" },
+      { day: "Wed – Thu", time: "09:00 – 21:00" },
+      { day: "Fri – Sat", time: "09:00 – 00:00" },
+      { day: "Sunday", time: "Closed" },
     ],
-    rating: "4.6",
-    reviewCount: "54",
+    rating: "4.7",
+    reviewCount: "64",
     hero: {
-      // Bespoke loop generated from Jimmy's own hero shot (image-to-video,
-      // same burger, subtle steam/push-in). Local file, no hot-linking.
+      // AI-generated cinematic loop (Seedance 2.0 image-to-video, 2026-07-22)
+      // derived from Jimmy's own real hero shot — same burger, slow push-in
+      // and ease-out so the loop doesn't jump, steam and glisten added.
+      // Logged under the CLAUDE.md AI-imagery override. Poster is the video's
+      // own first frame so playback starts seamlessly. Local file, no
+      // hot-linking. Previous loop kept at /videos/hero-burger-loop.mp4.
       type: "video" as "video" | "image",
-      video: "/videos/hero-burger-loop.mp4",
-      poster: "/images/hero-burger.jpg",
+      video: "/videos/hero-burger-cinematic.mp4",
+      poster: "/images/hero-burger-poster.jpg",
     },
     // Backdrop for the drinks band on the home page. Bespoke pour loop
     // (pour is already mid-stream from frame one, no dead lead-in). Falls
@@ -322,12 +328,13 @@ export const config = {
   },
 
   // ---- Testimonials -----------------------------------------------------
-  // Draft placeholders in the local Google-review tone — swap for verbatim
-  // reviews once pulled from Jimmy's real listing (4.6 stars, 54 reviews).
+  // REAL, verbatim Google reviews from Jimmy's listing (4.7 stars, 64 reviews),
+  // supplied by Christiaan on 2026-07-22. Do not edit the wording; if these
+  // are ever swapped, the replacements must also be verbatim from Google.
   testimonials: [
-    { name: "Riaan V.", rating: 5, text: "The Smash Burger is worth the drive alone. Meyerton's best-kept secret that isn't a secret anymore." },
-    { name: "Palesa M.", rating: 5, text: "Came for the Coffee & Cars morning, stayed for the vibe. Staff are quick and the portions are huge." },
-    { name: "Deon & Marié", rating: 5, text: "Booked the Warrior Platter for a birthday table of ten. Gone in twenty minutes flat." },
+    { name: "Nicole Delport", rating: 5, text: "Our waitress, Rea, was speedy, attentive and friendly. The drinks arrived quickly after we ordered. The burgers were well-prepared, and the patties were juicy and seasoned well. Overall, it was a pleasant experience!" },
+    { name: "Linda Terblanche", rating: 5, text: "The service was good and the food excellent. I had a huge omelette and my husband the breakfast wrap. Highly recommend and will go again." },
+    { name: "Eugene Prins", rating: 5, text: "Very tasty food at affordable prices, and a very welcoming atmosphere and friendly staff as well." },
   ],
 
   socials: {

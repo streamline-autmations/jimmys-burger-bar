@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
@@ -11,6 +12,7 @@ import { Gallery } from './pages/Gallery';
 import { Visit } from './pages/Visit';
 import { Order } from './pages/Order';
 import { useLenis } from './lib/useLenis';
+import { EASE, STAMP_EASE } from './lib/motion';
 
 const NotFound: React.FC = () => (
   <div className="pt-28 pb-24 min-h-[70dvh] flex flex-col items-center justify-center text-center px-4">
@@ -28,25 +30,64 @@ const NotFound: React.FC = () => (
   </div>
 );
 
-// Scroll to top on route change
+// Scroll to top on route change. Delayed until the curtain fully covers the
+// viewport (exit duration below) so the jump is never visible.
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const t = window.setTimeout(() => window.scrollTo(0, 0), 430);
+    return () => window.clearTimeout(t);
   }, [pathname]);
   return null;
 };
 
-const App: React.FC = () => {
-  useLenis();
+// Route transition, two layers deep. A gold sticker-coloured edge leads, the
+// navy curtain follows on top of it, and Jimmy's real logo stamps onto the
+// curtain (the site's signature move) while the page changes underneath.
+// Reveal order is the reverse: navy lifts first, gold trails a beat behind,
+// so every wipe flashes the accent between ink and page.
+//
+// The exiting page's layers finished `enter` above the viewport, so `exit`
+// slides them back down over the old page. The entering page's layers start
+// covering and lift away.
+const goldVariants = {
+  initial: { y: '0%' },
+  enter: { y: '-100%', transition: { duration: 0.5, ease: EASE, delay: 0.28 } },
+  exit: { y: '0%', transition: { duration: 0.38, ease: EASE } },
+};
+
+const inkVariants = {
+  initial: { y: '0%' },
+  enter: { y: '-100%', transition: { duration: 0.55, ease: EASE, delay: 0.14 } },
+  exit: { y: '0%', transition: { duration: 0.45, ease: EASE, delay: 0.08 } },
+};
+
+const logoVariants = {
+  initial: { scale: 1, opacity: 1 },
+  enter: { scale: 1, opacity: 1 },
+  // The stamp: the logo slaps onto the curtain as it covers the old page.
+  exit: {
+    scale: [0.55, 1],
+    rotate: [-8, 0],
+    opacity: [0, 1],
+    transition: { duration: 0.38, ease: STAMP_EASE, delay: 0.16 },
+  },
+};
+
+const AnimatedRoutes: React.FC = () => {
+  const location = useLocation();
 
   return (
-    <Router>
-      <ScrollToTop />
-      <div className="flex flex-col min-h-screen grain">
-        <Navbar />
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial="initial"
+        animate="enter"
+        exit="exit"
+        className="flex-grow flex flex-col"
+      >
         <main className="flex-grow">
-          <Routes>
+          <Routes location={location}>
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/drinks" element={<Drinks />} />
@@ -57,10 +98,47 @@ const App: React.FC = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
-        <Footer />
-        <WhatsAppButton />
-      </div>
-    </Router>
+
+        {/* Gold leading edge (under the ink layer) */}
+        <motion.div
+          variants={goldVariants}
+          className="fixed inset-0 z-[119] bg-accent pointer-events-none"
+          aria-hidden="true"
+        />
+
+        {/* Navy curtain with the real logo stamping in */}
+        <motion.div
+          variants={inkVariants}
+          className="fixed inset-0 z-[120] bg-ink pointer-events-none flex items-center justify-center"
+          aria-hidden="true"
+        >
+          <motion.img
+            variants={logoVariants}
+            src="/images/logo.png"
+            alt=""
+            className="w-44 md:w-56 drop-shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
+          />
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+const App: React.FC = () => {
+  useLenis();
+
+  return (
+    <MotionConfig reducedMotion="user">
+      <Router>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen grain">
+          <Navbar />
+          <AnimatedRoutes />
+          <Footer />
+          <WhatsAppButton />
+        </div>
+      </Router>
+    </MotionConfig>
   );
 };
 

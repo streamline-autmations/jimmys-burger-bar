@@ -4,13 +4,43 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Quote, Clock, MapPin } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
-import { GoogleBadge } from '../components/GoogleBadge';
+import { GoogleBadge, GoogleG } from '../components/GoogleBadge';
+import { Doodle } from '../components/Doodle';
 import { Magnetic } from '../components/Magnetic';
-import { fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampChild } from '../lib/motion';
+import { fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampChild, imageSettle } from '../lib/motion';
+import { useRailSkew } from '../lib/useRailSkew';
+import { RevealHeading } from '../components/RevealHeading';
+import { Marquee } from '../components/Marquee';
+import { SmashStory } from '../components/SmashStory';
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
   `Hi! I'd like to book a table at ${config.venue.name}.`
 )}`;
+
+// Google-style initial avatar for real reviewers. We deliberately do NOT use
+// photos here: these are real named people from Jimmy's Google listing, and
+// pairing their names with internet stock faces would fabricate identity.
+// Initials-on-colour is exactly what Google itself renders.
+const AVATAR_BG = ['bg-primary', 'bg-secondary', 'bg-accent'] as const;
+const ReviewerAvatar: React.FC<{ name: string; idx: number; size?: string }> = ({ name, idx, size = 'w-11 h-11 text-base' }) => (
+  <span
+    className={`${AVATAR_BG[idx % AVATAR_BG.length]} ${size} rounded-full flex items-center justify-center font-display font-bold text-surface shrink-0 shadow-sm`}
+    aria-hidden="true"
+  >
+    {name
+      .split(' ')
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')}
+  </span>
+);
+
+const PostedOnGoogle: React.FC = () => (
+  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-ink/50">
+    <GoogleG size={12} />
+    <span>Posted on Google</span>
+  </span>
+);
 
 // The one signature scroll moment on the page: the hero dish in the bento
 // breathes in slightly as it passes through view, echoing the hero parallax
@@ -60,6 +90,17 @@ export const Home: React.FC = () => {
   const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroY = useTransform(heroProgress, [0, 1], [0, shouldReduceMotion ? 0 : 140]);
   const heroScale = useTransform(heroProgress, [0, 1], [1, shouldReduceMotion ? 1 : 1.12]);
+
+  // The poster rails lean with drag velocity — same sticker physics as the
+  // stamp, applied to the track only (Framer owns the cards' transforms).
+  const specialsRail = useRailSkew<HTMLDivElement>();
+  const galleryRail = useRailSkew<HTMLDivElement>();
+
+  // Drinks band: the pour video drifts a few px against the scroll, echoing
+  // the hero parallax so the two video bands read as one system.
+  const drinksRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: drinksProgress } = useScroll({ target: drinksRef, offset: ['start end', 'end start'] });
+  const drinksY = useTransform(drinksProgress, [0, 1], shouldReduceMotion ? [0, 0] : [-40, 40]);
 
   return (
     <div className="flex flex-col w-full">
@@ -134,16 +175,20 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Retro checker strip, straight off Jimmy's posters */}
-      <div className="checker opacity-80" aria-hidden="true" />
+      {/* Golden marquee band: constant life in the sticker voice */}
+      <Marquee />
+
+      {/* ============ The pinned Smash showcase: scroll choreography ============ */}
+      <SmashStory />
 
       {/* ============ Friday specials: the poster wall ============ */}
-      <section className="py-20 md:py-24 overflow-hidden">
+      <section className="relative py-20 md:py-24 overflow-hidden bg-secondary/10">
+        <Doodle name="platter" className="absolute -top-6 right-[8%] w-36 h-36 text-primary/[0.08] rotate-12 pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-4">
             <div>
               <span className="font-script text-2xl text-primary">every week, one big one</span>
-              <h2 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1">Friday specials</h2>
+              <RevealHeading text="Friday specials" className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1" />
             </div>
             <Link to="/specials" className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
               <span>All specials</span>
@@ -158,6 +203,7 @@ export const Home: React.FC = () => {
         {/* The signature moment: posters stamp down like stickers on the wall.
             This is the ONLY place on the page that moves with intent. */}
         <motion.div
+          ref={specialsRail}
           variants={stampContainer}
           initial="initial"
           whileInView="whileInView"
@@ -205,10 +251,12 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ============ Food: bento of the favourites, real prices ============ */}
-      <section className="py-20 md:py-24 bg-surface/70">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+      <section className="relative py-20 md:py-24 bg-surface/70 overflow-hidden">
+        <Doodle name="burger" className="absolute top-10 -right-6 w-40 h-40 text-primary/[0.07] rotate-[18deg] pointer-events-none" />
+        <Doodle name="fries" className="absolute bottom-8 -left-8 w-36 h-36 text-primary/[0.06] -rotate-12 pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
           <motion.div {...fadeInUp} className="max-w-lg mb-12">
-            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-3">Crowd favourites</h2>
+            <RevealHeading text="Crowd favourites" className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-3" />
             <p className="text-ink/60">180g patties smashed to order, platters built for the table, steaks off the flame.</p>
           </motion.div>
 
@@ -234,12 +282,15 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ============ Coffee & Cars: Jimmy's monthly ritual ============ */}
-      <section className="relative py-20 md:py-28">
+      <section className="relative py-20 md:py-28 overflow-hidden">
         <div className="checker absolute top-0 left-0 right-0 opacity-70" aria-hidden="true" />
+        <Doodle name="car" className="absolute bottom-6 right-[4%] w-40 h-40 text-primary/[0.08] -rotate-3 pointer-events-none" />
+        <Doodle name="coffee" className="absolute top-16 left-[3%] w-24 h-24 text-primary/[0.07] rotate-6 pointer-events-none hidden md:block" />
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center pt-6">
           <motion.div {...fadeInUp} className="relative">
             <div className="rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15">
-              <img
+              <motion.img
+                {...imageSettle}
                 src={specials.event.image}
                 alt="Classic car at a Coffee & Cars morning"
                 loading="lazy"
@@ -251,7 +302,7 @@ export const Home: React.FC = () => {
 
           <motion.div {...fadeInUp}>
             <span className="font-script text-2xl text-primary">start your engines</span>
-            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-ink mt-1 mb-5">{specials.event.title}</h2>
+            <RevealHeading text={specials.event.title} className="font-display text-4xl md:text-5xl font-extrabold text-ink mt-1 mb-5" />
             <p className="text-ink/65 text-lg leading-relaxed max-w-md mb-7">
               {specials.event.description}
             </p>
@@ -264,8 +315,9 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ============ Drinks band: ambience video under navy ============ */}
-      <section className="relative py-28 md:py-40 overflow-hidden bg-ink">
-        <div className="absolute inset-0 z-0">
+      <section ref={drinksRef} className="relative py-28 md:py-40 overflow-hidden bg-ink">
+        {/* Oversized on the y-axis so the parallax drift never exposes an edge */}
+        <motion.div style={{ y: drinksY }} className="absolute inset-x-0 -inset-y-12 z-0">
           {venue.ambience.type === 'video' ? (
             <video
               src={venue.ambience.video}
@@ -279,7 +331,7 @@ export const Home: React.FC = () => {
             <img src={venue.ambience.image} alt="" className="w-full h-full object-cover opacity-45" />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/30" />
-        </div>
+        </motion.div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="max-w-xl">
@@ -308,7 +360,8 @@ export const Home: React.FC = () => {
       <section className="py-20 md:py-28 bg-surface/70">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           <motion.div {...fadeInUp} className="rounded-2xl overflow-hidden order-2 lg:order-1 ring-8 ring-paper">
-            <img
+            <motion.img
+              {...imageSettle}
               src="/images/about-banner.jpg"
               alt="Inside Jimmy's Burger Bar"
               loading="lazy"
@@ -317,9 +370,10 @@ export const Home: React.FC = () => {
           </motion.div>
 
           <motion.div {...fadeInUp} className="order-1 lg:order-2">
-            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-6">
-              Built for Meyerton, one burger at a time
-            </h2>
+            <RevealHeading
+              text="Built for Meyerton, one burger at a time"
+              className="font-display text-3xl md:text-4xl font-extrabold text-ink mb-6"
+            />
             <div className="space-y-4 text-ink/70 leading-relaxed max-w-md">
               <p>
                 Jimmy's started with one idea: proper burgers, proper portions,
@@ -352,12 +406,14 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ============ Regulars say ============ */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+      <section className="relative py-20 md:py-28 overflow-hidden">
+        <Doodle name="shake" className="absolute top-12 -right-4 w-32 h-32 text-primary/[0.06] rotate-12 pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
           <motion.div {...fadeInUp} className="flex flex-wrap items-end justify-between gap-6 mb-12">
-            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-ink max-w-lg">
-              Take it from the regulars
-            </h2>
+            <RevealHeading
+              text="Take it from the regulars"
+              className="font-display text-3xl md:text-4xl font-extrabold text-ink max-w-lg"
+            />
             <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} variant="light" />
           </motion.div>
 
@@ -367,9 +423,15 @@ export const Home: React.FC = () => {
                 <Quote className="text-secondary/60 mb-5" size={36} fill="currentColor" strokeWidth={0} />
                 <p className="font-display text-xl md:text-2xl text-ink/90 leading-snug mb-8">{testimonials[0].text}</p>
               </div>
-              <div className="flex items-center justify-between pt-5 border-t border-ink/10">
-                <span className="font-semibold text-ink/80">{testimonials[0].name}</span>
-                <div className="flex text-accent">
+              <div className="flex items-center justify-between gap-3 pt-5 border-t border-ink/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <ReviewerAvatar name={testimonials[0].name} idx={0} />
+                  <div className="min-w-0">
+                    <span className="font-semibold text-ink/80 block truncate">{testimonials[0].name}</span>
+                    <PostedOnGoogle />
+                  </div>
+                </div>
+                <div className="flex text-accent shrink-0">
                   {[...Array(testimonials[0].rating)].map((_, i) => (
                     <Star key={i} size={14} fill="currentColor" strokeWidth={0} />
                   ))}
@@ -378,12 +440,18 @@ export const Home: React.FC = () => {
             </motion.div>
 
             <div className="flex flex-col gap-6">
-              {testimonials.slice(1).map((t) => (
+              {testimonials.slice(1).map((t, i) => (
                 <motion.div key={t.name} {...fadeInUp} className="bg-surface p-8 rounded-2xl flex-1 shadow-[0_8px_30px_-12px_rgb(var(--color-ink)/0.18)] ring-1 ring-ink/[0.04]">
                   <p className="text-ink/75 leading-relaxed mb-6">{t.text}</p>
-                  <div className="flex items-center justify-between pt-4 border-t border-ink/10">
-                    <span className="font-semibold text-ink/80 text-sm">{t.name}</span>
-                    <div className="flex text-accent">
+                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink/10">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <ReviewerAvatar name={t.name} idx={i + 1} size="w-9 h-9 text-sm" />
+                      <div className="min-w-0">
+                        <span className="font-semibold text-ink/80 text-sm block truncate">{t.name}</span>
+                        <PostedOnGoogle />
+                      </div>
+                    </div>
+                    <div className="flex text-accent shrink-0">
                       {[...Array(t.rating)].map((_, i) => (
                         <Star key={i} size={13} fill="currentColor" strokeWidth={0} />
                       ))}
@@ -402,7 +470,7 @@ export const Home: React.FC = () => {
           <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-10">
             <div>
               <span className="font-script text-2xl text-primary">the food, the crowd, the place</span>
-              <h2 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1">See it for yourself</h2>
+              <RevealHeading text="See it for yourself" className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1" />
             </div>
             <Link to="/gallery" className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
               <span>Full gallery</span>
@@ -412,6 +480,7 @@ export const Home: React.FC = () => {
         </div>
 
         <motion.div
+          ref={galleryRail}
           variants={staggerContainer}
           initial="initial"
           whileInView="whileInView"

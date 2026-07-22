@@ -3,16 +3,34 @@ import { motion } from 'framer-motion';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
+import { Doodle } from '../components/Doodle';
+import { RevealHeading } from '../components/RevealHeading';
+
+const CATEGORY_DOODLES: Record<string, string> = {
+  Beer: 'beer',
+  'Ciders & Coolers': 'bottle',
+  Cocktails: 'cocktail',
+  Shots: 'shot',
+  'Wine & Bubbles': 'wine',
+  'Coffee & Shakes': 'shake',
+};
 
 export const Drinks: React.FC = () => {
   const { drinks } = config;
 
   return (
-    <div className="pt-28 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
+    <div className="pt-28 min-h-screen relative">
+      {/* Faint bar sketches in the page background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <Doodle name="beer" className="absolute top-44 -right-8 w-44 h-44 text-primary/[0.07] rotate-12" />
+        <Doodle name="cocktail" className="absolute top-[48%] -left-10 w-40 h-40 text-primary/[0.06] -rotate-12" />
+        <Doodle name="bottle" className="absolute bottom-72 right-8 w-32 h-32 text-primary/[0.06] rotate-6" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
         <motion.div {...fadeInUp} className="max-w-xl mb-14">
           <span className="font-script text-2xl text-primary">from the fridge and the bar</span>
-          <h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4">Cold ones, sorted</h1>
+          <RevealHeading as="h1" text="Cold ones, sorted" className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4" />
           <p className="text-ink/60 text-lg">{drinks.intro}</p>
         </motion.div>
 
@@ -28,8 +46,14 @@ export const Drinks: React.FC = () => {
             <motion.div
               key={category.name}
               variants={riseChild}
-              className="bg-surface rounded-2xl p-8 md:p-9 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] break-inside-avoid mb-6"
+              className="relative overflow-hidden bg-surface rounded-2xl p-8 md:p-9 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] break-inside-avoid mb-6"
             >
+              {CATEGORY_DOODLES[category.name] && (
+                <Doodle
+                  name={CATEGORY_DOODLES[category.name]}
+                  className="absolute -top-3 -right-3 w-24 h-24 text-primary/[0.13] rotate-12 pointer-events-none"
+                />
+              )}
               <div className="flex items-baseline justify-between gap-4 mb-7">
                 <h2 className="font-display text-2xl font-extrabold text-primary">{category.name}</h2>
                 {'note' in category && category.note && (

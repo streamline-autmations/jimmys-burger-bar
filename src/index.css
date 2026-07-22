@@ -63,3 +63,40 @@
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Marquee band: two identical tracks each shift one full width, so the loop
+   is seamless. GPU-only (transform), no JS. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.marquee-track {
+  animation: marquee 30s linear infinite;
+}
+
+/* The jagged starburst outline rotates slowly behind its static price text,
+   like a promo sticker catching the light. Applied to the SVG only. */
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.starburst-spin {
+  animation: spin-slow 24s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .starburst-spin {
+    animation: none;
+  }
+}
+
+/* Outlined display type for the pinned Smash showcase. */
+.text-outline-surface {
+  -webkit-text-stroke: 2.5px rgb(var(--color-surface));
+  color: transparent;
+}
+@media (max-width: 767px) {
+  .text-outline-surface {
+    -webkit-text-stroke-width: 1.5px;
+  }
+}

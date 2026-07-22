@@ -4,6 +4,21 @@ import { Download, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { config } from '../config';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
+import { RevealHeading } from '../components/RevealHeading';
+import { Doodle } from '../components/Doodle';
+
+// Chalk-sketch watermark per category, drawn in Jimmy's royal blue.
+const CATEGORY_DOODLES: Record<string, string> = {
+  Breakfast: 'egg',
+  Burgers: 'burger',
+  'Small Plates': 'fries',
+  Platters: 'platter',
+  Steaks: 'steak',
+  'Chicken Meals': 'drumstick',
+  'Toasted Sandwiches': 'toastie',
+  Salads: 'salad',
+  Desserts: 'sundae',
+};
 
 // Styled after Jimmy's real printed menu: powder-blue board, ice-white
 // category panels, chunky royal-blue headers and dotted price leaders.
@@ -35,11 +50,18 @@ export const Menu: React.FC = () => {
   };
 
   return (
-    <div className="pt-28 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
+    <div className="pt-28 min-h-screen relative">
+      {/* Faint sketches drifting in the page background, chalkboard-style */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <Doodle name="burger" className="absolute top-40 -right-8 w-44 h-44 text-primary/[0.07] rotate-12" />
+        <Doodle name="fries" className="absolute top-[42%] -left-10 w-40 h-40 text-primary/[0.06] -rotate-12" />
+        <Doodle name="steak" className="absolute bottom-64 right-6 w-36 h-36 text-primary/[0.06] rotate-6" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
         <motion.div {...fadeInUp} className="max-w-lg mb-8">
           <span className="font-script text-2xl text-primary">the whole board</span>
-          <h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4">Jimmy's food</h1>
+          <RevealHeading as="h1" text="Jimmy's food" className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4" />
           <p className="text-ink/60 text-lg">Big breakfasts, 180g smash burgers and steaks off the grill. Real menu, real prices.</p>
         </motion.div>
 
@@ -106,8 +128,14 @@ export const Menu: React.FC = () => {
               key={category.name}
               id={category.name}
               variants={riseChild}
-              className="bg-surface rounded-2xl p-8 md:p-9 scroll-mt-40 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] break-inside-avoid mb-6"
+              className="relative overflow-hidden bg-surface rounded-2xl p-8 md:p-9 scroll-mt-40 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] break-inside-avoid mb-6"
             >
+              {CATEGORY_DOODLES[category.name] && (
+                <Doodle
+                  name={CATEGORY_DOODLES[category.name]}
+                  className="absolute -top-3 -right-3 w-24 h-24 text-primary/[0.13] rotate-12 pointer-events-none"
+                />
+              )}
               <div className="flex items-baseline justify-between gap-4 mb-1">
                 <h2 className="font-display text-2xl md:text-[28px] font-extrabold text-primary">{category.name}</h2>
               </div>

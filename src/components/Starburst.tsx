@@ -37,7 +37,7 @@ export const Starburst: React.FC<{ label?: string; value: string; className?: st
           })}
     >
       <div className="relative w-full h-full">
-        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md">
+        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md starburst-spin">
           <polygon points={POINTS} className="fill-accent" />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center -rotate-6">

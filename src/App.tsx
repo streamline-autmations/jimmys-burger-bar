@@ -1,17 +1,13 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { Home } from './pages/Home';
-import { Menu } from './pages/Menu';
-import { Drinks } from './pages/Drinks';
-import { Specials } from './pages/Specials';
-import { Gallery } from './pages/Gallery';
+import { FoodDrinks } from './pages/FoodDrinks';
 import { Visit } from './pages/Visit';
 import { Order } from './pages/Order';
-import { Booking } from './pages/Booking';
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
@@ -35,11 +31,17 @@ const NotFound: React.FC = () => (
 // Scroll to top on route change. Delayed until the curtain fully covers the
 // viewport (exit duration below) so the jump is never visible.
 const ScrollToTop = () => {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
-    const t = window.setTimeout(() => window.scrollTo(0, 0), 430);
+    const t = window.setTimeout(() => {
+      if (hash) {
+        document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }, 560);
     return () => window.clearTimeout(t);
-  }, [pathname]);
+  }, [pathname, hash]);
   return null;
 };
 
@@ -91,13 +93,13 @@ const AnimatedRoutes: React.FC = () => {
         <main className="flex-grow">
           <Routes location={location}>
             <Route path="/" element={<Home />} />
-            <Route path="/menu" element={<Menu />} />
-            <Route path="/drinks" element={<Drinks />} />
-            <Route path="/specials" element={<Specials />} />
-            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/menu" element={<FoodDrinks />} />
+            <Route path="/drinks" element={<Navigate to="/menu?tab=drinks" replace />} />
+            <Route path="/specials" element={<Navigate to="/#specials" replace />} />
+            <Route path="/gallery" element={<Navigate to="/visit#gallery" replace />} />
             <Route path="/visit" element={<Visit />} />
             <Route path="/order" element={<Order />} />
-            <Route path="/book" element={<Booking />} />
+            <Route path="/book" element={<Navigate to="/visit#book" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

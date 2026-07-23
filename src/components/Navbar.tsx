@@ -23,6 +23,7 @@ export const Navbar: React.FC = () => {
   const [isHidden, setIsHidden] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const hasDarkHero = location.pathname === '/' || location.pathname === '/visit';
   const lastScrollY = useRef(0);
   const { scrollY } = useScroll();
 
@@ -70,7 +71,7 @@ export const Navbar: React.FC = () => {
           aria-expanded={isMenuOpen}
           className={cn(
             'relative z-10 p-2.5 rounded-full transition-colors',
-            isMenuOpen || isScrolled ? 'text-ink hover:bg-ink/5' : 'text-surface hover:bg-surface/10'
+            isMenuOpen || isScrolled || !hasDarkHero ? 'text-ink hover:bg-ink/5' : 'text-surface hover:bg-surface/10'
           )}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -100,25 +101,17 @@ export const Navbar: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE }}
-              className="fixed inset-0 z-40 flex items-center justify-center p-4"
+              className="fixed inset-0 z-40 bg-primary overflow-y-auto"
             >
-              {/* Blurred photo + gradient backdrop */}
-              <div className="absolute inset-0 -z-10 overflow-hidden">
-                <img
-                  src="/images/gallery/burger-macro.jpg"
-                  alt=""
-                  className="w-full h-full object-cover scale-110 blur-2xl opacity-60"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-paper/90 via-paper/80 to-ink/85" />
-              </div>
-
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 12 }}
-                transition={{ duration: 0.45, ease: STAMP_EASE, delay: 0.05 }}
-                className="w-full max-w-md bg-ink rounded-[2rem] px-8 py-10 sm:px-10 sm:py-12 shadow-2xl shadow-ink/50 flex flex-col items-center gap-1.5"
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.4, ease: STAMP_EASE, delay: 0.05 }}
+                className="min-h-[100dvh] max-w-5xl mx-auto px-7 pt-28 pb-10 sm:px-12 flex flex-col"
               >
+                <div className="flex items-center justify-between border-b border-surface/20 pb-6 mb-7"><span className="font-script text-3xl text-secondary">Jimmy's</span><span className="text-xs font-bold tracking-[0.18em] uppercase text-surface/65">Meyerton</span></div>
+                <div className="flex-1 flex flex-col justify-center gap-1.5">
                 {config.nav.links.map((link, i) => (
                   <motion.div
                     key={link.path}
@@ -129,8 +122,8 @@ export const Navbar: React.FC = () => {
                     <Link
                       to={link.path}
                       className={cn(
-                        'block py-2.5 font-display text-3xl sm:text-4xl font-bold text-center transition-colors',
-                        location.pathname === link.path ? 'text-secondary' : 'text-surface/90 hover:text-surface'
+                        'block py-2 font-display text-4xl sm:text-5xl font-bold transition-colors',
+                        location.pathname === link.path ? 'text-accent' : 'text-surface hover:text-accent'
                       )}
                     >
                       {link.name}
@@ -147,8 +140,8 @@ export const Navbar: React.FC = () => {
                     <Link
                       to="/order"
                       className={cn(
-                        'block py-2.5 font-display text-3xl sm:text-4xl font-bold text-center transition-colors',
-                        location.pathname === '/order' ? 'text-secondary' : 'text-surface/90 hover:text-surface'
+                        'block py-2 font-display text-4xl sm:text-5xl font-bold transition-colors',
+                        location.pathname === '/order' ? 'text-accent' : 'text-surface hover:text-accent'
                       )}
                     >
                       Order
@@ -156,20 +149,21 @@ export const Navbar: React.FC = () => {
                   </motion.div>
                 )}
 
+                </div>
                 <motion.div
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.35, ease: EASE }}
-                  className="mt-5 bg-accent text-ink px-8 py-3.5 rounded-full font-display font-bold text-base shadow-lg shadow-accent/25 transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                  className="mt-8 bg-surface text-ink px-7 py-4 rounded-full font-display font-bold text-base transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97] self-start"
                 >
-                  <Link to="/book">Book a Table</Link>
+                  <Link to="/order" className="block">Start an order</Link>
                 </motion.div>
 
                 <motion.span
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.4, delay: 0.45 }}
-                  className="mt-5 font-script text-secondary/70 text-lg"
+                  className="mt-5 font-script text-surface/70 text-lg"
                 >
                   57 Loch Street, Meyerton
                 </motion.span>

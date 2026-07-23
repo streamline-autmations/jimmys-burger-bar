@@ -19,12 +19,12 @@
 :root {
   /* Default theme channels — overwritten at runtime by ThemeProvider from
      src/config.ts. Kept here so there's no flash of unstyled color.
-     Jimmy's palette: royal blue / periwinkle / navy ink / powder paper. */
+     Jimmy's palette: royal blue / periwinkle / navy ink / cool white. */
   --color-primary: 29 78 148;
   --color-secondary: 124 143 203;
-  --color-ink: 30 42 78;
-  --color-paper: 211 223 230;
-  --color-surface: 242 247 249;
+  --color-ink: 23 37 68;
+  --color-paper: 243 246 250;
+  --color-surface: 255 255 255;
   --color-accent: 242 169 59;
   --font-display: 'Baloo 2', sans-serif;
   --font-body: 'Quicksand', sans-serif;
@@ -44,7 +44,7 @@
   inset: 0;
   z-index: 80;
   pointer-events: none;
-  opacity: 0.04;
+  opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
 }
 
@@ -115,15 +115,40 @@
 
 /* The menu is a rail on every viewport. Horizontal movement is explicit,
    while vertical page scroll remains native on phones. */
-.horizontal-rail { touch-action: pan-y; overscroll-behavior-x: contain; }
+.horizontal-rail {
+  touch-action: pan-y;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 1rem;
+}
 
 /* Keep the full hand-held burger in frame rather than cutting it into a
    close-up. The surrounding navy belongs to the card, so the zoom-out reads
    as a deliberate product-photo treatment. */
-.burger-hand-photo { transform: scale(0.88); }
-.group:hover .burger-hand-photo { transform: scale(0.92); }
+.burger-hand-photo {
+  object-position: center;
+  transform: translateX(7%) scale(0.9);
+}
+.group:hover .burger-hand-photo { transform: translateX(7%) scale(0.94); }
+.burger-wall-panel {
+  isolation: isolate;
+}
+.burger-wall-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, transparent 38%, rgb(var(--color-ink) / 0.86) 100%);
+  pointer-events: none;
+}
+.burger-wall-panel > img {
+  transition: transform 800ms cubic-bezier(.22, 1, .36, 1);
+}
+.burger-wall-panel:hover > img {
+  transform: translateX(7%) scale(0.94);
+}
 .booking-input { width: 100%; background: rgb(var(--color-paper) / 0.6); border: 1px solid rgb(var(--color-ink) / 0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; color: rgb(var(--color-ink)); font-family: var(--font-body); font-weight: 500; }
 .booking-input:focus { outline: 2px solid rgb(var(--color-primary) / 0.5); outline-offset: 1px; }
+.visit-booking .max-w-2xl > .mb-10 { display: none; }
 
 /* Marquee band: two identical tracks each shift one full width, so the loop
    is seamless. GPU-only (transform), no JS. */

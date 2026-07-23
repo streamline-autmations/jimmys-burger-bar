@@ -39,6 +39,9 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
             ))}
+            {config.features.ordering && (
+              <li><Link to="/order" className="hover:text-paper transition-colors">Order</Link></li>
+            )}
           </ul>
         </div>
 

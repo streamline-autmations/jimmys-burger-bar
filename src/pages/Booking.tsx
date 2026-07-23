@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { CalendarCheck, Download, PartyPopper } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { generateBookingConfirmation } from '../lib/generateBookingConfirmation';
 import { fadeInUp } from '../lib/motion';
 
-export const Booking: React.FC = () => {
+export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [submitted, setSubmitted] = useState(false);
   const [booking, setBooking] = useState({ name: '', email: '', phone: '', guests: '2', date: '', time: '', seating: 'No preference', notes: '' });
   const [reference, setReference] = useState('');
   const update = (key: keyof typeof booking, value: string) => setBooking((current) => ({ ...current, [key]: value }));
   const submit = (event: React.FormEvent) => { event.preventDefault(); setReference(`JB-T${Math.floor(1000 + Math.random() * 9000)}`); setSubmitted(true); };
+  const downloadConfirmation = async () => {
+    const { generateBookingConfirmation } = await import('../lib/generateBookingConfirmation');
+    generateBookingConfirmation({ reference, ...booking });
+  };
 
   if (submitted) return (
-    <div className="pt-32 pb-24 min-h-screen max-w-xl mx-auto px-4 text-center">
+    <div className={`${embedded ? 'py-8' : 'pt-32 pb-24 min-h-screen'} max-w-xl mx-auto px-4 text-center`}>
       <PartyPopper className="mx-auto text-primary mb-3" size={34} />
       <span className="font-script text-2xl text-primary">booking requested</span>
       <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1">{reference}</h1>
@@ -21,16 +24,16 @@ export const Booking: React.FC = () => {
         <p className="font-display font-bold text-primary">What happens next</p>
         <p className="text-ink/60 mt-2">This is a demo confirmation. Your request has not been sent to Jimmy’s, but this is exactly where a real booking confirmation would appear.</p>
       </div>
-      <button onClick={() => generateBookingConfirmation({ reference, ...booking })} className="mt-6 inline-flex items-center gap-2 bg-primary text-surface px-6 py-3.5 rounded-full font-display font-bold"><Download size={16} /> Download booking slip</button>
+      <button onClick={downloadConfirmation} className="mt-6 inline-flex items-center gap-2 bg-primary text-surface px-6 py-3.5 rounded-full font-display font-bold"><Download size={16} /> Download booking slip</button>
       <button onClick={() => setSubmitted(false)} className="block mx-auto mt-6 text-primary font-display font-bold hover:underline">Make another booking</button>
     </div>
   );
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div className={embedded ? '' : 'pt-28 pb-24 min-h-screen'}>
       <div className="max-w-2xl mx-auto px-4 md:px-8">
         <motion.div {...fadeInUp} className="mb-10"><span className="font-script text-2xl text-primary">save your spot</span><h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1">Book a table</h1><p className="text-ink/60 text-lg mt-3">Tell us when you’re coming and how you like to sit.</p></motion.div>
-        <motion.form {...fadeInUp} onSubmit={submit} className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] space-y-5">
+        <motion.form {...fadeInUp} onSubmit={submit} className="bg-surface rounded-2xl p-6 md:p-8 border border-ink/10 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Your name"><input required value={booking.name} onChange={(e) => update('name', e.target.value)} className="booking-input" placeholder="Your name" /></Field>
             <Field label="Phone number"><input required type="tel" value={booking.phone} onChange={(e) => update('phone', e.target.value)} className="booking-input" placeholder="082 123 4567" /></Field>

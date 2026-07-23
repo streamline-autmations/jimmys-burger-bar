@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Quote, Clock, MapPin } from 'lucide-react';
@@ -53,6 +53,17 @@ export const Home: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const [coffeeImage, setCoffeeImage] = useState(coffeeAndCarsImages[0].src);
 
+  useEffect(() => {
+    if (shouldReduceMotion) return;
+    const rotation = window.setInterval(() => {
+      setCoffeeImage((current) => {
+        const currentIndex = coffeeAndCarsImages.findIndex((image) => image.src === current);
+        return coffeeAndCarsImages[(currentIndex + 1) % coffeeAndCarsImages.length].src;
+      });
+    }, 2000);
+    return () => window.clearInterval(rotation);
+  }, [shouldReduceMotion]);
+
   // The poster rails lean with drag velocity — same sticker physics as the
   // stamp, applied to the track only (Framer owns the cards' transforms).
   const specialsRail = useRailSkew<HTMLDivElement>();
@@ -77,23 +88,23 @@ export const Home: React.FC = () => {
               <span className="text-xs md:text-sm font-bold tracking-[0.08em] uppercase text-accent">Meyerton, SA</span>
             </motion.div>
             <motion.p {...heroItem(0.18)} className="text-xs font-bold tracking-[0.18em] uppercase text-secondary mb-4">The Jimmy's smash</motion.p>
-            <motion.h1 {...heroItem(0.28)} className="font-display text-[3.2rem] sm:text-6xl md:text-7xl lg:text-[5.4rem] leading-[0.92] font-extrabold mb-6">
+            <motion.h1 {...heroItem(0.28)} className="font-display text-[2.85rem] sm:text-6xl md:text-7xl lg:text-[5.4rem] leading-[0.92] font-extrabold mb-5 md:mb-6">
               Proper food.<span className="font-script font-normal text-accent block leading-[1.15] text-[0.8em] pb-2">Done right.</span>
             </motion.h1>
-            <motion.p {...heroItem(0.4)} className="text-base md:text-lg text-paper/80 leading-relaxed mb-8 max-w-md">{venue.description}</motion.p>
+            <motion.p {...heroItem(0.4)} className="text-sm sm:text-base md:text-lg text-paper/80 leading-relaxed mb-7 md:mb-8 max-w-md">{venue.description}</motion.p>
             <motion.div {...heroItem(0.5)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Magnetic className="w-full sm:w-auto"><Link to="/book" className="block w-full sm:w-auto text-center bg-accent text-ink px-7 py-3.5 rounded-full font-display font-bold shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]">Book a Table</Link></Magnetic>
+              <Magnetic className="w-full sm:w-auto"><Link to="/order" className="block w-full sm:w-auto text-center bg-accent text-ink px-7 py-3.5 rounded-full font-display font-bold shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]">Order Online</Link></Magnetic>
               <Link to="/menu" className="w-full sm:w-auto text-center border border-surface/35 text-surface px-7 py-3.5 rounded-full font-display font-bold hover:bg-surface hover:text-ink hover:border-surface transition-colors duration-200">View the Menu</Link>
             </motion.div>
           </div>
-          <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0"><BurgerAssembly /></motion.div>
+          <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[310px] sm:max-w-[480px] md:max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0"><BurgerAssembly /></motion.div>
         </div>
       </section>
       {/* Golden marquee band: constant life in the sticker voice */}
       <Marquee />
 
       {/* ============ Friday specials: the poster wall ============ */}
-      <section className="relative py-20 md:py-24 overflow-hidden bg-secondary/10">
+      <section id="specials" className="relative scroll-mt-20 py-20 md:py-24 overflow-hidden bg-paper">
         <Doodle name="platter" className="absolute -top-6 right-[8%] w-36 h-36 text-primary/[0.08] rotate-12 pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-4">
@@ -165,29 +176,27 @@ export const Home: React.FC = () => {
       <WaveDivider fill="rgb(var(--color-surface))" />
 
       {/* ============ Food: the hands-on choice ============ */}
-      <section className="relative py-20 md:py-28 bg-surface overflow-hidden">
+      <section className="relative py-20 md:py-28 bg-ink text-surface overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10 md:mb-14">
             <div className="max-w-xl">
-              <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">Pick your hunger</span>
-              <RevealHeading text="Made to hold with both hands" className="font-display text-4xl md:text-6xl font-extrabold text-ink leading-[0.96] mt-3" />
+              <span className="text-xs font-bold tracking-[0.16em] uppercase text-accent">Pick your hunger</span>
+              <RevealHeading text="Made to hold with both hands" className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.96] mt-3" />
             </div>
-            <p className="text-ink/60 max-w-sm leading-relaxed">Big patties, crisp edges and the kind of burger that needs a proper grip.</p>
+            <p className="text-surface/60 max-w-sm leading-relaxed">Big patties, crisp edges and the kind of burger that needs a proper grip.</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <Link to="/menu" className="group relative min-h-[440px] md:min-h-[620px] overflow-hidden bg-ink block">
+          <div className="flex md:grid md:grid-cols-[1.08fr_0.92fr] gap-3 md:gap-0 overflow-x-auto md:overflow-visible snap-x snap-mandatory scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
+            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[480px] md:min-h-[640px] overflow-hidden bg-primary block snap-center">
               <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
-              <div className="absolute left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
+              <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The classic</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Beef Burgers</h3></div>
                 <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
               </div>
             </Link>
-            <Link to="/menu" className="group relative min-h-[440px] md:min-h-[620px] overflow-hidden bg-primary block md:mt-12">
+            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[480px] md:min-h-[640px] overflow-hidden bg-primary block snap-center md:translate-y-10">
               <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
-              <div className="absolute left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
+              <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The other favourite</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Chicken Burgers</h3></div>
                 <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
               </div>
@@ -242,7 +251,7 @@ export const Home: React.FC = () => {
           <motion.div {...fadeInUp} className="max-w-xl">
             <h2 className="font-display text-4xl md:text-5xl font-extrabold text-surface mb-5">Cold ones,<span className="font-script font-normal text-secondary block leading-[1.3] pb-2 text-[0.8em]">sorted.</span></h2>
             <p className="text-lg text-paper/85 leading-relaxed mb-9 max-w-md">Local lagers at R28, Savannas by the bucket, and a house cocktail called the Frikkie van Zyl. Ask the bar, they'll explain.</p>
-            <Link to="/drinks" className="group inline-flex items-center gap-3 bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"><span>The bar list</span><span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform"><ArrowRight size={18} /></span></Link>
+            <Link to="/menu?tab=drinks" className="group inline-flex items-center gap-3 bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"><span>The bar list</span><span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform"><ArrowRight size={18} /></span></Link>
           </motion.div>
         </div>
       </section>
@@ -255,7 +264,7 @@ export const Home: React.FC = () => {
       <section className="py-20 md:py-28 bg-surface overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           <motion.div {...fadeInUp} className="relative min-h-[420px] md:min-h-[620px] order-2 lg:order-1 rounded-2xl overflow-hidden jimmy-media-frame">
-            <img src="/images/jimmys-logo-2.png" alt="Jimmy's Burger Bar burgers and logo" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+            <img src="/images/jimmys-logo-2.png" alt="Jimmy's Burger Bar burgers and logo" loading="lazy" className="absolute inset-0 w-full h-full object-contain bg-primary p-4 md:p-8" />
           </motion.div>
           <motion.div {...fadeInUp} className="order-1 lg:order-2">
             <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">More than a quick stop</span>
@@ -332,7 +341,7 @@ export const Home: React.FC = () => {
               <span className="font-script text-2xl text-primary">the food, the crowd, the place</span>
               <RevealHeading text="See it for yourself" className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1" />
             </div>
-            <Link to="/gallery" className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
+            <Link to="/visit#gallery" className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
               <span>Full gallery</span>
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -366,7 +375,7 @@ export const Home: React.FC = () => {
             </motion.div>
           ))}
           <Link
-            to="/gallery"
+            to="/visit#gallery"
             className="snap-start shrink-0 w-[220px] md:w-[260px] rounded-2xl bg-ink flex flex-col items-center justify-center gap-3 text-surface font-display font-bold text-center px-6"
           >
             <span>See the full gallery</span>
@@ -401,7 +410,7 @@ export const Home: React.FC = () => {
             <div className="bg-ink p-8 rounded-2xl text-paper">
               <p className="text-lg leading-relaxed mb-8">{venue.address}</p>
               <Link
-                to="/book"
+                to="/visit#book"
                 className="group inline-flex items-center justify-center gap-3 w-full bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold hover:bg-secondary transition-colors duration-200"
               >
                 <span>Book a Table</span>

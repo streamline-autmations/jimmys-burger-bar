@@ -16,8 +16,8 @@ export const config = {
 
   // ---- Visual identity ------------------------------------------------------
   // Jimmy's real palette, lifted from their printed menu and Instagram posters:
-  //   paper   = powder blue page background (their menu paper)
-  //   surface = ice-white panels (their menu item panels)
+  //   paper   = cool off-white page background
+  //   surface = white panels
   //   ink     = deep navy TEXT + dark section background (their logo oval)
   //   primary = royal blue (menu headers, poster type)
   //   secondary = periwinkle (the script "Jimmy's" in the logo)
@@ -26,9 +26,9 @@ export const config = {
     colors: {
       primary: "#1D4E94",
       secondary: "#7C8FCB",
-      ink: "#1E2A4E",
-      paper: "#D3DFE6",
-      surface: "#F2F7F9",
+      ink: "#172544",
+      paper: "#F3F6FA",
+      surface: "#FFFFFF",
       accent: "#F2A93B",
     },
     fonts: {
@@ -93,10 +93,7 @@ export const config = {
   nav: {
     links: [
       { name: "Home", path: "/" },
-      { name: "Menu", path: "/menu" },
-      { name: "Drinks", path: "/drinks" },
-      { name: "Specials", path: "/specials" },
-      { name: "Gallery", path: "/gallery" },
+      { name: "Food & Drinks", path: "/menu" },
       { name: "Visit", path: "/visit" },
     ]
   },

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Quote, Clock, MapPin } from 'lucide-react';
 import { config } from '../config';
@@ -7,7 +7,7 @@ import { Starburst } from '../components/Starburst';
 import { GoogleBadge, GoogleG } from '../components/GoogleBadge';
 import { Doodle } from '../components/Doodle';
 import { Magnetic } from '../components/Magnetic';
-import { fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampChild, imageSettle } from '../lib/motion';
+import { EASE, fadeInUp, staggerContainer, riseChild, heroItem, stampContainer, stampChild } from '../lib/motion';
 import { useRailSkew } from '../lib/useRailSkew';
 import { RevealHeading } from '../components/RevealHeading';
 import { Marquee } from '../components/Marquee';
@@ -60,7 +60,7 @@ export const Home: React.FC = () => {
         const currentIndex = coffeeAndCarsImages.findIndex((image) => image.src === current);
         return coffeeAndCarsImages[(currentIndex + 1) % coffeeAndCarsImages.length].src;
       });
-    }, 2000);
+    }, 2500);
     return () => window.clearInterval(rotation);
   }, [shouldReduceMotion]);
 
@@ -176,26 +176,26 @@ export const Home: React.FC = () => {
       <WaveDivider fill="rgb(var(--color-surface))" />
 
       {/* ============ Food: the hands-on choice ============ */}
-      <section className="relative py-20 md:py-28 bg-ink text-surface overflow-hidden">
+      <section className="relative py-20 md:py-28 bg-surface overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10 md:mb-14">
             <div className="max-w-xl">
-              <span className="text-xs font-bold tracking-[0.16em] uppercase text-accent">Pick your hunger</span>
-              <RevealHeading text="Made to hold with both hands" className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.96] mt-3" />
+              <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">Pick your hunger</span>
+              <RevealHeading text="Made to hold with both hands" className="font-display text-4xl md:text-6xl font-extrabold text-ink leading-[0.96] mt-3" />
             </div>
-            <p className="text-surface/60 max-w-sm leading-relaxed">Big patties, crisp edges and the kind of burger that needs a proper grip.</p>
+            <p className="text-ink/60 max-w-sm leading-relaxed">Big patties, crisp edges and the kind of burger that needs a proper grip.</p>
           </motion.div>
 
           <div className="flex md:grid md:grid-cols-[1.08fr_0.92fr] gap-3 md:gap-0 overflow-x-auto md:overflow-visible snap-x snap-mandatory scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
-            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[480px] md:min-h-[640px] overflow-hidden bg-primary block snap-center">
-              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
+            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-paper block snap-center">
+              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
               <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The classic</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Beef Burgers</h3></div>
                 <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
               </div>
             </Link>
-            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[480px] md:min-h-[640px] overflow-hidden bg-primary block snap-center md:translate-y-10">
-              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
+            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-paper block snap-center md:translate-y-10">
+              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
               <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The other favourite</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Chicken Burgers</h3></div>
                 <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
@@ -211,8 +211,20 @@ export const Home: React.FC = () => {
         <Doodle name="coffee" className="absolute top-16 left-[3%] w-24 h-24 text-primary/[0.07] rotate-6 pointer-events-none hidden md:block" />
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center pt-6">
           <motion.div {...fadeInUp} className="relative">
-            <div className="rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15 relative">
-              <motion.img {...imageSettle} src={coffeeImage} alt="Coffee and Cars morning at Jimmy's" loading="lazy" className="w-full h-[320px] md:h-[420px] object-cover object-center" />
+            <div className="h-[320px] md:h-[420px] rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15 relative bg-ink">
+              <AnimatePresence initial={false}>
+                <motion.img
+                  key={coffeeImage}
+                  src={coffeeImage}
+                  alt="Coffee and Cars morning at Jimmy's"
+                  loading="lazy"
+                  initial={{ opacity: 0, scale: 1.025 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.7, ease: EASE }}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+              </AnimatePresence>
               <div className="absolute left-3 top-3 flex gap-2" aria-label="Coffee and Cars photos">
                 {coffeeAndCarsImages.map((image) => (
                   <button key={image.src} type="button" onMouseEnter={() => setCoffeeImage(image.src)} onFocus={() => setCoffeeImage(image.src)} onClick={() => setCoffeeImage(image.src)} aria-label={image.label} className={`w-11 h-11 overflow-hidden border-2 transition-all ${coffeeImage === image.src ? 'border-accent scale-105' : 'border-surface/70 hover:border-accent'}`}>

@@ -23,7 +23,7 @@
   --color-primary: 29 78 148;
   --color-secondary: 124 143 203;
   --color-ink: 23 37 68;
-  --color-paper: 243 246 250;
+  --color-paper: 248 248 246;
   --color-surface: 255 255 255;
   --color-accent: 242 169 59;
   --font-display: 'Baloo 2', sans-serif;
@@ -126,9 +126,9 @@
    as a deliberate product-photo treatment. */
 .burger-hand-photo {
   object-position: center;
-  transform: translateX(7%) scale(0.9);
+  transform: scale(0.96);
 }
-.group:hover .burger-hand-photo { transform: translateX(7%) scale(0.94); }
+.group:hover .burger-hand-photo { transform: scale(1); }
 .burger-wall-panel {
   isolation: isolate;
 }
@@ -144,7 +144,7 @@
   transition: transform 800ms cubic-bezier(.22, 1, .36, 1);
 }
 .burger-wall-panel:hover > img {
-  transform: translateX(7%) scale(0.94);
+  transform: scale(1);
 }
 .booking-input { width: 100%; background: rgb(var(--color-paper) / 0.6); border: 1px solid rgb(var(--color-ink) / 0.1); border-radius: 0.75rem; padding: 0.75rem 1rem; color: rgb(var(--color-ink)); font-family: var(--font-body); font-weight: 500; }
 .booking-input:focus { outline: 2px solid rgb(var(--color-primary) / 0.5); outline-offset: 1px; }

@@ -27,7 +27,7 @@ export const config = {
       primary: "#1D4E94",
       secondary: "#7C8FCB",
       ink: "#172544",
-      paper: "#F3F6FA",
+      paper: "#F8F8F6",
       surface: "#FFFFFF",
       accent: "#F2A93B",
     },

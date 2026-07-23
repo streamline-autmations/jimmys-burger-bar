@@ -30,10 +30,7 @@ const photos: GalleryPhoto[] = [
   { src: '/images/campaign/cars-1.webp', caption: 'Classic cars on Loch Street', category: 'Coffee & Cars' },
   { src: '/images/campaign/coffee-cars-alt.webp', caption: 'Breakfast for the Coffee & Cars crowd', category: 'Coffee & Cars' },
   { src: '/images/campaign/coffee-1.webp', caption: 'The fuel before the line-up', category: 'Coffee & Cars' },
-  { src: '/images/campaign/cars-1.webp', caption: 'Engines, coffee and a Sunday morning', category: 'Coffee & Cars' },
   { src: '/images/campaign/cars-2.webp', caption: 'The cars turn out early', category: 'Coffee & Cars' },
-  { src: '/images/campaign/coffee-cars-alt.webp', caption: 'Coffee, cars and proper breakfast', category: 'Coffee & Cars' },
-  { src: '/images/campaign/coffee-1.webp', caption: 'Fuel for Coffee & Cars', category: 'Coffee & Cars' },
   { src: '/images/campaign/atmosphere.webp', caption: 'The Jimmy\'s atmosphere', category: 'Atmosphere', tall: true },
   { src: '/images/campaign/live-music.webp', caption: 'Live music at Jimmy\'s', category: 'Atmosphere', tall: true },
 
@@ -147,7 +144,7 @@ export const Gallery: React.FC = () => {
                 src={hoveredSrc === photo.src && photo.hoverSrc ? photo.hoverSrc : photo.src}
                 alt={photo.caption}
                 loading="lazy"
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${photo.src.includes('burger-hand') ? 'burger-hand-photo' : ''}`}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="absolute bottom-0 left-0 right-0 p-4 text-left text-surface text-sm font-medium opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">

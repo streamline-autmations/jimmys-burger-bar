@@ -37,16 +37,11 @@ export const Drinks: React.FC = () => {
           <p className="text-ink/60 text-lg">{drinks.intro}</p>
         </motion.div>
 
-        <motion.div {...fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-14 md:max-w-4xl">
+        <motion.div {...fadeInUp} className="mb-14 md:max-w-3xl">
           <div className="relative min-h-[250px] md:min-h-[360px] overflow-hidden rounded-2xl bg-ink jimmy-media-frame">
             <video src="/videos/drinks-pour-loop.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
             <span className="absolute left-5 bottom-5 text-surface font-display font-bold text-xl">Straight from the bar.</span>
-          </div>
-          <div className="relative min-h-[250px] md:min-h-[360px] overflow-hidden rounded-2xl bg-primary md:mt-10 jimmy-media-frame">
-            <img src="/images/ambience-corona.jpg" alt="Ice-cold Corona buckets at Jimmy's" loading="eager" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink/65 via-transparent to-transparent" />
-            <span className="absolute left-5 bottom-5 text-surface font-display font-bold text-xl">Always cold.</span>
           </div>
         </motion.div>
         <div className="flex items-center justify-between gap-4 mb-5">

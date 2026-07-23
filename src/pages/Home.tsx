@@ -180,7 +180,7 @@ export const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Link to="/menu" className="group relative min-h-[440px] md:min-h-[620px] overflow-hidden bg-ink block">
-              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
               <div className="absolute left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The classic</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Beef Burgers</h3></div>
@@ -188,7 +188,7 @@ export const Home: React.FC = () => {
               </div>
             </Link>
             <Link to="/menu" className="group relative min-h-[440px] md:min-h-[620px] overflow-hidden bg-primary block md:mt-12">
-              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
               <div className="absolute left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The other favourite</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Chicken Burgers</h3></div>

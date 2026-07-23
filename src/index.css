@@ -96,8 +96,8 @@
 /* The Friday stack is intentionally the page's one playful card interaction. */
 .special-stack {
   position: relative;
-  width: min(100%, 430px);
-  height: 470px;
+  width: min(100%, 360px);
+  height: 410px;
   margin-inline: auto;
   perspective: 900px;
 }
@@ -116,6 +116,12 @@
 /* The menu is a rail on every viewport. Horizontal movement is explicit,
    while vertical page scroll remains native on phones. */
 .horizontal-rail { touch-action: pan-y; overscroll-behavior-x: contain; }
+
+/* Keep the full hand-held burger in frame rather than cutting it into a
+   close-up. The surrounding navy belongs to the card, so the zoom-out reads
+   as a deliberate product-photo treatment. */
+.burger-hand-photo { transform: scale(0.88); }
+.group:hover .burger-hand-photo { transform: scale(0.92); }
 
 /* Marquee band: two identical tracks each shift one full width, so the loop
    is seamless. GPU-only (transform), no JS. */
@@ -207,7 +213,7 @@
 
 @media (max-width: 767px) {
   .burger-cursor { display: none; }
-  .special-stack { height: 430px; max-width: 350px; }
+  .special-stack { height: 390px; max-width: 320px; }
 }
 
 /* Outlined display type for the pinned Smash showcase. */

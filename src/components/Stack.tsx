@@ -8,7 +8,8 @@ const StackItem: React.FC<{
   index: number;
   total: number;
   onSendBack: () => void;
-}> = ({ card, index, total, onSendBack }) => {
+  onSelect?: () => void;
+}> = ({ card, index, total, onSendBack, onSelect }) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotateX = useTransform(y, [-120, 120], [10, -10]);
@@ -18,7 +19,7 @@ const StackItem: React.FC<{
     <motion.div
       className="special-stack-item"
       style={{ x, y, rotateX, rotateY, zIndex: index + 1 }}
-      animate={{ rotateZ: (total - index - 1) * 3.5, scale: 0.9 + index * 0.035, y: index * -3 }}
+      animate={{ rotateZ: (total - index - 1) * 3.5, scale: 0.76 + index * 0.08, y: index * -8 }}
       transition={{ type: 'spring', stiffness: 260, damping: 22 }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
@@ -27,14 +28,17 @@ const StackItem: React.FC<{
         if (Math.abs(info.offset.x) > 70) onSendBack();
         else { x.set(0); y.set(0); }
       }}
-      onClick={onSendBack}
+      onClick={() => {
+        if (onSelect) onSelect();
+        else onSendBack();
+      }}
     >
       {card.content}
     </motion.div>
   );
 };
 
-export const Stack: React.FC<{ cards: StackCard[] }> = ({ cards }) => {
+export const Stack: React.FC<{ cards: StackCard[]; onSelect?: () => void }> = ({ cards, onSelect }) => {
   const [stack, setStack] = useState(cards);
 
   useEffect(() => setStack(cards), [cards]);
@@ -46,7 +50,7 @@ export const Stack: React.FC<{ cards: StackCard[] }> = ({ cards }) => {
   return (
     <div className="special-stack" aria-label="Friday specials. Swipe or tap a card to browse.">
       {stack.map((card, index) => (
-        <StackItem key={card.id} card={card} index={index} total={stack.length} onSendBack={() => sendBack(card.id)} />
+        <StackItem key={card.id} card={card} index={index} total={stack.length} onSendBack={() => sendBack(card.id)} onSelect={onSelect} />
       ))}
     </div>
   );

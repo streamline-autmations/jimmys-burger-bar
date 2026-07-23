@@ -1,10 +1,11 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Clock, ArrowRight } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Clock, ArrowRight, X } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp } from '../lib/motion';
 import { Stack } from '../components/Stack';
+import { useHorizontalWheel } from '../lib/useHorizontalWheel';
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
   `Hi! I'd like to book a table at ${config.venue.name}.`
@@ -12,6 +13,9 @@ const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURICom
 
 export const Specials: React.FC = () => {
   const { specials } = config;
+  const [isPosterBrowserOpen, setIsPosterBrowserOpen] = useState(false);
+  const posterRailRef = useRef<HTMLDivElement>(null);
+  useHorizontalWheel(posterRailRef);
   const specialCards = specials.fridays.map((s) => ({
     id: s.title,
     content: s.poster ? (
@@ -72,8 +76,8 @@ export const Specials: React.FC = () => {
 
         <motion.div {...fadeInUp} className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)] items-center gap-12 mb-20 pt-3">
           <div>
-            <Stack cards={specialCards} />
-            <p className="text-sm text-ink/55 text-center mt-7">Swipe a poster, or tap it to see the next Friday special.</p>
+            <Stack cards={specialCards} onSelect={() => setIsPosterBrowserOpen(true)} />
+            <p className="text-sm text-ink/55 text-center mt-7">Tap a poster to open the Friday wall. Swipe to shuffle the stack.</p>
           </div>
           <div className="rounded-2xl border-2 border-dashed border-ink/25 p-8 md:p-10 flex flex-col items-start justify-center gap-4 min-h-[250px]">
             <p className="text-ink/65 leading-relaxed">
@@ -94,6 +98,36 @@ export const Specials: React.FC = () => {
           </div>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {isPosterBrowserOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-ink/90 backdrop-blur-md p-4 md:p-10 flex items-center"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Friday specials"
+            onClick={() => setIsPosterBrowserOpen(false)}
+          >
+            <div className="w-full max-w-4xl mx-auto" onClick={(event) => event.stopPropagation()}>
+              <div className="flex items-center justify-between gap-4 mb-6 text-surface">
+                <div><span className="font-script text-secondary text-xl">the poster wall</span><h2 className="font-display text-3xl md:text-5xl font-extrabold">Friday specials</h2></div>
+                <button onClick={() => setIsPosterBrowserOpen(false)} className="p-3 rounded-full bg-surface/10 hover:bg-surface/20" aria-label="Close specials"><X size={24} /></button>
+              </div>
+              <div ref={posterRailRef} className="horizontal-rail flex items-center gap-4 md:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+                {specialCards.map((card) => (
+                  <div key={card.id} className="shrink-0 w-[min(76vw,290px)] md:w-[290px] aspect-[4/5] overflow-hidden rounded-2xl snap-center shadow-2xl shadow-black/35">
+                    {card.content}
+                  </div>
+                ))}
+              </div>
+              <p className="text-paper/70 text-sm mt-5">Swipe or scroll through the wall — three posters stay in view on larger screens.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -16,6 +16,7 @@ import {
   type OrderType,
 } from '../lib/cartStore';
 import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
+import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 
@@ -60,6 +61,7 @@ export const Order: React.FC = () => {
     orderNo: string;
     total: number;
   } | null>(null);
+  const stickyBelowHeader = useStickyHeaderOffset();
 
   const lines = useCartStore(useShallow(selectCartLines));
   const count = useCartStore(selectCartCount);
@@ -162,7 +164,7 @@ export const Order: React.FC = () => {
             </div>
 
             {/* Category tabs */}
-            <div className="sticky top-[64px] z-30 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 overflow-x-auto scrollbar-hide">
+            <div className={`sticky ${stickyBelowHeader ? 'top-[64px]' : 'top-0'} z-30 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 overflow-x-auto scrollbar-hide transition-[top] duration-300`}>
               <div className="max-w-7xl mx-auto flex items-center gap-2 md:justify-center min-w-max">
                 {menu.categories.map((cat) => (
                   <button

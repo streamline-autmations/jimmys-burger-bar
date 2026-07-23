@@ -7,6 +7,7 @@ import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
 import { Doodle } from '../components/Doodle';
 import { useHorizontalWheel } from '../lib/useHorizontalWheel';
+import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 // Chalk-sketch watermark per category, drawn in Jimmy's royal blue.
 const CATEGORY_DOODLES: Record<string, string> = {
@@ -27,6 +28,7 @@ export const Menu: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState(config.menu.categories[0].name);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const menuRailRef = useRef<HTMLDivElement>(null);
+  const stickyBelowHeader = useStickyHeaderOffset();
   useHorizontalWheel(menuRailRef);
 
   // jsPDF (and its transitive html2canvas/purify deps) is a heavy library
@@ -101,7 +103,7 @@ export const Menu: React.FC = () => {
       </div>
 
       {/* Category tabs */}
-      <div className="sticky top-[64px] z-40 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 overflow-x-auto scrollbar-hide">
+      <div className={`sticky ${stickyBelowHeader ? 'top-[64px]' : 'top-0'} z-40 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 overflow-x-auto scrollbar-hide transition-[top] duration-300`}>
         <div className="max-w-7xl mx-auto flex items-center gap-2 md:justify-center min-w-max">
           {config.menu.categories.map((cat) => (
             <button

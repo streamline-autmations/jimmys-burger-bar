@@ -21,7 +21,7 @@ export const Visit: React.FC = () => {
         </motion.div>
 
         <motion.div {...fadeInUp} className="relative h-[250px] md:h-[340px] overflow-hidden bg-ink mb-10">
-          <img src="/images/campaign/atmosphere.webp" alt="Inside Jimmy's Burger Bar" loading="eager" className="absolute inset-0 w-full h-full object-cover opacity-75" />
+          <img src="/images/jimmys-logo-2.png" alt="Jimmy's Burger Bar burgers and salad" loading="eager" className="absolute inset-0 w-full h-full object-cover opacity-80" />
           <div className="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/40 to-transparent" />
           <div className="absolute left-6 bottom-6 md:left-10 md:bottom-10 max-w-md text-surface"><span className="text-xs font-bold tracking-[0.16em] uppercase text-accent">Worth the trip</span><p className="font-display text-2xl md:text-4xl font-extrabold leading-[0.98] mt-2">Pull in hungry. Leave with a story.</p></div>
         </motion.div>

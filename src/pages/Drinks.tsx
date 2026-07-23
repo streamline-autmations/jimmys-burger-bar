@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
 import { Doodle } from '../components/Doodle';
 import { RevealHeading } from '../components/RevealHeading';
+import { useHorizontalWheel } from '../lib/useHorizontalWheel';
 
 const CATEGORY_DOODLES: Record<string, string> = {
   Beer: 'beer',
@@ -17,6 +18,8 @@ const CATEGORY_DOODLES: Record<string, string> = {
 
 export const Drinks: React.FC = () => {
   const { drinks } = config;
+  const drinksRailRef = useRef<HTMLDivElement>(null);
+  useHorizontalWheel(drinksRailRef);
 
   return (
     <div className="pt-28 min-h-screen relative">
@@ -46,19 +49,24 @@ export const Drinks: React.FC = () => {
             <span className="absolute left-5 bottom-5 text-surface font-display font-bold text-xl">Always cold.</span>
           </div>
         </motion.div>
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <p className="text-sm text-ink/60">Swipe the drinks board, or scroll sideways on desktop.</p>
+          <span className="hidden md:block text-xs font-bold tracking-[0.14em] uppercase text-primary">Scroll →</span>
+        </div>
         {/* Drinks board */}
         <motion.div
+          ref={drinksRailRef}
           variants={staggerContainer}
           initial="initial"
           whileInView="whileInView"
           viewport={{ once: true, amount: 0.05 }}
-          className="columns-1 lg:columns-2 gap-6"
+          className="horizontal-rail flex items-start gap-4 md:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-5 -mx-4 px-4 md:mx-0 md:px-0"
         >
           {drinks.categories.map((category) => (
             <motion.div
               key={category.name}
               variants={riseChild}
-              className="relative overflow-hidden bg-surface rounded-2xl p-8 md:p-9 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] break-inside-avoid mb-6"
+              className="relative self-start shrink-0 w-[min(86vw,380px)] md:w-[430px] overflow-hidden bg-surface rounded-2xl p-7 md:p-9 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] snap-start"
             >
               {CATEGORY_DOODLES[category.name] && (
                 <Doodle

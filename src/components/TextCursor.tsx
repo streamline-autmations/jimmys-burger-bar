@@ -46,9 +46,7 @@ export const TextCursor: React.FC = () => {
             animate={{ opacity: 0.95, scale: 1, x: point.x, y: point.y, rotate: point.angle }}
             exit={{ opacity: 0, scale: 0.25 }}
             transition={{ duration: 0.32, ease: 'easeOut' }}
-          >
-            🍔
-          </motion.span>
+          />
         ))}
       </AnimatePresence>
     </div>

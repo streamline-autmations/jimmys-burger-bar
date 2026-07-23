@@ -18,6 +18,9 @@ export function useLenis() {
     const lenis = new Lenis({
       duration: 1.1,
       easing: (t: number) => 1 - Math.pow(1 - t, 3),
+      // Let the menu/drinks rails keep native touch swiping. Lenis still owns
+      // every other scroll interaction on the page.
+      prevent: (node) => node.classList?.contains('horizontal-rail') ?? false,
     });
 
     lenis.on('scroll', ScrollTrigger.update);

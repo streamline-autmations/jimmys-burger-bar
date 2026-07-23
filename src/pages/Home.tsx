@@ -257,11 +257,8 @@ export const Home: React.FC = () => {
       {/* ============ Story: the place after the plate ============ */}
       <section className="py-20 md:py-28 bg-surface overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <motion.div {...fadeInUp} className="relative min-h-[480px] md:min-h-[620px] order-2 lg:order-1">
-            <img src="/images/campaign/atmosphere.webp" alt="Atmosphere at Jimmy's Burger Bar" loading="lazy" className="absolute top-0 left-0 w-[78%] h-[78%] object-cover" />
-            <div className="absolute right-0 bottom-0 w-[54%] h-[56%] bg-primary border-[10px] border-surface shadow-xl shadow-ink/20 flex items-center justify-center p-6">
-              <img src="/images/jimmys-logo-2.png" alt="Jimmy's Burger Bar logo" loading="lazy" className="max-h-full max-w-full object-contain" />
-            </div>
+          <motion.div {...fadeInUp} className="relative min-h-[420px] md:min-h-[620px] order-2 lg:order-1 rounded-2xl overflow-hidden jimmy-media-frame">
+            <img src="/images/jimmys-logo-2.png" alt="Jimmy's Burger Bar burgers and logo" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
           </motion.div>
           <motion.div {...fadeInUp} className="order-1 lg:order-2">
             <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">More than a quick stop</span>

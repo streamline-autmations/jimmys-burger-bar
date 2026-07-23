@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { config } from '../config';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
 import { Doodle } from '../components/Doodle';
+import { useHorizontalWheel } from '../lib/useHorizontalWheel';
 
 // Chalk-sketch watermark per category, drawn in Jimmy's royal blue.
 const CATEGORY_DOODLES: Record<string, string> = {
@@ -25,6 +26,8 @@ const CATEGORY_DOODLES: Record<string, string> = {
 export const Menu: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState(config.menu.categories[0].name);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const menuRailRef = useRef<HTMLDivElement>(null);
+  useHorizontalWheel(menuRailRef);
 
   // jsPDF (and its transitive html2canvas/purify deps) is a heavy library
   // that only a fraction of visitors will ever trigger, so it's dynamically
@@ -123,15 +126,16 @@ export const Menu: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 overflow-hidden">
         <div className="flex items-center justify-between gap-4 mb-5">
-          <p className="text-sm text-ink/60">Browse the board sideways — each card is one part of the menu.</p>
-          <span className="hidden md:block text-xs font-bold tracking-[0.14em] uppercase text-primary">Scroll or drag →</span>
+          <p className="text-sm text-ink/60">Swipe on phone. Scroll, trackpad or drag on desktop.</p>
+          <span className="hidden md:block text-xs font-bold tracking-[0.14em] uppercase text-primary">Scroll →</span>
         </div>
         <motion.div
+          ref={menuRailRef}
           variants={staggerContainer}
           initial="initial"
           whileInView="whileInView"
           viewport={{ once: true, amount: 0.02 }}
-          className="menu-rail flex items-start gap-4 md:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-5 -mx-4 px-4 md:mx-0 md:px-0"
+          className="horizontal-rail flex items-start gap-4 md:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-5 -mx-4 px-4 md:mx-0 md:px-0"
         >
           {config.menu.categories.map((category) => (
             <motion.section

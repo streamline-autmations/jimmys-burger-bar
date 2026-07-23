@@ -11,6 +11,7 @@ import { Specials } from './pages/Specials';
 import { Gallery } from './pages/Gallery';
 import { Visit } from './pages/Visit';
 import { Order } from './pages/Order';
+import { Booking } from './pages/Booking';
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
@@ -96,6 +97,7 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/visit" element={<Visit />} />
             <Route path="/order" element={<Order />} />
+            <Route path="/book" element={<Booking />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

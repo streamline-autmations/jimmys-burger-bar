@@ -110,6 +110,17 @@ export const config = {
     orderPrefix: "JB",
     collectionNote: "Ready for collection at 57 Loch Street.",
     tableNote: "We'll bring it straight to your table.",
+    deliveryNote: "Your delivery address is saved on the order confirmation.",
+    nonAlcoholicDrinks: [
+      { name: 'Coke', description: '330ml can', price: 'R25' },
+      { name: 'Coke Zero', description: '330ml can', price: 'R25' },
+      { name: 'Sprite', description: '330ml can', price: 'R25' },
+      { name: 'Fanta Orange', description: '330ml can', price: 'R25' },
+      { name: 'Still Water', description: '500ml', price: 'R18' },
+      { name: 'Sparkling Water', description: '500ml', price: 'R22' },
+      { name: 'Appletiser', description: '330ml', price: 'R30' },
+      { name: 'Heineken 0.0', description: 'Non-alcoholic beer', price: 'R30' },
+    ],
   },
 
   // ---- Specials -----------------------------------------------------------

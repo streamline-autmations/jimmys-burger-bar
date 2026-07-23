@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Clock, Car, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { config } from '../config';
 import { Magnetic } from '../components/Magnetic';
 import { fadeInUp } from '../lib/motion';
@@ -84,15 +85,13 @@ export const Visit: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-3 mt-7">
                 <Magnetic strength={0.2}>
-                  <a
-                    href={`https://wa.me/${venue.whatsapp}?text=${encodeURIComponent(`Hi! I'd like to book a table at ${venue.name}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/book"
                     className="flex items-center justify-center gap-2 bg-primary text-surface py-3.5 rounded-full font-display font-bold text-sm transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <MessageCircle size={16} />
                     <span>Book a Table</span>
-                  </a>
+                  </Link>
                 </Magnetic>
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(venue.address)}`}

@@ -21,9 +21,6 @@ const coffeeAndCarsImages = [
   { src: '/images/campaign/coffee-1.webp', label: 'Coffee, cars and a Sunday morning' },
 ];
 
-const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
-  `Hi! I'd like to book a table at ${config.venue.name}.`
-)}`;
 
 // Google-style initial avatar for real reviewers. We deliberately do NOT use
 // photos here: these are real named people from Jimmy's Google listing, and
@@ -85,7 +82,7 @@ export const Home: React.FC = () => {
             </motion.h1>
             <motion.p {...heroItem(0.4)} className="text-base md:text-lg text-paper/80 leading-relaxed mb-8 max-w-md">{venue.description}</motion.p>
             <motion.div {...heroItem(0.5)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Magnetic className="w-full sm:w-auto"><a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="block w-full sm:w-auto text-center bg-accent text-ink px-7 py-3.5 rounded-full font-display font-bold shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]">Book a Table</a></Magnetic>
+              <Magnetic className="w-full sm:w-auto"><Link to="/book" className="block w-full sm:w-auto text-center bg-accent text-ink px-7 py-3.5 rounded-full font-display font-bold shadow-lg shadow-black/30 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]">Book a Table</Link></Magnetic>
               <Link to="/menu" className="w-full sm:w-auto text-center border border-surface/35 text-surface px-7 py-3.5 rounded-full font-display font-bold hover:bg-surface hover:text-ink hover:border-surface transition-colors duration-200">View the Menu</Link>
             </motion.div>
           </div>
@@ -403,17 +400,15 @@ export const Home: React.FC = () => {
             </h2>
             <div className="bg-ink p-8 rounded-2xl text-paper">
               <p className="text-lg leading-relaxed mb-8">{venue.address}</p>
-              <a
-                href={whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/book"
                 className="group inline-flex items-center justify-center gap-3 w-full bg-surface text-ink pl-7 pr-2 py-2 rounded-full font-display font-bold hover:bg-secondary transition-colors duration-200"
               >
                 <span>Book a Table</span>
                 <span className="flex items-center justify-center w-11 h-11 rounded-full bg-ink/[0.06] group-hover:translate-x-0.5 transition-transform">
                   <ArrowRight size={18} />
                 </span>
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>

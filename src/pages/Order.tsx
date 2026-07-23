@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, ShoppingBag, Check, ArrowLeft, PartyPopper } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, Check, ArrowLeft, PartyPopper, Download } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
@@ -14,8 +14,9 @@ import {
   selectCartCount,
   selectCartTotal,
   type OrderType,
+  type CartLine,
 } from '../lib/cartStore';
-import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
+import { generateOrderNumber } from '../lib/orderMessage';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
@@ -57,9 +58,12 @@ export const Order: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState(menu.categories[0].name);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [placedOrder, setPlacedOrder] = useState<{
     orderNo: string;
-    total: number;
+    total: number; lines: CartLine[]; orderType: OrderType; tableNumber: string; address: string;
   } | null>(null);
   const stickyBelowHeader = useStickyHeaderOffset();
 
@@ -75,6 +79,7 @@ export const Order: React.FC = () => {
   const clear = useCartStore((s) => s.clear);
 
   const tracking = useOrderTracking(step === 'confirmed');
+  const orderCategories = [...menu.categories, { name: 'Non-alcoholic drinks', note: 'Cold, zero-proof and ready to add', items: ordering.nonAlcoholicDrinks }];
 
   // Order.tsx runs its own browse -> checkout -> confirmed flow without a
   // route change, so App.tsx's route-level ScrollToTop never fires here.
@@ -95,24 +100,16 @@ export const Order: React.FC = () => {
   };
 
   const canPlaceOrder = useMemo(() => {
-    if (count === 0 || !customerName.trim()) return false;
+    if (count === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) return false;
     if (orderType === 'table' && !tableNumber.trim()) return false;
+    if (orderType === 'delivery' && !deliveryAddress.trim()) return false;
     return true;
-  }, [count, customerName, orderType, tableNumber]);
+  }, [count, customerName, customerEmail, customerPhone, deliveryAddress, orderType, tableNumber]);
 
   const handlePlaceOrder = () => {
     if (!canPlaceOrder) return;
     const orderNo = generateOrderNumber();
-    const url = buildOrderWhatsAppUrl({
-      orderNo,
-      lines,
-      orderType,
-      tableNumber,
-      total,
-      name: customerName,
-    });
-    window.open(url, '_blank', 'noopener,noreferrer');
-    setPlacedOrder({ orderNo, total });
+    setPlacedOrder({ orderNo, total, lines: [...lines], orderType, tableNumber, address: deliveryAddress });
     clear();
     setStep('confirmed');
   };
@@ -120,7 +117,7 @@ export const Order: React.FC = () => {
   const startNewOrder = () => {
     setPlacedOrder(null);
     setCustomerName('');
-    setCustomerPhone('');
+    setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes('');
     setStep('browse');
   };
 
@@ -166,7 +163,7 @@ export const Order: React.FC = () => {
             {/* Category tabs */}
             <div className={`sticky ${stickyBelowHeader ? 'top-[64px]' : 'top-0'} z-30 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 overflow-x-auto scrollbar-hide transition-[top] duration-300`}>
               <div className="max-w-7xl mx-auto flex items-center gap-2 md:justify-center min-w-max">
-                {menu.categories.map((cat) => (
+                {orderCategories.map((cat) => (
                   <button
                     key={cat.name}
                     onClick={() => scrollToCategory(cat.name)}
@@ -196,7 +193,7 @@ export const Order: React.FC = () => {
                 viewport={{ once: true, amount: 0.02 }}
                 className="lg:col-span-2 space-y-6"
               >
-                {menu.categories.map((category) => (
+                {orderCategories.map((category) => (
                   <motion.section
                     key={category.name}
                     id={`order-${category.name}`}
@@ -323,15 +320,27 @@ export const Order: React.FC = () => {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="e.g. Riaan"
+                required
                 className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
               />
 
-              <label className="block font-display font-bold text-ink text-sm mb-2">Phone (optional)</label>
+              <label className="block font-display font-bold text-ink text-sm mb-2">Phone number</label>
               <input
                 type="tel"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="082 123 4567"
+                required
+                className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+              />
+
+              <label className="block font-display font-bold text-ink text-sm mb-2">Email address</label>
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="you@email.com"
+                required
                 className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
               />
 
@@ -348,6 +357,18 @@ export const Order: React.FC = () => {
                     placeholder="e.g. 7"
                     className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
+                </div>
+              )}
+              {orderType === 'delivery' && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="block font-display font-bold text-ink text-sm mb-2">Delivery address</label>
+                    <textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required placeholder="Street number, suburb and any gate details" className="w-full min-h-24 bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                  </div>
+                  <div>
+                    <label className="block font-display font-bold text-ink text-sm mb-2">Delivery notes <span className="font-body font-normal text-ink/45">(optional)</span></label>
+                    <input value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                  </div>
                 </div>
               )}
             </div>
@@ -375,10 +396,10 @@ export const Order: React.FC = () => {
               disabled={!canPlaceOrder}
               className="w-full inline-flex items-center justify-center gap-2.5 bg-primary text-surface py-4 rounded-full font-display font-bold text-base transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none shadow-lg shadow-primary/20"
             >
-              Place Order &amp; Send on WhatsApp
+              Place order
             </button>
-            {!customerName.trim() && (
-              <p className="text-center text-ink/45 text-sm mt-3">Add your name to place the order.</p>
+            {(!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) && (
+              <p className="text-center text-ink/45 text-sm mt-3">Name, phone and email are required to place the order.</p>
             )}
           </motion.div>
         )}
@@ -398,7 +419,7 @@ export const Order: React.FC = () => {
               #{placedOrder.orderNo}
             </h1>
             <p className="text-ink/60 text-lg mb-8">
-              {orderType === 'table' ? ordering.tableNote : ordering.collectionNote} We sent the details to Jimmy's on WhatsApp.
+              {placedOrder.orderType === 'table' ? ordering.tableNote : placedOrder.orderType === 'delivery' ? ordering.deliveryNote : ordering.collectionNote}
             </p>
 
             <Starburst label="approx" value={`${config.ordering.avgWaitMins} min`} className="w-28 h-28 mx-auto mb-8" />
@@ -429,8 +450,13 @@ export const Order: React.FC = () => {
               <p className="font-display font-bold text-ink">
                 {tracking.done ? "Ready, come grab it!" : `Ready in about ${tracking.countdown}`}
               </p>
-              <p className="text-ink/45 text-xs mt-1">Live demo, kitchen isn't actually cooking this one.</p>
+              <p className="text-ink/45 text-xs mt-1">Demo confirmation — no payment has been taken and this order has not been sent to the kitchen.</p>
             </div>
+
+            <button
+              onClick={async () => { const { generateOrderReceipt } = await import('../lib/generateOrderReceipt'); generateOrderReceipt({ orderNo: placedOrder.orderNo, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total }); }}
+              className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
+            ><Download size={16} /> Download receipt</button>
 
             <button
               onClick={startNewOrder}
@@ -451,7 +477,7 @@ const OrderTypeToggle: React.FC<{ value: OrderType; onChange: (v: OrderType) => 
   // background rather than escaping to the page root and rendering behind
   // unrelated content further down the page.
   <div className="relative z-0 bg-paper/60 rounded-full p-1 flex">
-    {(['collection', 'table'] as OrderType[]).map((type) => (
+    {(['collection', 'delivery', 'table'] as OrderType[]).map((type) => (
       <button
         key={type}
         onClick={() => onChange(type)}
@@ -466,7 +492,7 @@ const OrderTypeToggle: React.FC<{ value: OrderType; onChange: (v: OrderType) => 
             className="absolute inset-0 bg-primary rounded-full -z-10"
           />
         )}
-        {type === 'collection' ? 'Collection' : 'Table Order'}
+        {type === 'collection' ? 'Collection' : type === 'delivery' ? 'Delivery' : 'Table order'}
       </button>
     ))}
   </div>

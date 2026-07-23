@@ -4,7 +4,7 @@ import { create } from 'zustand';
 // ever touches a backend. Keyed by item name since the menu data (config.ts)
 // doesn't carry stable ids.
 
-export type OrderType = 'collection' | 'table';
+export type OrderType = 'collection' | 'table' | 'delivery';
 
 export interface CartLine {
   name: string;

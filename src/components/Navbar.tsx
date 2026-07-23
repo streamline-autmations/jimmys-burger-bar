@@ -13,9 +13,6 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
-  `Hi! I'd like to book a table at ${config.venue.name}.`
-)}`;
 
 // Minimal bar (logo + menu toggle only, every breakpoint) that auto-hides on
 // scroll down and returns on scroll up - Crav-style. All navigation, on
@@ -159,17 +156,14 @@ export const Navbar: React.FC = () => {
                   </motion.div>
                 )}
 
-                <motion.a
+                <motion.div
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.35, ease: EASE }}
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="mt-5 bg-accent text-ink px-8 py-3.5 rounded-full font-display font-bold text-base shadow-lg shadow-accent/25 transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
                 >
-                  Book a Table
-                </motion.a>
+                  <Link to="/book">Book a Table</Link>
+                </motion.div>
 
                 <motion.span
                   initial={{ opacity: 0 }}

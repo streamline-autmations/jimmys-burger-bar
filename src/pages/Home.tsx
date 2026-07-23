@@ -104,7 +104,7 @@ export const Home: React.FC = () => {
       <Marquee />
 
       {/* ============ Friday specials: the poster wall ============ */}
-      <section id="specials" className="relative scroll-mt-20 py-20 md:py-24 overflow-hidden bg-paper">
+      <section className="relative py-20 md:py-24 overflow-hidden bg-paper">
         <Doodle name="platter" className="absolute -top-6 right-[8%] w-36 h-36 text-primary/[0.08] rotate-12 pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-4">

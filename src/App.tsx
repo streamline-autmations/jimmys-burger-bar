@@ -34,7 +34,7 @@ const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
   useEffect(() => {
     const t = window.setTimeout(() => {
-      if (hash) {
+      if (pathname === '/visit' && hash) {
         document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         window.scrollTo(0, 0);
@@ -95,7 +95,7 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<FoodDrinks />} />
             <Route path="/drinks" element={<Navigate to="/menu?tab=drinks" replace />} />
-            <Route path="/specials" element={<Navigate to="/#specials" replace />} />
+            <Route path="/specials" element={<Navigate to="/" replace />} />
             <Route path="/gallery" element={<Navigate to="/visit#gallery" replace />} />
             <Route path="/visit" element={<Visit />} />
             <Route path="/order" element={<Order />} />

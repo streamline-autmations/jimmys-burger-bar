@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Clock, ArrowRight } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
-import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
+import { fadeInUp } from '../lib/motion';
+import { Stack } from '../components/Stack';
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
   `Hi! I'd like to book a table at ${config.venue.name}.`
@@ -11,6 +12,20 @@ const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURICom
 
 export const Specials: React.FC = () => {
   const { specials } = config;
+  const specialCards = specials.fridays.map((s) => ({
+    id: s.title,
+    content: s.poster ? (
+      <img src={s.poster} alt={`${s.title} special poster`} className="w-full h-full object-cover" />
+    ) : (
+      <div className="relative w-full h-full bg-ink p-7 pt-9 text-surface flex flex-col">
+        {s.price && <Starburst value={s.price} className="absolute -top-5 -right-3 w-[82px] h-[82px] text-[24px]" />}
+        <span className="font-script text-secondary text-xl">Friday special</span>
+        <h3 className="font-display text-[28px] font-extrabold leading-tight mt-1.5 pr-10">{s.title}</h3>
+        <p className="text-paper/75 leading-relaxed text-sm mt-3.5">{s.description}</p>
+        <p className="text-xs font-bold text-accent mt-auto pt-4">{s.note}</p>
+      </div>
+    ),
+  }));
 
   return (
     <div className="pt-28 min-h-screen">
@@ -55,47 +70,12 @@ export const Specials: React.FC = () => {
           </p>
         </motion.div>
 
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="whileInView"
-          viewport={{ once: true, amount: 0.05 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20 pt-4"
-        >
-          {specials.fridays.map((s, i) => (
-            <motion.div
-              key={s.title}
-              variants={riseChild}
-              className={`rounded-2xl relative overflow-hidden transition-transform duration-300 hover:rotate-0 hover:-translate-y-1 ${
-                i % 2 === 0 ? 'rotate-[-1deg]' : 'rotate-[0.8deg]'
-              } ${s.poster ? 'shadow-xl shadow-ink/20' : 'bg-ink p-8 pt-9'}`}
-            >
-              {s.poster ? (
-                <img
-                  src={s.poster}
-                  alt={`${s.title} special poster`}
-                  loading="lazy"
-                  className="w-full h-full aspect-[4/5] object-cover"
-                />
-              ) : (
-                <>
-                  {s.price && (
-                    <Starburst value={s.price} className="absolute -top-5 -right-3 w-[88px] h-[88px] text-[26px]" />
-                  )}
-                  <span className="font-script text-secondary text-xl block">Friday special</span>
-                  <h3 className="font-display text-[28px] font-extrabold text-surface leading-tight mt-1.5 pr-10">{s.title}</h3>
-                  <p className="text-paper/75 leading-relaxed text-sm mt-3.5">{s.description}</p>
-                  <p className="text-xs font-bold text-accent mt-4">{s.note}</p>
-                </>
-              )}
-            </motion.div>
-          ))}
-
-          {/* Booking cell completes the grid */}
-          <motion.div
-            variants={riseChild}
-            className="rounded-2xl border-2 border-dashed border-ink/25 p-8 flex flex-col items-start justify-center gap-4"
-          >
+        <motion.div {...fadeInUp} className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)] items-center gap-12 mb-20 pt-3">
+          <div>
+            <Stack cards={specialCards} />
+            <p className="text-sm text-ink/55 text-center mt-7">Swipe a poster, or tap it to see the next Friday special.</p>
+          </div>
+          <div className="rounded-2xl border-2 border-dashed border-ink/25 p-8 md:p-10 flex flex-col items-start justify-center gap-4 min-h-[250px]">
             <p className="text-ink/65 leading-relaxed">
               Friday tables go fast when the poster drops. Big groups welcome,
               especially for Coffee & Cars mornings.
@@ -111,7 +91,7 @@ export const Specials: React.FC = () => {
                 <ArrowRight size={14} />
               </span>
             </a>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </div>

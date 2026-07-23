@@ -72,9 +72,11 @@ export const config = {
       type: "video" as "video" | "image",
       video: "/videos/hero-burger-cinematic.mp4",
       poster: "/images/hero-burger-poster.jpg",
-      // 9:16 centre crop of the same clip for phones - object-cover on a
-      // portrait screen butchers the 16:9 composition, and this file is a
-      // third of the weight on mobile data.
+      // Natively generated 9:16 clip for phones (Seedance 2.0, framed wider
+      // than the desktop macro shot so the whole burger reads at a glance).
+      // A centre-crop of the 16:9 desktop clip was tried first and looked
+      // like an abstract cheese/pepper close-up on a phone screen - cropping
+      // an already-extreme macro shot loses all context. Regenerated instead.
       videoMobile: "/videos/hero-burger-cinematic-mobile.mp4",
       posterMobile: "/images/hero-burger-poster-mobile.jpg",
     },

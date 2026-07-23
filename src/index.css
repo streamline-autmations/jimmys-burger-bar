@@ -64,6 +64,55 @@
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Shared surface language: cards are soft 16px rectangles, actions are pills,
+   and image frames get a single quiet outline rather than mixed shadows. */
+.jimmy-media-frame {
+  box-shadow: 0 14px 36px -22px rgb(var(--color-ink) / 0.55);
+  outline: 1px solid rgb(var(--color-ink) / 0.08);
+}
+.section-poster-edge {
+  filter: drop-shadow(0 -1px 0 rgb(var(--color-ink) / 0.04));
+}
+
+/* React Bits-inspired burger cursor: completely absent on touch devices. */
+.burger-cursor {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+}
+.burger-cursor span {
+  position: fixed;
+  left: -0.75rem;
+  top: -0.75rem;
+  font-size: 1.35rem;
+  filter: drop-shadow(0 4px 5px rgb(var(--color-ink) / 0.28));
+}
+
+/* The Friday stack is intentionally the page's one playful card interaction. */
+.special-stack {
+  position: relative;
+  width: min(100%, 430px);
+  height: 470px;
+  margin-inline: auto;
+  perspective: 900px;
+}
+.special-stack-item {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 1rem;
+  cursor: grab;
+  box-shadow: 0 20px 40px -24px rgb(var(--color-ink) / 0.65);
+  outline: 1px solid rgb(var(--color-ink) / 0.08);
+  touch-action: pan-y;
+}
+.special-stack-item:active { cursor: grabbing; }
+
+/* The menu is a rail on every viewport. Horizontal movement is explicit,
+   while vertical page scroll remains native on phones. */
+.menu-rail { touch-action: pan-y; }
+
 /* Marquee band: two identical tracks each shift one full width, so the loop
    is seamless. GPU-only (transform), no JS. */
 @keyframes marquee {
@@ -149,6 +198,12 @@
   .burger-steam span {
     animation: none;
   }
+  .burger-cursor { display: none; }
+}
+
+@media (max-width: 767px) {
+  .burger-cursor { display: none; }
+  .special-stack { height: 430px; max-width: 350px; }
 }
 
 /* Outlined display type for the pinned Smash showcase. */

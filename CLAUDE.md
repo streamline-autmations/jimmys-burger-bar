@@ -39,6 +39,13 @@ Concretely:
 > arranged. Any AI-generated food asset added under this override MUST be logged in the
 > table below so it can be swapped out when a real shoot happens. The rule above is not
 > deleted because it remains the target state.
+>
+> **Same-day extension:** Christiaan asked for AI-generation prompts (to run himself via
+> ChatGPT) for two non-food images — a Coffee & Cars event photo and a story-section
+> interior/ambience shot. Same override logic applies: this depicts the physical venue
+> and a recurring real event, not literal food a customer will be served, so the misrepresentation
+> risk is lower than food but not zero (a customer could still expect the depicted space
+> or scene). Log any resulting image here when it's added.
 
 ### Known outstanding content issues (do not ship more of these)
 
@@ -188,8 +195,26 @@ chain and flattens the cards. Keep the tilt in the variant.
 
 ## Known gotchas
 
-- The navbar uses `backdrop-blur`, which traps `fixed` descendants — the mobile menu overlay
-  is portaled to `document.body` for this reason.
+- **Navbar (rebuilt 2026-07-22):** minimal bar (logo + menu toggle only, every breakpoint,
+  no inline links or CTA buttons) that auto-hides on scroll-down and returns on scroll-up
+  at ALL widths — the old desktop-only restriction was removed at client direction. All
+  navigation lives in a full-screen overlay: blurred real-photo backdrop + a navy card
+  that stamps in with `STAMP_EASE`. "Book a Table" is the only CTA, inside the overlay
+  only (never in the persistent bar) — this still satisfies the CTA-dedup rule below.
+  The overlay is portaled to `document.body` because the nav's `backdrop-filter` traps
+  `fixed` descendants.
+- **Hero layout (fixed 2026-07-22):** badge row and heading block used to be independently
+  positioned (`absolute top-24` vs `flex items-end` on the section) and collided on short
+  mobile viewports. Now both live as siblings in one `flex-col` with a flexible spacer
+  between them — structurally cannot overlap regardless of viewport height or copy length.
+  Do not go back to independent absolute/anchored positioning for hero content.
+- **Section dividers** (`SectionDivider.tsx`): `WaveDivider` and `CheckerDivider`, both
+  SVG top-edges. Two live on Home as a client-requested comparison: wave between Friday
+  specials and Crowd favourites (subtle — backgrounds are close in value), checker
+  between the drinks band and Story (dramatic — ink to surface is a big jump). The
+  checker is the on-brand pick (bends the existing Coffee & Cars racing motif); the wave
+  is a generic reference-site pattern with no basis in Jimmy's actual brand. Awaiting
+  client's pick between the two before calling this settled.
 - Home page is ~490 lines; the featured-tile component is defined at the top of the file.
 
 ## Verify before calling anything done

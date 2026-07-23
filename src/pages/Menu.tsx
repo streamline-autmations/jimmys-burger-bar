@@ -43,9 +43,7 @@ export const Menu: React.FC = () => {
     setActiveCategory(name);
     const element = document.getElementById(name);
     if (element) {
-      const offset = 130;
-      const top = element.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top, behavior: 'smooth' });
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
     }
   };
 
@@ -123,20 +121,24 @@ export const Menu: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 overflow-hidden">
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <p className="text-sm text-ink/60">Browse the board sideways — each card is one part of the menu.</p>
+          <span className="hidden md:block text-xs font-bold tracking-[0.14em] uppercase text-primary">Scroll or drag →</span>
+        </div>
         <motion.div
           variants={staggerContainer}
           initial="initial"
           whileInView="whileInView"
           viewport={{ once: true, amount: 0.02 }}
-          className="columns-1 lg:columns-2 gap-6"
+          className="menu-rail flex items-start gap-4 md:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-5 -mx-4 px-4 md:mx-0 md:px-0"
         >
           {config.menu.categories.map((category) => (
             <motion.section
               key={category.name}
               id={category.name}
               variants={riseChild}
-              className="relative overflow-hidden bg-surface rounded-2xl p-8 md:p-9 scroll-mt-40 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] break-inside-avoid mb-6"
+              className="relative self-start shrink-0 w-[min(86vw,380px)] md:w-[430px] min-h-[420px] overflow-hidden bg-surface rounded-2xl p-7 md:p-9 scroll-mt-40 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] snap-start"
             >
               {CATEGORY_DOODLES[category.name] && (
                 <Doodle

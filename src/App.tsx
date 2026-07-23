@@ -13,6 +13,7 @@ import { Visit } from './pages/Visit';
 import { Order } from './pages/Order';
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
+import { TextCursor } from './components/TextCursor';
 
 const NotFound: React.FC = () => (
   <div className="pt-28 pb-24 min-h-[70dvh] flex flex-col items-center justify-center text-center px-4">
@@ -132,6 +133,7 @@ const App: React.FC = () => {
       <Router>
         <ScrollToTop />
         <div className="flex flex-col min-h-screen grain">
+          <TextCursor />
           <Navbar />
           <AnimatedRoutes />
           <Footer />

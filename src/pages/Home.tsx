@@ -16,9 +16,9 @@ import { BurgerAssembly } from '../components/BurgerAssembly';
 
 const coffeeAndCarsImages = [
   { src: '/images/campaign/coffee-cars.webp', label: 'Coffee and Cars morning' },
-  { src: '/images/campaign/car-3.webp', label: 'Classic car at Coffee and Cars' },
-  { src: '/images/campaign/car-4.webp', label: 'Coffee and Cars regulars' },
-  { src: '/images/campaign/car-5.webp', label: 'Coffee and Cars line-up' },
+  { src: '/images/campaign/cars-1.webp', label: 'Coffee and Cars line-up' },
+  { src: '/images/campaign/coffee-cars-alt.webp', label: 'Breakfast at Coffee and Cars' },
+  { src: '/images/campaign/coffee-1.webp', label: 'Coffee, cars and a Sunday morning' },
 ];
 
 const whatsappHref = `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(
@@ -206,7 +206,7 @@ export const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center pt-6">
           <motion.div {...fadeInUp} className="relative">
             <div className="rounded-2xl overflow-hidden rotate-[-1.5deg] ring-8 ring-surface shadow-xl shadow-ink/15 relative">
-              <motion.img {...imageSettle} src={coffeeImage} alt="Classic car at a Coffee and Cars morning" loading="lazy" className="w-full h-[320px] md:h-[420px] object-cover" />
+              <motion.img {...imageSettle} src={coffeeImage} alt="Coffee and Cars morning at Jimmy's" loading="lazy" className="w-full h-[320px] md:h-[420px] object-cover object-center" />
               <div className="absolute left-3 top-3 flex gap-2" aria-label="Coffee and Cars photos">
                 {coffeeAndCarsImages.map((image) => (
                   <button key={image.src} type="button" onMouseEnter={() => setCoffeeImage(image.src)} onFocus={() => setCoffeeImage(image.src)} onClick={() => setCoffeeImage(image.src)} aria-label={image.label} className={`w-11 h-11 overflow-hidden border-2 transition-all ${coffeeImage === image.src ? 'border-accent scale-105' : 'border-surface/70 hover:border-accent'}`}>
@@ -259,13 +259,15 @@ export const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           <motion.div {...fadeInUp} className="relative min-h-[480px] md:min-h-[620px] order-2 lg:order-1">
             <img src="/images/campaign/atmosphere.webp" alt="Atmosphere at Jimmy's Burger Bar" loading="lazy" className="absolute top-0 left-0 w-[78%] h-[78%] object-cover" />
-            <img src="/images/campaign/live-music.webp" alt="Live music at Jimmy's Burger Bar" loading="lazy" className="absolute right-0 bottom-0 w-[54%] h-[56%] object-cover border-[10px] border-surface shadow-xl shadow-ink/20" />
+            <div className="absolute right-0 bottom-0 w-[54%] h-[56%] bg-primary border-[10px] border-surface shadow-xl shadow-ink/20 flex items-center justify-center p-6">
+              <img src="/images/jimmys-logo-2.png" alt="Jimmy's Burger Bar logo" loading="lazy" className="max-h-full max-w-full object-contain" />
+            </div>
           </motion.div>
           <motion.div {...fadeInUp} className="order-1 lg:order-2">
             <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">More than a quick stop</span>
             <RevealHeading text="The food brings you in. The place keeps you here." className="font-display text-4xl md:text-5xl font-extrabold text-ink leading-[0.96] mt-4 mb-6" />
             <div className="space-y-4 text-ink/70 leading-relaxed max-w-md"><p>Jimmy's is where the table turns into another round, the bar gets louder and the regulars already know your order.</p><p>Come through for proper food, live music, Coffee & Cars and a night that does not need a reason.</p></div>
-            <div className="grid grid-cols-3 gap-5 mt-10 pt-7 border-t border-ink/15 max-w-md"><div><p className="font-display text-3xl font-extrabold text-primary">{venue.rating}?</p><p className="text-sm text-ink/55 mt-1">Google rating</p></div><div><p className="font-display text-3xl font-extrabold text-primary">{venue.reviewCount}+</p><p className="text-sm text-ink/55 mt-1">local reviews</p></div><div><p className="font-display text-3xl font-extrabold text-primary">180g</p><p className="text-sm text-ink/55 mt-1">smash patties</p></div></div>
+            <div className="grid grid-cols-3 gap-5 mt-10 pt-7 border-t border-ink/15 max-w-md"><div><p className="font-display text-3xl font-extrabold text-primary inline-flex items-center gap-1">{venue.rating}<Star size={22} fill="currentColor" strokeWidth={0} /></p><p className="text-sm text-ink/55 mt-1">Google rating</p></div><div><p className="font-display text-3xl font-extrabold text-primary">{venue.reviewCount}+</p><p className="text-sm text-ink/55 mt-1">local reviews</p></div><div><p className="font-display text-3xl font-extrabold text-primary">180g</p><p className="text-sm text-ink/55 mt-1">smash patties</p></div></div>
           </motion.div>
         </div>
       </section>

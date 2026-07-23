@@ -5,16 +5,16 @@ import React, { useId } from 'react';
 // `fill` should be the CSS colour of the section BELOW the divider - the
 // shape reads as that section's top edge cutting into the one above it.
 
-// A soft, single-crest wave. Generic on its own, but works as a calm break
-// between quiet content sections.
+// A torn poster edge. The site's sections should feel pinned together, not
+// separated by generic SaaS waves.
 export const WaveDivider: React.FC<{ fill: string; className?: string }> = ({ fill, className }) => (
   <svg
     viewBox="0 0 1440 80"
     preserveAspectRatio="none"
-    className={`w-full h-[50px] md:h-20 -mb-px ${className ?? ''}`}
+    className={`section-poster-edge w-full h-[38px] md:h-14 -mb-px ${className ?? ''}`}
     aria-hidden="true"
   >
-    <path d="M0,40 C 240,90 480,0 720,20 C 960,40 1200,90 1440,40 L1440,80 L0,80 Z" fill={fill} />
+    <path d="M0,28 L72,14 L144,34 L216,11 L288,30 L360,16 L432,36 L504,12 L576,31 L648,15 L720,34 L792,10 L864,29 L936,16 L1008,35 L1080,12 L1152,31 L1224,14 L1296,34 L1368,11 L1440,28 L1440,80 L0,80 Z" fill={fill} />
   </svg>
 );
 

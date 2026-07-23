@@ -161,8 +161,8 @@ export const Order: React.FC = () => {
             </div>
 
             {/* Category tabs */}
-            <div className={`sticky ${stickyBelowHeader ? 'top-[64px]' : 'top-0'} z-30 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 overflow-x-auto scrollbar-hide transition-[top] duration-300`}>
-              <div className="max-w-7xl mx-auto flex items-center gap-2 md:justify-center min-w-max">
+            <div className={`md:sticky ${stickyBelowHeader ? 'md:top-[64px]' : 'md:top-0'} z-30 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 transition-[top] duration-300`}>
+              <div className="max-w-7xl mx-auto grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 md:justify-center">
                 {orderCategories.map((cat) => (
                   <button
                     key={cat.name}

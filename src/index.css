@@ -192,41 +192,62 @@
 .burger-steam {
   position: absolute;
   z-index: 20;
-  left: 21%;
-  top: 7%;
-  width: 58%;
-  height: 43%;
+  left: 34%;
+  top: 16%;
+  width: 32%;
+  height: 30%;
   pointer-events: none;
 }
 .burger-steam span {
   position: absolute;
   bottom: 0;
-  width: 12%;
-  height: 86%;
+  left: 50%;
+  width: 4px;
+  height: 64%;
   border-radius: 999px;
-  background: rgb(var(--color-surface) / 0.54);
-  filter: blur(11px);
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    rgb(var(--color-surface) / 0.28) 18%,
+    rgb(var(--color-surface) / 0.72) 52%,
+    rgb(var(--color-surface) / 0.08) 100%
+  );
+  box-shadow: 0 0 8px rgb(var(--color-surface) / 0.24);
+  filter: blur(3px);
   opacity: 0;
-  --drift: 0px;
-  animation: burger-steam 5.8s ease-in-out infinite;
+  transform-origin: 50% 100%;
+  --drift-x: 0px;
+  --drift-mid: 0px;
+  --rise: -42px;
+  --bend: 0deg;
+  animation: burger-steam 4.8s cubic-bezier(0.3, 0.04, 0.25, 1) infinite;
 }
-.burger-steam span:nth-child(1) { left: 0%; height: 58%; --drift: -38px; animation-delay: 3.9s; }
-.burger-steam span:nth-child(2) { left: 8%; height: 78%; --drift: -28px; animation-delay: 4.16s; }
-.burger-steam span:nth-child(3) { left: 17%; height: 94%; --drift: -18px; animation-delay: 4.42s; }
-.burger-steam span:nth-child(4) { left: 27%; height: 70%; --drift: -12px; animation-delay: 4.68s; }
-.burger-steam span:nth-child(5) { left: 37%; height: 100%; --drift: -4px; animation-delay: 4.94s; }
-.burger-steam span:nth-child(6) { left: 47%; height: 78%; --drift: 5px; animation-delay: 5.2s; }
-.burger-steam span:nth-child(7) { left: 57%; height: 96%; --drift: 12px; animation-delay: 5.46s; }
-.burger-steam span:nth-child(8) { left: 67%; height: 68%; --drift: 20px; animation-delay: 5.72s; }
-.burger-steam span:nth-child(9) { left: 77%; height: 92%; --drift: 30px; animation-delay: 5.98s; }
-.burger-steam span:nth-child(10) { left: 87%; height: 62%; --drift: 40px; animation-delay: 6.24s; }
-.burger-steam span:nth-child(11) { left: 31%; height: 84%; --drift: -24px; animation-delay: 6.5s; }
-.burger-steam span:nth-child(12) { left: 62%; height: 88%; --drift: 26px; animation-delay: 6.76s; }
+.burger-steam span:nth-child(1) { margin-left: -18px; height: 48%; --drift-mid: -30px; --drift-x: -66px; --rise: -36px; --bend: -22deg; animation-delay: 3.55s; }
+.burger-steam span:nth-child(2) { margin-left: -11px; height: 64%; --drift-mid: -23px; --drift-x: -54px; --rise: -44px; --bend: -17deg; animation-delay: 3.78s; }
+.burger-steam span:nth-child(3) { margin-left: -6px; height: 78%; --drift-mid: -17px; --drift-x: -43px; --rise: -50px; --bend: -13deg; animation-delay: 4.01s; }
+.burger-steam span:nth-child(4) { margin-left: -2px; height: 58%; --drift-mid: -12px; --drift-x: -34px; --rise: -38px; --bend: -9deg; animation-delay: 4.24s; }
+.burger-steam span:nth-child(5) { margin-left: 1px; height: 72%; --drift-mid: 14px; --drift-x: 36px; --rise: -42px; --bend: 10deg; animation-delay: 4.47s; }
+.burger-steam span:nth-child(6) { margin-left: 5px; height: 82%; --drift-mid: 18px; --drift-x: 46px; --rise: -52px; --bend: 14deg; animation-delay: 4.7s; }
+.burger-steam span:nth-child(7) { margin-left: 10px; height: 62%; --drift-mid: 24px; --drift-x: 57px; --rise: -43px; --bend: 18deg; animation-delay: 4.93s; }
+.burger-steam span:nth-child(8) { margin-left: 16px; height: 50%; --drift-mid: 32px; --drift-x: 69px; --rise: -35px; --bend: 23deg; animation-delay: 5.16s; }
+.burger-steam span:nth-child(9) { margin-left: -4px; height: 68%; --drift-mid: -20px; --drift-x: -50px; --rise: -46px; --bend: -15deg; animation-delay: 5.39s; }
+.burger-steam span:nth-child(10) { margin-left: 4px; height: 68%; --drift-mid: 20px; --drift-x: 50px; --rise: -46px; --bend: 15deg; animation-delay: 5.62s; }
 @keyframes burger-steam {
-  0%, 10% { opacity: 0; transform: translate3d(0, 18px, 0) scaleX(0.46); }
-  25% { opacity: 0.74; }
-  74% { opacity: 0; transform: translate3d(var(--drift), -96px, 0) scaleX(2.25); }
-  100% { opacity: 0; }
+  0%, 12% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale3d(0.7, 0.35, 1) rotate(0deg);
+  }
+  27% {
+    opacity: 0.72;
+  }
+  58% {
+    opacity: 0.46;
+    transform: translate3d(var(--drift-mid), -20px, 0) scale3d(1.05, 0.92, 1) rotate(var(--bend));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift-x), var(--rise), 0) scale3d(1.65, 1.14, 1) rotate(var(--bend));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

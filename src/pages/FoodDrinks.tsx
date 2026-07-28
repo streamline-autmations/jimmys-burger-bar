@@ -231,9 +231,6 @@ export const FoodDrinks: React.FC = () => {
                 </figcaption>
               </motion.figure>
             </AnimatePresence>
-            <span className="absolute z-10 top-4 right-4 bg-accent text-ink px-3 py-1.5 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase shadow-lg">
-              {board === 'food' ? 'Kitchen board' : 'Bar board'}
-            </span>
           </div>
         </motion.div>
 
@@ -242,20 +239,20 @@ export const FoodDrinks: React.FC = () => {
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pb-8"
         >
           <div
-            className="inline-grid grid-cols-2 rounded-full bg-ink/[0.06] p-1 self-start"
+            className="inline-grid grid-cols-2 rounded-full bg-primary p-1 self-start shadow-lg shadow-primary/15"
             role="tablist"
             aria-label="Choose a menu"
           >
             <button
               onClick={() => selectBoard('food')}
-              className={`relative flex items-center gap-2 px-5 py-3 rounded-full font-display font-bold text-sm ${
-                board === 'food' ? 'text-surface' : 'text-ink/60'
+              className={`relative z-0 flex items-center gap-2 px-5 py-3 rounded-full font-display font-bold text-sm transition-colors ${
+                board === 'food' ? 'text-primary' : 'text-surface/90 hover:text-surface'
               }`}
             >
               {board === 'food' && (
                 <motion.span
                   layoutId="board-switch"
-                  className="absolute inset-0 rounded-full bg-primary -z-10"
+                  className="absolute inset-0 rounded-full bg-surface -z-10 shadow-sm"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
@@ -263,14 +260,14 @@ export const FoodDrinks: React.FC = () => {
             </button>
             <button
               onClick={() => selectBoard('drinks')}
-              className={`relative flex items-center gap-2 px-5 py-3 rounded-full font-display font-bold text-sm ${
-                board === 'drinks' ? 'text-surface' : 'text-ink/60'
+              className={`relative z-0 flex items-center gap-2 px-5 py-3 rounded-full font-display font-bold text-sm transition-colors ${
+                board === 'drinks' ? 'text-primary' : 'text-surface/90 hover:text-surface'
               }`}
             >
               {board === 'drinks' && (
                 <motion.span
                   layoutId="board-switch"
-                  className="absolute inset-0 rounded-full bg-primary -z-10"
+                  className="absolute inset-0 rounded-full bg-surface -z-10 shadow-sm"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}

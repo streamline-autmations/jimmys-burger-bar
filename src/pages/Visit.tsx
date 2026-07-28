@@ -147,10 +147,6 @@ export const Visit: React.FC = () => {
             <span className="font-script text-2xl text-primary">save your spot</span>
             <RevealHeading text="Book a table." className="font-display text-4xl md:text-6xl font-extrabold text-ink leading-[0.94] mt-2" />
             <p className="text-ink/60 text-lg leading-relaxed mt-5 max-w-md">Tell us when you&apos;re coming, how many seats you need and where you&apos;d prefer to sit.</p>
-            <div className="mt-8 border-l-4 border-accent pl-5">
-              <p className="font-display font-bold text-ink">Demo booking flow</p>
-              <p className="text-sm text-ink/50 mt-1 max-w-sm">Jimmy&apos;s would confirm availability before the table is final.</p>
-            </div>
           </motion.div>
           <div className="visit-booking"><Booking embedded /></div>
         </div>

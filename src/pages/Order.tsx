@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
@@ -61,6 +61,7 @@ export const Order: React.FC = () => {
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const categoryRailRef = useRef<HTMLDivElement>(null);
   const [placedOrder, setPlacedOrder] = useState<{
     orderNo: string;
     total: number; lines: CartLine[]; orderType: OrderType; tableNumber: string; address: string;
@@ -79,7 +80,10 @@ export const Order: React.FC = () => {
   const clear = useCartStore((s) => s.clear);
 
   const tracking = useOrderTracking(step === 'confirmed');
-  const orderCategories = [...menu.categories, { name: 'Non-alcoholic drinks', note: 'Cold, zero-proof and ready to add', items: ordering.nonAlcoholicDrinks }];
+  const orderCategories = useMemo(
+    () => [...menu.categories, { name: 'Non-alcoholic drinks', note: 'Cold, zero-proof and ready to add', items: ordering.nonAlcoholicDrinks }],
+    [menu.categories, ordering.nonAlcoholicDrinks],
+  );
 
   // Order.tsx runs its own browse -> checkout -> confirmed flow without a
   // route change, so App.tsx's route-level ScrollToTop never fires here.
@@ -88,6 +92,32 @@ export const Order: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [step]);
+
+  useEffect(() => {
+    if (step !== 'browse') return;
+
+    const updateActiveCategory = () => {
+      let current = orderCategories[0]?.name ?? '';
+      orderCategories.forEach((category) => {
+        const section = document.getElementById(`order-${category.name}`);
+        if (section && section.getBoundingClientRect().top <= 190) {
+          current = category.name;
+        }
+      });
+      setActiveCategory(current);
+    };
+
+    updateActiveCategory();
+    window.addEventListener('scroll', updateActiveCategory, { passive: true });
+    return () => window.removeEventListener('scroll', updateActiveCategory);
+  }, [orderCategories, step]);
+
+  useEffect(() => {
+    const activeButton = categoryRailRef.current?.querySelector<HTMLElement>(
+      `[data-category="${CSS.escape(activeCategory)}"]`,
+    );
+    activeButton?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [activeCategory]);
 
   const scrollToCategory = (name: string) => {
     setActiveCategory(name);
@@ -161,14 +191,15 @@ export const Order: React.FC = () => {
             </div>
 
             {/* Category tabs */}
-            <div className={`md:sticky ${stickyBelowHeader ? 'md:top-[64px]' : 'md:top-0'} z-30 bg-paper/95 backdrop-blur-md border-y border-ink/10 py-3 px-4 transition-[top] duration-300`}>
-              <div className="max-w-7xl mx-auto grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 md:justify-center">
+            <div className={`sticky ${stickyBelowHeader ? 'top-[64px]' : 'top-0'} z-30 bg-surface/95 backdrop-blur-md border-y border-ink/10 py-3 transition-[top] duration-300`}>
+              <div ref={categoryRailRef} className="max-w-7xl mx-auto px-4 md:px-8 flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide" aria-label="Order categories">
                 {orderCategories.map((cat) => (
                   <button
                     key={cat.name}
+                    data-category={cat.name}
                     onClick={() => scrollToCategory(cat.name)}
-                    className={`relative px-5 py-2 rounded-full font-display font-bold text-sm transition-colors duration-200 active:scale-[0.96] ${
-                      activeCategory === cat.name ? 'text-surface' : 'bg-surface text-ink/60 hover:text-ink'
+                    className={`relative shrink-0 px-4 py-2 rounded-full font-display font-bold text-sm transition-colors duration-200 active:scale-[0.96] ${
+                      activeCategory === cat.name ? 'text-surface' : 'bg-paper text-ink/60 hover:text-ink'
                     }`}
                   >
                     {activeCategory === cat.name && (

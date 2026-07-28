@@ -225,30 +225,38 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Divider experiment 1: soft wave into Crowd favourites */}
-      <WaveDivider fill="rgb(var(--color-surface))" />
+      {/* The paper poster wall gives way to the dark food feature. */}
+      <WaveDivider fill="rgb(var(--color-ink))" />
 
       {/* ============ Food: the hands-on choice ============ */}
-      <section className="relative py-20 md:py-28 bg-surface overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+      <section className="relative py-20 md:py-28 bg-ink overflow-hidden text-surface">
+        <Doodle name="burger" className="absolute -right-12 top-4 w-64 h-64 text-accent/[0.07] rotate-6 pointer-events-none" />
+        <div className="absolute inset-0 poster-wall-grid opacity-[0.08] pointer-events-none" aria-hidden="true" />
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
           <motion.div {...fadeInUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10 md:mb-14">
             <div className="max-w-xl">
-              <span className="text-xs font-bold tracking-[0.16em] uppercase text-primary">Pick your hunger</span>
-              <RevealHeading text="Made to hold with both hands" className="font-display text-4xl md:text-6xl font-extrabold text-ink leading-[0.96] mt-3" />
+              <span className="text-xs font-bold tracking-[0.16em] uppercase text-accent">Pick your hunger</span>
+              <RevealHeading text="Pick your kind of proper" className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.96] mt-3" />
             </div>
-            <p className="text-ink/60 max-w-sm leading-relaxed">Big patties, crisp edges and the kind of burger that needs a proper grip.</p>
+            <p className="text-paper/70 max-w-sm leading-relaxed">Beef or chicken, stacked high and finished Jimmy&apos;s way. One choice, no wrong answer.</p>
+          </motion.div>
+
+          <motion.div {...fadeInUp} className="flex flex-wrap gap-x-8 gap-y-2 border-y border-surface/15 py-4 mb-7 text-xs md:text-sm font-bold tracking-[0.12em] uppercase text-accent">
+            <span>180g smash patties</span>
+            <span>Crisp off the grill</span>
+            <span>Jimmy&apos;s sauce</span>
           </motion.div>
 
           <div className="flex md:grid md:grid-cols-[1.08fr_0.92fr] gap-3 md:gap-0 overflow-x-auto md:overflow-visible snap-x snap-mandatory scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
-            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-paper block snap-center">
-              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
+            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-primary block snap-center rounded-2xl md:rounded-r-none ring-1 ring-surface/10">
+              <img src="/images/campaign/beef-burger-hand.webp" alt="Beef burger held up at Jimmy's" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
               <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The classic</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Beef Burgers</h3></div>
                 <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
               </div>
             </Link>
-            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-paper block snap-center md:translate-y-10">
-              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held in both hands" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
+            <Link to="/menu" className="burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-primary block snap-center md:translate-y-10 rounded-2xl md:rounded-l-none ring-1 ring-surface/10">
+              <img src="/images/campaign/chicken-burger-hand.webp" alt="Chicken burger held up at Jimmy's" loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
               <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
                 <div><span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">The other favourite</span><h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">Chicken Burgers</h3></div>
                 <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />

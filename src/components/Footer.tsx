@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
         {/* Brand */}
         <div className="space-y-6">
           <Link to="/" className="inline-block" aria-label="Home">
-            {/* The oval badge is navy-on-navy here, so ring it in periwinkle */}
+            {/* The oval badge is navy-on-navy here, so ring it in gold. */}
             <span className="inline-block rounded-full ring-2 ring-secondary/60">
               <Logo className="h-20 w-auto" />
             </span>

@@ -20,23 +20,23 @@ export const GoogleBadge: React.FC<{
   reviewCount: string;
   variant?: 'light' | 'dark';
   className?: string;
-}> = ({ rating, reviewCount, variant = 'dark', className }) => {
+  href?: string;
+}> = ({ rating, reviewCount, variant = 'dark', className, href }) => {
   const isDark = variant === 'dark';
   const stars = Math.round(parseFloat(rating));
-
-  return (
-    <div
-      className={cn(
-        'inline-flex items-center gap-3 rounded-full pl-2 pr-4 py-2',
-        isDark ? 'bg-surface/95 shadow-lg shadow-ink/30' : 'bg-ink/5 ring-1 ring-ink/10',
-        className
-      )}
-    >
+  const badgeClassName = cn(
+    'inline-flex items-center gap-3 rounded-full pl-2 pr-4 py-2',
+    isDark ? 'bg-surface/95 shadow-lg shadow-ink/30' : 'bg-ink/5 ring-1 ring-ink/10',
+    href && 'transition-transform duration-200 hover:scale-[1.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+    className
+  );
+  const content = (
+    <>
       <span className="flex items-center justify-center w-7 h-7 rounded-full bg-white shadow-sm shrink-0">
         <GoogleG size={16} />
       </span>
       <span className="flex items-center gap-1.5">
-        <span className={cn('font-display font-extrabold text-sm', isDark ? 'text-ink' : 'text-ink')}>
+        <span className="font-display font-extrabold text-sm text-ink">
           {rating}
         </span>
         <span className="flex text-accent -mt-px">
@@ -44,11 +44,25 @@ export const GoogleBadge: React.FC<{
             <Star key={i} size={11} fill={i < stars ? 'currentColor' : 'none'} strokeWidth={i < stars ? 0 : 1.5} />
           ))}
         </span>
-        <span className={cn('text-xs font-semibold', isDark ? 'text-ink/60' : 'text-ink/55')}>
+        <span className="text-xs font-semibold text-ink/60">
           ({reviewCount} reviews)
         </span>
       </span>
-      <BadgeCheck size={16} className="text-primary shrink-0" strokeWidth={2} />
-    </div>
+      <BadgeCheck size={16} className="text-ink shrink-0" strokeWidth={2} />
+    </>
+  );
+
+  return href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Read Jimmy's ${rating}-star rating and ${reviewCount} reviews on Google`}
+      className={badgeClassName}
+    >
+      {content}
+    </a>
+  ) : (
+    <div className={badgeClassName}>{content}</div>
   );
 };

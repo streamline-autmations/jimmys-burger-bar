@@ -15,19 +15,16 @@ export const config = {
   },
 
   // ---- Visual identity ------------------------------------------------------
-  // Jimmy's real palette, lifted from their printed menu and Instagram posters:
-  //   paper   = cool off-white page background
-  //   surface = white panels
-  //   ink     = deep navy TEXT + dark section background (their logo oval)
-  //   primary = royal blue (menu headers, poster type)
-  //   secondary = periwinkle (the script "Jimmy's" in the logo)
-  //   accent  = golden yellow (their "ONLY R120" starburst stickers)
+  // A deliberately tight three-colour system: Jimmy's deep navy, clean white
+  // and the golden yellow from the price-starburst stickers. Primary/ink and
+  // secondary/accent intentionally share channels so older component aliases
+  // cannot re-introduce the previous royal or periwinkle blues.
   theme: {
     colors: {
-      primary: "#1D4E94",
-      secondary: "#7C8FCB",
+      primary: "#172544",
+      secondary: "#F2A93B",
       ink: "#172544",
-      paper: "#F8F8F6",
+      paper: "#FFFDF7",
       surface: "#FFFFFF",
       accent: "#F2A93B",
     },
@@ -51,6 +48,7 @@ export const config = {
     email: "jimmysburgerbar1@gmail.com",
     address: "57 Loch Street, Meyerton, Gauteng",
     googleMapsEmbed: "https://maps.google.com/maps?q=Jimmy%27s+Burger+Bar+Meyerton&output=embed",
+    googleReviews: "https://www.google.com/maps/place/Jimmy's+Burger+Bar/@-26.5615391,28.0190301,17z/data=!4m8!3m7!1s0x1e94fbae49f31b03:0x9e4f2e15531d645c!8m2!3d-26.5615391!4d28.021605!9m1!1b1!16s%2Fg%2F11t53yynk1?entry=ttu&g_ep=EgoyMDI2MDcyMi4wIKXMDSoASAFQAw%3D%3D",
     // Real trading hours, confirmed by Christiaan 2026-07-22.
     // NOTE: Sundays are closed EXCEPT the monthly Coffee & Cars morning
     // (specials.event) — that one Sunday they open for the event.

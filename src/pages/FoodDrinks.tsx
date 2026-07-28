@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Beer, Download, ShoppingBag, Utensils } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { config } from '../config';
@@ -19,6 +19,39 @@ type BoardCategory = {
   name: string;
   note?: string;
   items: BoardItem[];
+};
+
+const boardMeta = {
+  food: {
+    eyebrow: 'From the kitchen',
+    description: 'Breakfast, 180g burgers, plates for the table and the full kitchen board.',
+    caption: 'Fresh off the grill.',
+  },
+  drinks: {
+    eyebrow: 'From the bar',
+    description: 'Cold local favourites, buckets, cocktails, wine and proper coffee.',
+    caption: 'Straight from the bar.',
+  },
+} satisfies Record<Board, { eyebrow: string; description: string; caption: string }>;
+
+const boardPanelVariants = {
+  enter: (direction: number) => ({
+    opacity: 0,
+    x: direction * 54,
+    scale: 1.035,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: { duration: 0.62, ease: [0.16, 1, 0.3, 1] as const },
+  },
+  exit: (direction: number) => ({
+    opacity: 0,
+    x: direction * -42,
+    scale: 0.985,
+    transition: { duration: 0.34, ease: [0.4, 0, 1, 1] as const },
+  }),
 };
 
 const foodCategories: BoardCategory[] = config.menu.categories.map((category) => ({
@@ -43,9 +76,12 @@ export const FoodDrinks: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedBoard = searchParams.get('tab') === 'drinks' ? 'drinks' : 'food';
   const [board, setBoard] = useState<Board>(requestedBoard);
+  const [boardDirection, setBoardDirection] = useState(requestedBoard === 'drinks' ? 1 : -1);
   const [activeCategory, setActiveCategory] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const stickyBelowHeader = useStickyHeaderOffset();
+  const categoryRailRef = useRef<HTMLDivElement>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const categories = useMemo(
     () => (board === 'food' ? foodCategories : drinksCategories),
@@ -53,14 +89,60 @@ export const FoodDrinks: React.FC = () => {
   );
 
   useEffect(() => {
-    setBoard(requestedBoard);
-  }, [requestedBoard]);
+    if (requestedBoard !== board) {
+      setBoardDirection(requestedBoard === 'drinks' ? 1 : -1);
+      setBoard(requestedBoard);
+    }
+  }, [board, requestedBoard]);
 
   useEffect(() => {
     setActiveCategory(categories[0]?.name ?? '');
   }, [categories]);
 
+  useEffect(() => {
+    let frame = 0;
+    const updateActiveCategory = () => {
+      frame = 0;
+      const activationLine = window.innerWidth < 768 ? 150 : 170;
+      let current = categories[0]?.name ?? '';
+
+      categories.forEach((category) => {
+        const section = document.getElementById(`board-${category.name}`);
+        if (section && section.getBoundingClientRect().top <= activationLine) {
+          current = category.name;
+        }
+      });
+
+      setActiveCategory((previous) => (previous === current ? previous : current));
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateActiveCategory);
+    };
+
+    updateActiveCategory();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [categories]);
+
+  useEffect(() => {
+    const activeButton = categoryRailRef.current?.querySelector<HTMLElement>(
+      `[data-category="${CSS.escape(activeCategory)}"]`,
+    );
+    activeButton?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  }, [activeCategory]);
+
   const selectBoard = (next: Board) => {
+    if (next === board) return;
+    setBoardDirection(next === 'drinks' ? 1 : -1);
     setBoard(next);
     setSearchParams(next === 'drinks' ? { tab: 'drinks' } : {}, { replace: true });
   };
@@ -83,48 +165,74 @@ export const FoodDrinks: React.FC = () => {
   };
 
   return (
-    <div className="pt-24 md:pt-28 min-h-screen">
+    <div className="pt-24 md:pt-28 min-h-screen bg-paper">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <motion.div
           {...fadeInUp}
           className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-8 lg:gap-14 items-end pb-10 md:pb-14"
         >
-          <div>
-            <span className="font-script text-2xl text-primary">
-              the whole Jimmy&apos;s board
-            </span>
+          <div className="relative">
+            <span className="font-script text-2xl text-primary">the whole Jimmy&apos;s board</span>
             <RevealHeading
               as="h1"
               text="Food & drinks"
               className="font-display text-5xl sm:text-6xl md:text-7xl font-extrabold text-ink leading-[0.9] mt-2"
             />
-            <p className="text-ink/60 text-base md:text-lg max-w-lg mt-5">
-              From breakfast and 180g burgers to the full bar list. Pick food or
-              drinks, then scroll through the full board.
-            </p>
+            <div className="mt-6 min-h-[84px] max-w-lg overflow-hidden">
+              <AnimatePresence mode="wait" initial={false} custom={shouldReduceMotion ? 0 : boardDirection}>
+                <motion.div
+                  key={board}
+                  custom={shouldReduceMotion ? 0 : boardDirection}
+                  variants={boardPanelVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                >
+                  <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-accent">
+                    {boardMeta[board].eyebrow}
+                  </span>
+                  <p className="text-ink/60 text-base md:text-lg mt-2">
+                    {boardMeta[board].description}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
-          <div className="relative h-[230px] md:h-[330px] overflow-hidden bg-ink">
-            {board === 'food' ? (
-              <img
-                src="/images/campaign/gourmet-burger.webp"
-                alt="Jimmy's gourmet burger"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : (
-              <video
-                src="/videos/drinks-pour-loop.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent" />
-            <span className="absolute left-5 bottom-5 md:left-7 md:bottom-7 text-surface font-display font-extrabold text-2xl md:text-3xl">
-              {board === 'food'
-                ? 'Fresh off the grill.'
-                : 'Straight from the bar.'}
+          <div className="relative h-[250px] md:h-[350px] overflow-hidden bg-ink rounded-2xl jimmy-media-frame">
+            <AnimatePresence initial={false} custom={shouldReduceMotion ? 0 : boardDirection}>
+              <motion.figure
+                key={board}
+                custom={shouldReduceMotion ? 0 : boardDirection}
+                variants={boardPanelVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="absolute inset-0"
+              >
+                {board === 'food' ? (
+                  <img
+                    src="/images/campaign/gourmet-burger.webp"
+                    alt="Jimmy's gourmet burger"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src="/videos/drinks-pour-loop.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/5 to-transparent" />
+                <figcaption className="absolute left-5 bottom-5 md:left-7 md:bottom-7 text-surface font-display font-extrabold text-2xl md:text-3xl">
+                  {boardMeta[board].caption}
+                </figcaption>
+              </motion.figure>
+            </AnimatePresence>
+            <span className="absolute z-10 top-4 right-4 bg-accent text-ink px-3 py-1.5 rounded-full text-[10px] font-bold tracking-[0.15em] uppercase shadow-lg">
+              {board === 'food' ? 'Kitchen board' : 'Bar board'}
             </span>
           </div>
         </motion.div>
@@ -191,25 +299,37 @@ export const FoodDrinks: React.FC = () => {
       </div>
 
       <div
-        className={`md:sticky ${
-          stickyBelowHeader ? 'md:top-[64px]' : 'md:top-0'
-        } z-30 border-y border-ink/10 bg-paper/95 backdrop-blur-md py-3 transition-[top] duration-300`}
+        className={`sticky ${
+          stickyBelowHeader ? 'top-[64px]' : 'top-0'
+        } z-30 border-y border-ink/10 bg-surface/95 backdrop-blur-md py-3 transition-[top] duration-300`}
       >
-        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category.name}
-              onClick={() => scrollToCategory(category.name)}
-              className={`px-4 py-2 rounded-full font-display font-bold text-sm transition-colors ${
-                activeCategory === category.name
-                  ? 'bg-ink text-surface'
-                  : 'bg-surface text-ink/60 hover:text-primary'
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={board}
+            ref={categoryRailRef}
+            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : boardDirection * 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: shouldReduceMotion ? 0 : boardDirection * -18 }}
+            transition={{ duration: 0.3 }}
+            className="max-w-7xl mx-auto px-4 md:px-8 flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide"
+            aria-label={`${board === 'food' ? 'Food' : 'Drinks'} categories`}
+          >
+            {categories.map((category) => (
+              <button
+                key={category.name}
+                data-category={category.name}
+                onClick={() => scrollToCategory(category.name)}
+                className={`shrink-0 px-4 py-2 rounded-full font-display font-bold text-sm transition-colors ${
+                  activeCategory === category.name
+                    ? 'bg-ink text-surface'
+                    : 'bg-paper text-ink/60 hover:text-ink'
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 md:py-16">
@@ -217,13 +337,15 @@ export const FoodDrinks: React.FC = () => {
           Everything is listed below. Tap a category above to jump straight to it.
         </p>
 
-        <div key={board} className="border-t border-ink/10">
+        <div key={board}>
           {categories.map((category, categoryIndex) => (
             <motion.section
               key={category.name}
               id={`board-${category.name}`}
               {...fadeInUp}
-              className="scroll-mt-24 md:scroll-mt-36 grid grid-cols-1 lg:grid-cols-[0.32fr_0.68fr] gap-7 lg:gap-16 py-10 md:py-14 border-b border-ink/10"
+              className={`scroll-mt-36 grid grid-cols-1 lg:grid-cols-[0.32fr_0.68fr] gap-7 lg:gap-16 py-10 md:py-14 px-4 md:px-8 -mx-4 md:-mx-8 mb-3 rounded-2xl ${
+                categoryIndex % 2 === 0 ? 'bg-surface' : 'bg-accent/10'
+              }`}
             >
               <div className="flex items-start justify-between gap-4 lg:block">
                 <div>

@@ -23,7 +23,7 @@ export const Navbar: React.FC = () => {
   const [isHidden, setIsHidden] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const hasDarkHero = location.pathname === '/' || location.pathname === '/visit';
+  const hasDarkHero = location.pathname === '/';
   const lastScrollY = useRef(0);
   const { scrollY } = useScroll();
 

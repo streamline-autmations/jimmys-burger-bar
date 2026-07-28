@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, useLocation, Link, Navigate } f
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
-import { WhatsAppButton } from './components/WhatsAppButton';
 import { Home } from './pages/Home';
 import { FoodDrinks } from './pages/FoodDrinks';
 import { Visit } from './pages/Visit';
@@ -45,36 +44,57 @@ const ScrollToTop = () => {
   return null;
 };
 
-// Route transition, two layers deep. A gold sticker-coloured edge leads, the
-// navy curtain follows on top of it, and Jimmy's real logo stamps onto the
-// curtain (the site's signature move) while the page changes underneath.
-// Reveal order is the reverse: navy lifts first, gold trails a beat behind,
-// so every wipe flashes the accent between ink and page.
-//
-// The exiting page's layers finished `enter` above the viewport, so `exit`
-// slides them back down over the old page. The entering page's layers start
-// covering and lift away.
-const goldVariants = {
+// Three-stage route transition: a yellow sticker sheet, a clean white sheet,
+// then five staggered navy poster strips. Closing builds the layers in that
+// order; opening peels them away in reverse so the new page arrives through a
+// controlled navy -> white -> gold reveal rather than a flat two-colour wipe.
+const accentSheetVariants = {
   initial: { y: '0%' },
-  enter: { y: '-100%', transition: { duration: 0.5, ease: EASE, delay: 0.28 } },
-  exit: { y: '0%', transition: { duration: 0.38, ease: EASE } },
+  enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.48 } },
+  exit: { y: '0%', transition: { duration: 0.46, ease: EASE } },
 };
 
-const inkVariants = {
+const surfaceSheetVariants = {
   initial: { y: '0%' },
-  enter: { y: '-100%', transition: { duration: 0.55, ease: EASE, delay: 0.14 } },
-  exit: { y: '0%', transition: { duration: 0.45, ease: EASE, delay: 0.08 } },
+  enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.36 } },
+  exit: { y: '0%', transition: { duration: 0.48, ease: EASE, delay: 0.06 } },
+};
+
+const SHUTTER_DELAYS = [0.02, 0.09, 0, 0.12, 0.05];
+const shutterVariants = {
+  initial: { y: '0%' },
+  enter: (index: number) => ({
+    y: '-102%',
+    transition: {
+      duration: 0.66,
+      ease: EASE,
+      delay: 0.1 + SHUTTER_DELAYS[index],
+    },
+  }),
+  exit: (index: number) => ({
+    y: '0%',
+    transition: {
+      duration: 0.54,
+      ease: EASE,
+      delay: 0.14 + SHUTTER_DELAYS[SHUTTER_DELAYS.length - 1 - index],
+    },
+  }),
 };
 
 const logoVariants = {
   initial: { scale: 1, opacity: 1 },
-  enter: { scale: 1, opacity: 1 },
-  // The stamp: the logo slaps onto the curtain as it covers the old page.
+  enter: {
+    scale: 1.04,
+    y: -22,
+    opacity: 0,
+    transition: { duration: 0.3, ease: EASE, delay: 0.08 },
+  },
   exit: {
-    scale: [0.55, 1],
-    rotate: [-8, 0],
-    opacity: [0, 1],
-    transition: { duration: 0.38, ease: STAMP_EASE, delay: 0.16 },
+    scale: [0.76, 1.03, 1],
+    y: [18, 0, 0],
+    rotate: [-5, 1, 0],
+    opacity: [0, 1, 1],
+    transition: { duration: 0.48, ease: STAMP_EASE, delay: 0.32 },
   },
 };
 
@@ -104,25 +124,47 @@ const AnimatedRoutes: React.FC = () => {
           </Routes>
         </main>
 
-        {/* Gold leading edge (under the ink layer) */}
+        {/* Under-sheets create a quick white and gold flash between pages. */}
         <motion.div
-          variants={goldVariants}
-          className="fixed inset-0 z-[119] bg-accent pointer-events-none"
+          variants={accentSheetVariants}
+          className="fixed inset-0 z-[118] bg-accent pointer-events-none will-change-transform"
+          aria-hidden="true"
+        />
+        <motion.div
+          variants={surfaceSheetVariants}
+          className="fixed inset-0 z-[119] bg-surface pointer-events-none will-change-transform"
           aria-hidden="true"
         />
 
-        {/* Navy curtain with the real logo stamping in */}
+        {/* Five poster strips settle at slightly different beats. */}
+        <div className="fixed inset-0 z-[120] pointer-events-none flex" aria-hidden="true">
+          {SHUTTER_DELAYS.map((_, index) => (
+            <motion.div
+              key={index}
+              custom={index}
+              variants={shutterVariants}
+              className="h-full flex-1 bg-ink border-r border-surface/[0.07] last:border-r-0 will-change-transform"
+            />
+          ))}
+        </div>
+
         <motion.div
-          variants={inkVariants}
-          className="fixed inset-0 z-[120] bg-ink pointer-events-none flex items-center justify-center"
+          variants={logoVariants}
+          className="fixed inset-0 z-[121] pointer-events-none flex flex-col items-center justify-center"
           aria-hidden="true"
         >
           <motion.img
-            variants={logoVariants}
             src="/images/logo.png"
             alt=""
             className="w-44 md:w-56 drop-shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
           />
+          <div className="mt-5 flex items-center gap-3 text-accent">
+            <span className="h-px w-8 bg-accent/80" />
+            <span className="font-display text-[10px] md:text-xs font-bold tracking-[0.22em] uppercase">
+              Good food. Good people.
+            </span>
+            <span className="h-px w-8 bg-accent/80" />
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -141,7 +183,6 @@ const App: React.FC = () => {
           <Navbar />
           <AnimatedRoutes />
           <Footer />
-          <WhatsAppButton />
         </div>
       </Router>
     </MotionConfig>

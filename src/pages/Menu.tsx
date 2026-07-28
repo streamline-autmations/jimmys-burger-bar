@@ -9,7 +9,7 @@ import { Doodle } from '../components/Doodle';
 import { useHorizontalWheel } from '../lib/useHorizontalWheel';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
-// Chalk-sketch watermark per category, drawn in Jimmy's royal blue.
+// Chalk-sketch watermark per category, drawn in Jimmy's deep navy.
 const CATEGORY_DOODLES: Record<string, string> = {
   Breakfast: 'egg',
   Burgers: 'burger',

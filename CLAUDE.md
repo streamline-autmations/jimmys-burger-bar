@@ -58,19 +58,19 @@ Concretely:
 
 ---
 
-## Brand tokens — client-locked, do NOT rotate or "improve"
+## Brand tokens — client-directed three-colour system (2026-07-28)
 
-These are lifted from Jimmy's **real** collateral: their printed in-store menu, their
-Instagram specials posters, and their logo (brand work by Ameli van Zyl). They are not a
-design choice we get to revisit.
+Christiaan explicitly simplified the website UI to deep navy, white and golden yellow.
+The original logo artwork remains untouched, but sections and controls must not
+re-introduce the old royal or periwinkle blues.
 
 ```
-primary   #1D4E94  royal blue    — menu headers, poster type
-secondary #7C8FCB  periwinkle    — the script "Jimmy's" in the logo
-ink       #1E2A4E  deep navy     — TEXT colour and dark section backgrounds
-paper     #D3DFE6  powder blue   — page background (their menu paper)
-surface   #F2F7F9  ice white     — panels and cards
-accent    #F2A93B  golden yellow — the "ONLY R120" starburst stickers
+primary   #172544  deep navy     — primary actions and headings
+secondary #F2A93B  golden yellow — legacy alias; never a blue tint
+ink       #172544  deep navy     — text and dark section backgrounds
+paper     #FFFDF7  warm white    — page background
+surface   #FFFFFF  clean white   — panels and cards
+accent    #F2A93B  golden yellow — stickers, highlights and colour sections
 ```
 
 Fonts: **Baloo 2** (display), **Quicksand** (body), **Pacifico** (script). Also from their
@@ -80,9 +80,8 @@ real brand collateral. Loaded via Google Fonts in `src/index.css`.
 > dark text colour. This is the opposite of the Copper Tap template it was forked from, where
 > the same token names meant a dark theme. Do not carry dark-theme assumptions across.
 
-> Note: Jimmy's **signage** is black + gold, which differs from the blue/yellow of their
-> posters and menu. The site follows the poster/menu palette deliberately — it is the more
-> developed and more current of their two brand expressions. Do not "fix" this to match the sign.
+> Jimmy's original logo files still contain their source artwork colours. Do not recolour
+> the raster logo; the three-colour restriction applies to the surrounding website UI.
 
 ---
 
@@ -121,7 +120,7 @@ so the site is no longer "one signature, everything else still." The current sys
   in that tree. **Gotcha:** the route transition wrapper is `display:flex`, which makes
   ScrollTrigger silently auto-disable pin spacing — `pinSpacing: true` must stay
   explicit or later sections scroll straight over the pinned scene.
-- **Ink doodles** (`<Doodle>`): hand-drawn stroke SVG food/drink sketches in royal blue,
+- **Ink doodles** (`<Doodle>`): hand-drawn stroke SVG food/drink sketches in deep navy,
   used as faint watermarks on menu/drinks panels (mapped per category) and scattered in
   section backgrounds at ≤8% opacity. Chalkboard voice, never above ~13% opacity, never
   a substitute for real photography.

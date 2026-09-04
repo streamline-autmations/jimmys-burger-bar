@@ -2,13 +2,50 @@ import React, { useState } from 'react';
 import { CalendarCheck, Download, PartyPopper } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '../lib/motion';
+import { supabase } from '../lib/supabase';
 
 export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [booking, setBooking] = useState({ name: '', email: '', phone: '', guests: '2', date: '', time: '', seating: 'No preference', notes: '' });
   const [reference, setReference] = useState('');
   const update = (key: keyof typeof booking, value: string) => setBooking((current) => ({ ...current, [key]: value }));
-  const submit = (event: React.FormEvent) => { event.preventDefault(); setReference(`JB-T${Math.floor(1000 + Math.random() * 9000)}`); setSubmitted(true); };
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const id = crypto.randomUUID();
+    const bookingReference = `JB-T${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+      const { error } = await supabase.from('bookings').insert({
+        id,
+        name: booking.name,
+        email: booking.email,
+        phone: booking.phone,
+        guests: Number(booking.guests),
+        booking_date: booking.date,
+        booking_time: booking.time,
+        seating_preference: booking.seating,
+        notes: booking.notes || null,
+        marketing_consent: false,
+      });
+
+      if (error) {
+        setSubmitError('We couldn’t send your booking request. Please try again.');
+        return;
+      }
+
+      setReference(bookingReference);
+      setSubmitted(true);
+    } catch {
+      setSubmitError('We couldn’t send your booking request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const downloadConfirmation = async () => {
     const { generateBookingConfirmation } = await import('../lib/generateBookingConfirmation');
     generateBookingConfirmation({ reference, ...booking });
@@ -22,7 +59,7 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
       <p className="text-ink/65 text-lg mt-5">A table for {booking.guests} on {booking.date} at {booking.time}, with {booking.seating.toLowerCase()} seating preferred.</p>
       <div className="bg-surface rounded-2xl p-6 mt-8 text-left shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]">
         <p className="font-display font-bold text-primary">What happens next</p>
-        <p className="text-ink/60 mt-2">This is a demo confirmation. Your request has not been sent to Jimmy’s, but this is exactly where a real booking confirmation would appear.</p>
+        <p className="text-ink/60 mt-2">We’ve received your booking request. Jimmy’s will confirm it shortly.</p>
       </div>
       <button onClick={downloadConfirmation} className="mt-6 inline-flex items-center gap-2 bg-primary text-surface px-6 py-3.5 rounded-full font-display font-bold"><Download size={16} /> Download booking slip</button>
       <button onClick={() => setSubmitted(false)} className="block mx-auto mt-6 text-primary font-display font-bold hover:underline">Make another booking</button>
@@ -46,7 +83,8 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
           </div>
           <Field label="Preferred seating"><select value={booking.seating} onChange={(e) => update('seating', e.target.value)} className="booking-input"><option>No preference</option><option>Inside</option><option>Outside</option><option>Smoking area</option><option>Non-smoking area</option></select></Field>
           <Field label="Anything else? (optional)"><textarea value={booking.notes} onChange={(e) => update('notes', e.target.value)} className="booking-input min-h-24" placeholder="Birthday, wheelchair access, high chair…" /></Field>
-          <button className="w-full bg-primary text-surface py-4 rounded-full font-display font-bold inline-flex items-center justify-center gap-2"><CalendarCheck size={18} /> Request booking</button>
+          {submitError && <p role="alert" className="text-primary/80 text-sm">{submitError}</p>}
+          <button disabled={submitting} className="w-full bg-primary text-surface py-4 rounded-full font-display font-bold inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"><CalendarCheck size={18} /> {submitting ? 'Sending…' : 'Request booking'}</button>
         </motion.form>
       </div>
     </div>

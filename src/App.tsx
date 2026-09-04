@@ -7,6 +7,7 @@ import { Home } from './pages/Home';
 import { FoodDrinks } from './pages/FoodDrinks';
 import { Visit } from './pages/Visit';
 import { Order } from './pages/Order';
+import { AdminApp } from './pages/admin/AdminApp';
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
@@ -171,22 +172,33 @@ const AnimatedRoutes: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+// The customer-facing brand shell — Navbar overlay, Footer, the stamp/curtain
+// route transition, the custom cursor. Everything under "/" gets this.
+// "/admin/*" deliberately does not: it's an internal staff tool, not a brand
+// surface, and none of this chrome belongs on it.
+const PublicApp: React.FC = () => {
   useLenis();
 
   return (
     <MotionConfig reducedMotion="user">
-      <Router>
-        <ScrollToTop />
-        <div className="flex flex-col min-h-screen grain">
-          <TextCursor />
-          <Navbar />
-          <AnimatedRoutes />
-          <Footer />
-        </div>
-      </Router>
+      <ScrollToTop />
+      <div className="flex flex-col min-h-screen grain">
+        <TextCursor />
+        <Navbar />
+        <AnimatedRoutes />
+        <Footer />
+      </div>
     </MotionConfig>
   );
 };
+
+const App: React.FC = () => (
+  <Router>
+    <Routes>
+      <Route path="/admin/*" element={<AdminApp />} />
+      <Route path="/*" element={<PublicApp />} />
+    </Routes>
+  </Router>
+);
 
 export default App;

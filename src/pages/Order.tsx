@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, ShoppingBag, Check, ArrowLeft, PartyPopper, Download } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
@@ -16,40 +16,17 @@ import {
   type OrderType,
   type CartLine,
 } from '../lib/cartStore';
-import { generateOrderNumber } from '../lib/orderMessage';
+import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
+import { supabase } from '../lib/supabase';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 
-// Tracking is compressed into a short, watchable real-time window rather than
-// literally waiting out `avgWaitMins` — the displayed countdown still starts
-// at the real average and counts down to 0:00, it just does so over 60
-// seconds instead of the full 18 minutes.
-const DEMO_DURATION_SECONDS = 60;
-
-const STAGES = ['Received', 'Preparing', 'Ready'] as const;
-
-function useOrderTracking(active: boolean) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!active) return;
-    const id = setInterval(() => {
-      setElapsed((prev) => Math.min(prev + 1, DEMO_DURATION_SECONDS));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [active]);
-
-  const fraction = Math.min(elapsed / DEMO_DURATION_SECONDS, 1);
-  const stageIndex = fraction < 0.33 ? 0 : fraction < 0.75 ? 1 : 2;
-  const totalDisplaySeconds = config.ordering.avgWaitMins * 60;
-  const remaining = Math.max(Math.round(totalDisplaySeconds * (1 - fraction)), 0);
-  const mins = Math.floor(remaining / 60);
-  const secs = remaining % 60;
-  const countdown = `${mins}:${secs.toString().padStart(2, '0')}`;
-
-  return { stageIndex, countdown, done: fraction >= 1 };
-}
+const getDefaultRequestedTime = () => {
+  const requestedDate = new Date();
+  requestedDate.setMinutes(requestedDate.getMinutes() + config.ordering.avgWaitMins);
+  return `${requestedDate.getHours().toString().padStart(2, '0')}:${requestedDate.getMinutes().toString().padStart(2, '0')}`;
+};
 
 export const Order: React.FC = () => {
   const { menu, ordering } = config;
@@ -61,9 +38,12 @@ export const Order: React.FC = () => {
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [requestedTime, setRequestedTime] = useState(getDefaultRequestedTime);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const categoryRailRef = useRef<HTMLDivElement>(null);
   const [placedOrder, setPlacedOrder] = useState<{
-    orderNo: string;
+    orderNo: string; requestedTime: string;
     total: number; lines: CartLine[]; orderType: OrderType; tableNumber: string; address: string;
   } | null>(null);
   const stickyBelowHeader = useStickyHeaderOffset();
@@ -79,7 +59,6 @@ export const Order: React.FC = () => {
   const setTableNumber = useCartStore((s) => s.setTableNumber);
   const clear = useCartStore((s) => s.clear);
 
-  const tracking = useOrderTracking(step === 'confirmed');
   const orderCategories = useMemo(
     () => [...menu.categories, { name: 'Non-alcoholic drinks', note: 'Cold, zero-proof and ready to add', items: ordering.nonAlcoholicDrinks }],
     [menu.categories, ordering.nonAlcoholicDrinks],
@@ -130,24 +109,60 @@ export const Order: React.FC = () => {
   };
 
   const canPlaceOrder = useMemo(() => {
-    if (count === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) return false;
+    if (count === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim() || !requestedTime) return false;
     if (orderType === 'table' && !tableNumber.trim()) return false;
     if (orderType === 'delivery' && !deliveryAddress.trim()) return false;
     return true;
-  }, [count, customerName, customerEmail, customerPhone, deliveryAddress, orderType, tableNumber]);
+  }, [count, customerName, customerEmail, customerPhone, deliveryAddress, orderType, requestedTime, tableNumber]);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!canPlaceOrder) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
     const orderNo = generateOrderNumber();
-    setPlacedOrder({ orderNo, total, lines: [...lines], orderType, tableNumber, address: deliveryAddress });
-    clear();
-    setStep('confirmed');
+    const requestedDate = new Date();
+    const [requestedHours, requestedMinutes] = requestedTime.split(':').map(Number);
+    requestedDate.setHours(requestedHours, requestedMinutes, 0, 0);
+
+    try {
+      const { data, error } = await supabase.rpc('create_order', {
+        p_order_no: orderNo,
+        p_customer_name: customerName,
+        p_email: customerEmail,
+        p_phone: customerPhone,
+        p_order_type: orderType,
+        p_table_number: orderType === 'table' ? tableNumber : null,
+        p_delivery_address: orderType === 'delivery' ? deliveryAddress : null,
+        p_delivery_notes: orderType === 'delivery' ? (deliveryNotes || null) : null,
+        p_requested_time: requestedDate.toISOString(),
+        p_total: total,
+        p_marketing_consent: false,
+        p_items: lines.map((line) => ({ name: line.name, qty: line.qty, unit_price: line.price })),
+      });
+
+      if (error || !data?.[0]) {
+        setSubmitError("We couldn't place your order. Please try again.");
+        return;
+      }
+
+      setPlacedOrder({ orderNo: data[0].order_no, requestedTime, total, lines: [...lines], orderType, tableNumber, address: deliveryAddress });
+      clear();
+      setStep('confirmed');
+    } catch {
+      setSubmitError("We couldn't place your order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const startNewOrder = () => {
     setPlacedOrder(null);
     setCustomerName('');
     setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes('');
+    setRequestedTime(getDefaultRequestedTime());
+    setSubmitError(null);
     setStep('browse');
   };
 
@@ -378,6 +393,17 @@ export const Order: React.FC = () => {
               <label className="block font-display font-bold text-ink text-sm mb-2">How would you like it?</label>
               <OrderTypeToggle value={orderType} onChange={setOrderType} />
 
+              <div className="mt-4">
+                <label className="block font-display font-bold text-ink text-sm mb-2">What time would you like it ready?</label>
+                <input
+                  type="time"
+                  required
+                  value={requestedTime}
+                  onChange={(e) => setRequestedTime(e.target.value)}
+                  className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                />
+              </div>
+
               {orderType === 'table' && (
                 <div className="mt-4">
                   <label className="block font-display font-bold text-ink text-sm mb-2">Table number</label>
@@ -424,11 +450,14 @@ export const Order: React.FC = () => {
 
             <button
               onClick={handlePlaceOrder}
-              disabled={!canPlaceOrder}
+              disabled={!canPlaceOrder || isSubmitting}
               className="w-full inline-flex items-center justify-center gap-2.5 bg-primary text-surface py-4 rounded-full font-display font-bold text-base transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none shadow-lg shadow-primary/20"
             >
-              Place order
+              {isSubmitting ? 'Placing order…' : 'Place order'}
             </button>
+            {submitError && (
+              <p className="text-center text-primary text-sm mt-3">{submitError}</p>
+            )}
             {(!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) && (
               <p className="text-center text-ink/45 text-sm mt-3">Name, phone and email are required to place the order.</p>
             )}
@@ -453,41 +482,25 @@ export const Order: React.FC = () => {
               {placedOrder.orderType === 'table' ? ordering.tableNote : placedOrder.orderType === 'delivery' ? ordering.deliveryNote : ordering.collectionNote}
             </p>
 
-            <Starburst label="approx" value={`${config.ordering.avgWaitMins} min`} className="w-28 h-28 mx-auto mb-8" />
+            <Starburst label="requested" value={placedOrder.requestedTime} className="w-28 h-28 mx-auto mb-8" />
 
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]">
-              <div className="flex items-center justify-between mb-6">
-                {STAGES.map((stage, i) => (
-                  <React.Fragment key={stage}>
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-display font-bold text-sm transition-colors duration-500 ${
-                          i <= tracking.stageIndex ? 'bg-primary text-surface' : 'bg-ink/10 text-ink/40'
-                        }`}
-                      >
-                        {i < tracking.stageIndex ? <Check size={16} /> : i + 1}
-                      </div>
-                      <span className={`text-xs font-medium ${i <= tracking.stageIndex ? 'text-ink' : 'text-ink/40'}`}>
-                        {stage}
-                      </span>
-                    </div>
-                    {i < STAGES.length - 1 && (
-                      <div className={`h-0.5 flex-1 -mt-6 transition-colors duration-500 ${i < tracking.stageIndex ? 'bg-primary' : 'bg-ink/10'}`} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-
-              <p className="font-display font-bold text-ink">
-                {tracking.done ? "Ready, come grab it!" : `Ready in about ${tracking.countdown}`}
-              </p>
-              <p className="text-ink/45 text-xs mt-1">Demo confirmation — no payment has been taken and this order has not been sent to the kitchen.</p>
+              <p className="font-display font-bold text-ink">Jimmy's has received your order.</p>
+              <p className="text-ink/60 text-sm mt-2">Requested for {placedOrder.requestedTime}</p>
+              <p className="text-ink/45 text-xs mt-1">This confirms your order was received. Jimmy's will take it from here.</p>
             </div>
 
             <button
               onClick={async () => { const { generateOrderReceipt } = await import('../lib/generateOrderReceipt'); generateOrderReceipt({ orderNo: placedOrder.orderNo, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total }); }}
               className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
             ><Download size={16} /> Download receipt</button>
+
+            <a
+              href={buildOrderWhatsAppUrl({ orderNo: placedOrder.orderNo, lines: placedOrder.lines, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, total: placedOrder.total, name: customerName })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
+            ><MessageCircle size={16} /> Also send via WhatsApp</a>
 
             <button
               onClick={startNewOrder}

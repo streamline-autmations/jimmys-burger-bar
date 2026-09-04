@@ -4,13 +4,45 @@ import { motion } from 'framer-motion';
 import { fadeInUp } from '../lib/motion';
 import { supabase } from '../lib/supabase';
 
+type TradingHours = { open: string; close: string } | null;
+
+// Keep this booking lookup in sync with config.venue.hours.
+const BOOKING_HOURS: Record<number, TradingHours> = {
+  0: null,
+  1: { open: '09:00', close: '20:00' },
+  2: { open: '09:00', close: '20:00' },
+  3: { open: '09:00', close: '21:00' },
+  4: { open: '09:00', close: '21:00' },
+  5: { open: '09:00', close: '00:00' },
+  6: { open: '09:00', close: '00:00' },
+};
+
 export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [booking, setBooking] = useState({ name: '', email: '', phone: '', guests: '2', date: '', time: '', seating: 'No preference', notes: '' });
   const [reference, setReference] = useState('');
   const update = (key: keyof typeof booking, value: string) => setBooking((current) => ({ ...current, [key]: value }));
+  const selectedHours = booking.date ? BOOKING_HOURS[new Date(`${booking.date}T00:00:00`).getDay()] : null;
+  const latestBookingTime = selectedHours?.close === '00:00' ? '23:59' : selectedHours?.close;
+  const updateDate = (date: string) => {
+    const hours = date ? BOOKING_HOURS[new Date(`${date}T00:00:00`).getDay()] : null;
+
+    if (date && !hours) {
+      setDateError("Jimmy's is closed on Sundays - pick another day");
+      return;
+    }
+
+    setDateError(null);
+    setBooking((current) => {
+      const latestTime = hours?.close === '00:00' ? '23:59' : hours?.close;
+      const timeIsValid = hours && current.time >= hours.open && current.time <= latestTime!;
+      return { ...current, date, time: timeIsValid ? current.time : '' };
+    });
+  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
@@ -47,8 +79,13 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
     }
   };
   const downloadConfirmation = async () => {
-    const { generateBookingConfirmation } = await import('../lib/generateBookingConfirmation');
-    generateBookingConfirmation({ reference, ...booking });
+    setDownloadError(null);
+    try {
+      const { generateBookingConfirmation } = await import('../lib/generateBookingConfirmation');
+      await generateBookingConfirmation({ reference, ...booking });
+    } catch {
+      setDownloadError('Could not generate the booking slip. Please try again.');
+    }
   };
 
   if (submitted) return (
@@ -62,6 +99,7 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
         <p className="text-ink/60 mt-2">We’ve received your booking request. Jimmy’s will confirm it shortly.</p>
       </div>
       <button onClick={downloadConfirmation} className="mt-6 inline-flex items-center gap-2 bg-primary text-surface px-6 py-3.5 rounded-full font-display font-bold"><Download size={16} /> Download booking slip</button>
+      {downloadError && <p role="alert" className="text-primary/80 text-sm mt-3">{downloadError}</p>}
       <button onClick={() => setSubmitted(false)} className="block mx-auto mt-6 text-primary font-display font-bold hover:underline">Make another booking</button>
     </div>
   );
@@ -78,8 +116,8 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
           <Field label="Email address"><input required type="email" value={booking.email} onChange={(e) => update('email', e.target.value)} className="booking-input" placeholder="you@email.com" /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Guests"><select value={booking.guests} onChange={(e) => update('guests', e.target.value)} className="booking-input">{Array.from({ length: 12 }, (_, i) => <option key={i + 1}>{i + 1}</option>)}</select></Field>
-            <Field label="Date"><input required type="date" min={new Date().toISOString().slice(0, 10)} value={booking.date} onChange={(e) => update('date', e.target.value)} className="booking-input" /></Field>
-            <Field label="Time"><input required type="time" min="09:00" max="23:30" value={booking.time} onChange={(e) => update('time', e.target.value)} className="booking-input" /></Field>
+            <Field label="Date"><input required type="date" min={new Date().toISOString().slice(0, 10)} value={booking.date} onChange={(e) => updateDate(e.target.value)} className="booking-input" />{dateError && <span role="alert" className="block mt-2 text-primary/80 text-xs">{dateError}</span>}</Field>
+            <Field label="Time"><input required disabled={!booking.date} type="time" min={selectedHours?.open} max={latestBookingTime} value={booking.time} onChange={(e) => update('time', e.target.value)} className="booking-input disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Pick a date first" /></Field>
           </div>
           <Field label="Preferred seating"><select value={booking.seating} onChange={(e) => update('seating', e.target.value)} className="booking-input"><option>No preference</option><option>Inside</option><option>Outside</option><option>Smoking area</option><option>Non-smoking area</option></select></Field>
           <Field label="Anything else? (optional)"><textarea value={booking.notes} onChange={(e) => update('notes', e.target.value)} className="booking-input min-h-24" placeholder="Birthday, wheelchair access, high chair…" /></Field>

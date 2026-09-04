@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle, LoaderCircle } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
@@ -22,6 +22,11 @@ import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 
+type AddressSuggestion = {
+  display_name: string;
+  place_id: number | string;
+};
+
 const getDefaultRequestedTime = () => {
   const requestedDate = new Date();
   requestedDate.setMinutes(requestedDate.getMinutes() + config.ordering.avgWaitMins);
@@ -37,11 +42,17 @@ export const Order: React.FC = () => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isAddressSuggestionsOpen, setIsAddressSuggestionsOpen] = useState(false);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [requestedTime, setRequestedTime] = useState(getDefaultRequestedTime);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const categoryRailRef = useRef<HTMLDivElement>(null);
+  const isAddressInputFocusedRef = useRef(false);
+  const skipNextAddressSearchRef = useRef(false);
   const [placedOrder, setPlacedOrder] = useState<{
     orderNo: string; requestedTime: string;
     total: number; lines: CartLine[]; orderType: OrderType; tableNumber: string; address: string;
@@ -97,6 +108,73 @@ export const Order: React.FC = () => {
     );
     activeButton?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [activeCategory]);
+
+  useEffect(() => {
+    if (skipNextAddressSearchRef.current) {
+      skipNextAddressSearchRef.current = false;
+      return;
+    }
+
+    const query = deliveryAddress.trim();
+    if (orderType !== 'delivery' || query.length < 3) {
+      setAddressSuggestions([]);
+      setIsAddressSuggestionsOpen(false);
+      setIsAddressLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const debounceTimer = window.setTimeout(async () => {
+      setIsAddressLoading(true);
+
+      try {
+        const params = new URLSearchParams({
+          format: 'json',
+          addressdetails: '1',
+          countrycodes: 'za',
+          limit: '5',
+          q: query,
+        });
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Address lookup failed');
+
+        const data: unknown = await response.json();
+        const suggestions = Array.isArray(data)
+          ? data.filter((result): result is AddressSuggestion => (
+              typeof result === 'object'
+              && result !== null
+              && typeof result.display_name === 'string'
+              && (typeof result.place_id === 'number' || typeof result.place_id === 'string')
+            )).slice(0, 5)
+          : [];
+
+        setAddressSuggestions(suggestions);
+        setIsAddressSuggestionsOpen(suggestions.length > 0 && isAddressInputFocusedRef.current);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setAddressSuggestions([]);
+          setIsAddressSuggestionsOpen(false);
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsAddressLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      window.clearTimeout(debounceTimer);
+      controller.abort();
+    };
+  }, [deliveryAddress, orderType]);
+
+  const selectAddressSuggestion = (suggestion: AddressSuggestion) => {
+    skipNextAddressSearchRef.current = true;
+    setDeliveryAddress(suggestion.display_name);
+    setAddressSuggestions([]);
+    setIsAddressSuggestionsOpen(false);
+    setIsAddressLoading(false);
+  };
 
   const scrollToCategory = (name: string) => {
     setActiveCategory(name);
@@ -420,7 +498,57 @@ export const Order: React.FC = () => {
                 <div className="mt-4 space-y-4">
                   <div>
                     <label className="block font-display font-bold text-ink text-sm mb-2">Delivery address</label>
-                    <textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required placeholder="Street number, suburb and any gate details" className="w-full min-h-24 bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        onFocus={() => {
+                          isAddressInputFocusedRef.current = true;
+                          if (addressSuggestions.length > 0) setIsAddressSuggestionsOpen(true);
+                        }}
+                        onBlur={() => {
+                          isAddressInputFocusedRef.current = false;
+                          window.setTimeout(() => setIsAddressSuggestionsOpen(false), 150);
+                        }}
+                        required
+                        autoComplete="street-address"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded={isAddressSuggestionsOpen}
+                        aria-controls="delivery-address-suggestions"
+                        placeholder="Street number and suburb"
+                        className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 pr-11 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                      {isAddressLoading && (
+                        <LoaderCircle
+                          size={18}
+                          aria-label="Looking up addresses"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-primary"
+                        />
+                      )}
+                      {isAddressSuggestionsOpen && addressSuggestions.length > 0 && (
+                        <div
+                          id="delivery-address-suggestions"
+                          role="listbox"
+                          className="absolute z-40 top-full left-0 right-0 mt-2 overflow-hidden bg-surface rounded-xl shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]"
+                        >
+                          {addressSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.place_id}
+                              type="button"
+                              role="option"
+                              aria-selected="false"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => selectAddressSuggestion(suggestion)}
+                              className="block w-full px-4 py-3 text-left text-sm text-ink/80 hover:bg-paper focus:bg-paper focus:outline-none border-b border-ink/[0.06] last:border-b-0"
+                            >
+                              {suggestion.display_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block font-display font-bold text-ink text-sm mb-2">Delivery notes <span className="font-body font-normal text-ink/45">(optional)</span></label>
@@ -491,9 +619,18 @@ export const Order: React.FC = () => {
             </div>
 
             <button
-              onClick={async () => { const { generateOrderReceipt } = await import('../lib/generateOrderReceipt'); generateOrderReceipt({ orderNo: placedOrder.orderNo, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total }); }}
+              onClick={async () => {
+                setReceiptError(null);
+                try {
+                  const { generateOrderReceipt } = await import('../lib/generateOrderReceipt');
+                  await generateOrderReceipt({ orderNo: placedOrder.orderNo, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total });
+                } catch {
+                  setReceiptError('Could not generate the receipt. Please try again.');
+                }
+              }}
               className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
             ><Download size={16} /> Download receipt</button>
+            {receiptError && <p role="alert" className="text-primary/80 text-sm mt-3">{receiptError}</p>}
 
             <a
               href={buildOrderWhatsAppUrl({ orderNo: placedOrder.orderNo, lines: placedOrder.lines, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, total: placedOrder.total, name: customerName })}

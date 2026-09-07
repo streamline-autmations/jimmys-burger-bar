@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { cardClass, formatDateTime } from './adminUtils';
-import { AdminError, AdminLoading, EmptyTableRow } from './AdminStates';
+import { cardClass, formatDateTime, thClass } from './adminUtils';
+import { AdminEmpty, AdminError, AdminSkeleton } from './AdminStates';
+import { AdminPageHeader } from './AdminPageHeader';
 import type { Customer } from './types';
 
 export const AdminCustomers: React.FC = () => {
@@ -29,57 +30,96 @@ export const AdminCustomers: React.FC = () => {
 
   return (
     <section>
-      <div className="mb-7">
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-ink/45">Guest directory</p>
-        <h1 className="mt-1 font-display text-3xl font-bold text-primary sm:text-4xl">Customers</h1>
-      </div>
+      <AdminPageHeader
+        eyebrow="Guest directory"
+        title="Customers"
+        count={loading ? undefined : `${customers.length} on file`}
+      />
 
-      {error && <div className="mb-6"><AdminError message={error} /></div>}
+      {error && (
+        <div className="mb-6">
+          <AdminError message={error} onRetry={() => void fetchCustomers()} />
+        </div>
+      )}
+
       {loading ? (
-        <AdminLoading label="Loading customers…" />
+        <AdminSkeleton rows={3} />
+      ) : customers.length === 0 ? (
+        <AdminEmpty title="No customers yet" hint="Guests are added automatically when they book or order." />
       ) : (
-        <div className={`${cardClass} overflow-hidden p-0`}>
-          <div className="overflow-x-auto">
-            <table className="min-w-[760px] w-full text-left text-sm">
-              <thead className="border-b border-ink/10 bg-paper/60 text-xs uppercase tracking-wider text-ink/50">
+        <>
+          <ul className="space-y-3 lg:hidden">
+            {customers.map((customer) => (
+              <li key={customer.id} className={`${cardClass} p-4`}>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 truncate font-display text-base font-bold text-primary">{customer.name}</p>
+                  <span className="shrink-0 rounded-full bg-accent/25 px-2.5 py-1 text-xs font-bold text-[#6b4708]">
+                    {customer.interaction_count}{' '}
+                    {customer.interaction_count === 1 ? 'visit' : 'visits'}
+                  </span>
+                </div>
+                <div className="mt-2 space-y-1 text-sm">
+                  {customer.email && (
+                    <a href={`mailto:${customer.email}`} className="block truncate text-ink/65 hover:text-primary">
+                      {customer.email}
+                    </a>
+                  )}
+                  {customer.phone && (
+                    <a href={`tel:${customer.phone}`} className="block text-ink/65 hover:text-primary">
+                      {customer.phone}
+                    </a>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-ink/45">Last seen {formatDateTime(customer.last_interaction_at)}</p>
+              </li>
+            ))}
+          </ul>
+
+          <div className={`${cardClass} hidden overflow-hidden lg:block`}>
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-ink/10 bg-paper/60">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Name</th>
-                  <th className="px-4 py-3 font-semibold">Email</th>
-                  <th className="px-4 py-3 font-semibold">Phone</th>
-                  <th className="px-4 py-3 font-semibold">Last interaction</th>
-                  <th className="px-4 py-3 text-right font-semibold">Interactions</th>
+                  <th className={thClass}>Name</th>
+                  <th className={thClass}>Email</th>
+                  <th className={thClass}>Phone</th>
+                  <th className={thClass}>Last interaction</th>
+                  <th className={`${thClass} text-right`}>Interactions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/10">
-                {customers.length === 0 ? (
-                  <EmptyTableRow colSpan={5} message="No customers yet." />
-                ) : (
-                  customers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-paper/35">
-                      <td className="px-4 py-4 font-medium">{customer.name}</td>
-                      <td className="px-4 py-4">
-                        {customer.email ? (
-                          <a href={`mailto:${customer.email}`} className="text-ink/65 hover:text-primary">{customer.email}</a>
-                        ) : '—'}
-                      </td>
-                      <td className="px-4 py-4">
-                        {customer.phone ? (
-                          <a href={`tel:${customer.phone}`} className="text-ink/65 hover:text-primary">{customer.phone}</a>
-                        ) : '—'}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-4 text-ink/65">
-                        {formatDateTime(customer.last_interaction_at)}
-                      </td>
-                      <td className="px-4 py-4 text-right font-display font-bold text-primary">
-                        {customer.interaction_count}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                {customers.map((customer) => (
+                  <tr key={customer.id} className="transition-colors hover:bg-paper/50">
+                    <td className="px-4 py-4 font-semibold">{customer.name}</td>
+                    <td className="px-4 py-4">
+                      {customer.email ? (
+                        <a href={`mailto:${customer.email}`} className="text-ink/65 hover:text-primary">
+                          {customer.email}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      {customer.phone ? (
+                        <a href={`tel:${customer.phone}`} className="text-ink/65 hover:text-primary">
+                          {customer.phone}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-ink/65">
+                      {formatDateTime(customer.last_interaction_at)}
+                    </td>
+                    <td className="px-4 py-4 text-right font-display text-base font-bold text-primary">
+                      {customer.interaction_count}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </>
       )}
     </section>
   );

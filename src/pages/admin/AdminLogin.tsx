@@ -1,8 +1,8 @@
 import React, { FormEvent, useEffect, useState } from 'react';
-import { LoaderCircle, LockKeyhole } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { cardClass } from './adminUtils';
+import { cardClass, controlClass, eyebrowClass } from './adminUtils';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -37,13 +37,12 @@ export const AdminLogin: React.FC = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-paper px-4 py-12 text-ink">
-      <div className={`${cardClass} w-full max-w-md`}>
-        <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-surface">
-          <LockKeyhole size={22} aria-hidden="true" />
-        </div>
-        <h1 className="font-display text-3xl font-bold text-primary">Jimmy&apos;s Admin</h1>
-        <p className="mt-2 text-ink/60">Sign in with the staff administrator account.</p>
+    <main className="flex min-h-[100dvh] items-center justify-center bg-paper px-4 py-12 text-ink">
+      <div className={`${cardClass} w-full max-w-md p-6 sm:p-8`}>
+        <img src="/images/logo.png" alt="Jimmy's Burger Bar" width={72} height={72} className="mb-6 h-16 w-auto" />
+        <p className={eyebrowClass}>Staff console</p>
+        <h1 className="mt-1 font-display text-3xl font-bold text-primary">Sign in</h1>
+        <p className="mt-2 text-ink/60">Use the staff administrator account.</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
@@ -57,7 +56,7 @@ export const AdminLogin: React.FC = () => {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`${controlClass} py-3 placeholder:text-ink/35`}
               placeholder="admin@example.com"
             />
           </div>
@@ -72,13 +71,13 @@ export const AdminLogin: React.FC = () => {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`${controlClass} py-3 placeholder:text-ink/35`}
               placeholder="Enter your password"
             />
           </div>
 
           {error && (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900" role="alert">
               {error}
             </p>
           )}
@@ -86,7 +85,7 @@ export const AdminLogin: React.FC = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 bg-primary text-surface px-5 py-2.5 rounded-full font-display font-bold disabled:opacity-40 disabled:pointer-events-none"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 font-display font-bold text-surface transition-colors hover:bg-primary/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-40"
           >
             {submitting && <LoaderCircle className="animate-spin" size={18} aria-hidden="true" />}
             {submitting ? 'Signing in…' : 'Sign in'}

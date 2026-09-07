@@ -44,6 +44,12 @@ body {
   background-color: rgb(var(--color-paper));
 }
 
+/* Nothing scrolls while the first-load intro owns the viewport. Set by
+   <BrandIntro> and removed the moment it finishes. */
+html[data-intro-active] {
+  overflow: hidden;
+}
+
 /* Subtle film grain over the whole page. Fixed + pointer-events-none so it
    never repaints on scroll. */
 .grain::after {

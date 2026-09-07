@@ -8,7 +8,7 @@
     <meta name="supported-color-schemes" content="light" />
     <title>Jimmy's Burger Bar - Meyerton</title>
     <meta name="description" content="Meyerton's go-to spot for juicy burgers and ice-cold beers. Smash burgers, big breakfasts, Friday specials and Coffee & Cars at 57 Loch Street, Meyerton." />
-    <meta name="theme-color" content="#1E2A4E" />
+    <meta name="theme-color" content="#172544" />
 
     <meta property="og:type" content="restaurant.restaurant" />
     <meta property="og:site_name" content="Jimmy's Burger Bar" />
@@ -20,6 +20,73 @@
     <meta name="twitter:title" content="Jimmy's Burger Bar - Meyerton" />
     <meta name="twitter:description" content="Meyerton's go-to spot for juicy burgers and ice-cold beers." />
     <meta name="twitter:image" content="/images/hero-burger.jpg" />
+    <!--
+      FIRST-LOAD STAGE 1 — "the poster goes up".
+
+      This runs before a single byte of app JS has parsed. React does not mount
+      for ~800ms on a cold production load, so the strip assembly cannot live in
+      Framer: anything JS-driven would leave the visitor on a blank white page
+      for that whole window, which is exactly the flash this replaces.
+
+      So Stage 1 is pure CSS and starts at first paint. Navy poster strips fly
+      onto a warm-white wall from alternating directions and assemble into one
+      solid navy canvas. React's <BrandIntro> then takes over on that flat navy
+      to run Stage 2-4 (logo stamp, hold, peel). Because the hand-off happens on
+      a solid, identical navy field, the swap is invisible at any mount time.
+
+      Geometry is shared with BrandIntro.tsx: five strips, each 20% + 1px wide,
+      so neighbours overlap by a pixel. Overlap rather than abutment is what
+      keeps fractional-pixel seams and white slivers off the assembled surface.
+    -->
+    <style>
+      /* On <html> as well as #boot: the browser paints an empty body before it
+         has parsed the boot element, and without this that very first frame is
+         default white rather than Jimmy's paper. */
+      html { background: #fffdf7; }
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        overflow: hidden;
+        background: #fffdf7;
+      }
+      #boot i {
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        width: calc(20% + 1px);
+        background: #172544;
+        /* Promotes the strips to the compositor so the assembly keeps running
+           while the main thread is busy parsing and executing the bundle.
+           Without it the whole of Stage 1 stalls until the thread frees up.
+           Not a permanent hint: the boot layer is removed after the hand-off. */
+        will-change: transform;
+      }
+      /* Alternating entry directions, tight non-sequential stagger. The site's
+         one shared easing curve; no overshoot (that stays the stamp's alone). */
+      #boot i:nth-child(1) { left: 0;   transform: translate3d(0, -101%, 0); animation: bootIn 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0s    forwards; }
+      #boot i:nth-child(2) { left: 20%; transform: translate3d(0,  101%, 0); animation: bootIn 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.08s forwards; }
+      #boot i:nth-child(3) { left: 40%; transform: translate3d(0, -101%, 0); animation: bootIn 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.18s forwards; }
+      #boot i:nth-child(4) { left: 60%; transform: translate3d(0,  101%, 0); animation: bootIn 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards; }
+      #boot i:nth-child(5) { left: 80%; transform: translate3d(0, -101%, 0); animation: bootIn 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.04s forwards; }
+      @keyframes bootIn { to { transform: translate3d(0, 0, 0); } }
+
+      /* Reduced motion: no travel. The branded ground is simply already there. */
+      @media (prefers-reduced-motion: reduce) {
+        #boot { background: #172544; }
+        #boot i { animation: none; transform: none; }
+      }
+
+      /* The staff tool gets the plain branded ground and no poster choreography:
+         it clears the boot layer as soon as React mounts, so the assembly would
+         only ever be seen cut off part-way through. */
+      #boot.plain i { display: none; }
+
+      /* Safety net: if the bundle never executes, the boot layer must not trap
+         the visitor behind an opaque navy screen forever. */
+      #boot { animation: bootFailSafe 0s linear 8s forwards; }
+      @keyframes bootFailSafe { to { opacity: 0; visibility: hidden; } }
+    </style>
     <script type="module">
       if (import.meta.hot?.on) {
         import.meta.hot.on('vite:error', (error) => {
@@ -33,6 +100,12 @@
     </script>
   </head>
   <body>
+    <div id="boot" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <script>
+      if (location.pathname.indexOf('/admin') === 0) {
+        document.getElementById('boot').className = 'plain';
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

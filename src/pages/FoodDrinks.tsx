@@ -303,28 +303,31 @@ export const FoodDrinks: React.FC = () => {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={board}
-            ref={categoryRailRef}
             initial={{ opacity: 0, x: shouldReduceMotion ? 0 : boardDirection * 18 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: shouldReduceMotion ? 0 : boardDirection * -18 }}
             transition={{ duration: 0.3 }}
-            className="max-w-7xl mx-auto px-4 md:px-8 flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide"
-            aria-label={`${board === 'food' ? 'Food' : 'Drinks'} categories`}
           >
-            {categories.map((category) => (
-              <button
-                key={category.name}
-                data-category={category.name}
-                onClick={() => scrollToCategory(category.name)}
-                className={`shrink-0 px-4 py-2 rounded-full font-display font-bold text-sm transition-colors ${
-                  activeCategory === category.name
-                    ? 'bg-ink text-surface'
-                    : 'bg-paper text-ink/60 hover:text-ink'
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
+            <div
+              ref={categoryRailRef}
+              className="max-w-7xl mx-auto px-4 md:px-8 flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide"
+              aria-label={`${board === 'food' ? 'Food' : 'Drinks'} categories`}
+            >
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  data-category={category.name}
+                  onClick={() => scrollToCategory(category.name)}
+                  className={`shrink-0 px-4 py-2 rounded-full font-display font-bold text-sm transition-colors ${
+                    activeCategory === category.name
+                      ? 'bg-ink text-surface'
+                      : 'bg-paper text-ink/60 hover:text-ink'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>

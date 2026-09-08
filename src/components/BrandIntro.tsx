@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { EASE, STAMP_EASE } from '../lib/motion';
+import { openIntroGate } from '../lib/introGate';
 
 // ---------------------------------------------------------------------------
 // FIRST-LOAD BRAND INTRO — "the poster goes up"
@@ -61,21 +62,27 @@ const REDUCED = { hold: 850, done: 1200 } as const;
 // milliseconds in. Timing the hand-off off performance.now() therefore armed
 // React while the strips were still flying and covered the assembly with flat
 // navy - the assembly was running correctly and simply never got seen.
-const remainingAssembly = (): number => {
+// Returns null when the animations cannot be measured at all, which is a
+// different thing from measuring zero. Zero means Stage 1 has already finished
+// and the curtain should arm right now; null means we have nothing to go on and
+// should assume a full assembly is still to come. Collapsing the two is what
+// made a late mount wait a further 800ms on an already-assembled screen.
+const remainingAssembly = (): number | null => {
   const boot = document.getElementById('boot');
-  if (!boot) return 0;
+  if (!boot) return null;
+
+  const animations = Array.from(boot.querySelectorAll('i')).flatMap((strip) => strip.getAnimations());
+  if (animations.length === 0) return null;
 
   let remaining = 0;
-  boot.querySelectorAll('i').forEach((strip) => {
-    strip.getAnimations().forEach((animation) => {
-      const timing = animation.effect?.getComputedTiming();
-      if (!timing) return;
-      const total = Number(timing.delay ?? 0) + Number(timing.activeDuration ?? 0);
-      const elapsed = Number(animation.currentTime ?? 0);
-      if (Number.isFinite(total) && Number.isFinite(elapsed)) {
-        remaining = Math.max(remaining, total - elapsed);
-      }
-    });
+  animations.forEach((animation) => {
+    const timing = animation.effect?.getComputedTiming();
+    if (!timing) return;
+    const total = Number(timing.delay ?? 0) + Number(timing.activeDuration ?? 0);
+    const elapsed = Number(animation.currentTime ?? 0);
+    if (Number.isFinite(total) && Number.isFinite(elapsed)) {
+      remaining = Math.max(remaining, total - elapsed);
+    }
   });
   return remaining;
 };
@@ -100,7 +107,8 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     if (reduceMotion) return 0;
     if (!document.getElementById('boot')) return 0;
     const measured = remainingAssembly();
-    if (measured <= 0) return ASSEMBLY_FALLBACK;
+    if (measured === null) return ASSEMBLY_FALLBACK;
+    if (measured <= 0) return 0;
     // Clamped to the sequence's real length: an animation whose start time is
     // still in the future reports a negative currentTime, which would otherwise
     // read as more work remaining than the whole assembly actually contains.
@@ -136,7 +144,10 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
     if (reduceMotion) {
       const timers = [
-        window.setTimeout(() => setPeeling(true), REDUCED.hold),
+        window.setTimeout(() => {
+          setPeeling(true);
+          openIntroGate();
+        }, REDUCED.hold),
         window.setTimeout(onDone, REDUCED.done),
       ];
       return () => timers.forEach(window.clearTimeout);
@@ -151,7 +162,15 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     );
 
     const timers = [
-      window.setTimeout(() => setPeeling(true), untilPeel),
+      window.setTimeout(() => {
+        setPeeling(true);
+        // Hero motion is released here rather than at onDone. The peel takes
+        // PEEL_LENGTH to clear, so waiting for it left the stage showing an
+        // empty outline for the best part of a second before the first layer
+        // landed. Starting now means the burger is already stacking as the
+        // strips lift, and the visitor still sees most of the build.
+        openIntroGate();
+      }, untilPeel),
       window.setTimeout(onDone, untilPeel + PEEL_LENGTH),
     ];
     return () => timers.forEach(window.clearTimeout);

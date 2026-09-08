@@ -1,13 +1,13 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
-import { FoodDrinks } from './pages/FoodDrinks';
-import { Visit } from './pages/Visit';
-import { Order } from './pages/Order';
-import { AdminApp } from './pages/admin/AdminApp';
+const FoodDrinks = lazy(() => import('./pages/FoodDrinks').then((module) => ({ default: module.FoodDrinks })));
+const Visit = lazy(() => import('./pages/Visit').then((module) => ({ default: module.Visit })));
+const Order = lazy(() => import('./pages/Order').then((module) => ({ default: module.Order })));
+const AdminApp = lazy(() => import('./pages/admin/AdminApp').then((module) => ({ default: module.AdminApp })));
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
@@ -67,15 +67,22 @@ const ScrollToTop = () => {
 // which is why it could never have an assembly stage: a curtain's layers begin
 // covering the viewport and only ever animate away. First load now lives in
 // <BrandIntro>, so this is back to doing one job.
+//
+// HOLD is added to every "enter" delay, which keeps the curtain covering the
+// viewport for that much longer before it peels. Client-directed 2026-09-07:
+// the wipe was reading as too brief to register between pages. It is added to
+// the delays rather than the durations so the peel itself keeps its pace - a
+// slower peel would read as sluggish, a longer hold reads as deliberate.
+const HOLD = 0.5;
 const accentSheetVariants = {
   initial: { y: '0%' },
-  enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.48 } },
+  enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.48 + HOLD } },
   exit: { y: '0%', transition: { duration: 0.46, ease: EASE } },
 };
 
 const surfaceSheetVariants = {
   initial: { y: '0%' },
-  enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.36 } },
+  enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.36 + HOLD } },
   exit: { y: '0%', transition: { duration: 0.48, ease: EASE, delay: 0.06 } },
 };
 
@@ -84,7 +91,7 @@ const shutterVariants = {
   initial: { y: '0%' },
   enter: (index: number) => ({
     y: '-102%',
-    transition: { duration: 0.66, ease: EASE, delay: 0.1 + SHUTTER_DELAYS[index] },
+    transition: { duration: 0.66, ease: EASE, delay: 0.1 + HOLD + SHUTTER_DELAYS[index] },
   }),
   exit: (index: number) => ({
     y: '0%',
@@ -98,7 +105,7 @@ const shutterVariants = {
 
 const logoVariants = {
   initial: { scale: 1, opacity: 1 },
-  enter: { scale: 1.04, y: -22, opacity: 0, transition: { duration: 0.3, ease: EASE, delay: 0.08 } },
+  enter: { scale: 1.04, y: -22, opacity: 0, transition: { duration: 0.3, ease: EASE, delay: 0.08 + HOLD } },
   exit: {
     scale: [0.76, 1.03, 1],
     y: [18, 0, 0],
@@ -121,6 +128,7 @@ const AnimatedRoutes: React.FC = () => {
         className="flex-grow flex flex-col"
       >
         <main className="flex-grow">
+          <Suspense fallback={<div role="status" className="min-h-screen px-6 pt-32 text-ink">Loading page…</div>}>
           <Routes location={location}>
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<FoodDrinks />} />
@@ -132,6 +140,7 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/book" element={<Navigate to="/visit#book" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </main>
 
         {/* Under-sheets create a quick white and gold flash between pages. */}
@@ -236,7 +245,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/admin/*" element={<AdminApp />} />
+        <Route path="/admin/*" element={<Suspense fallback={<div role="status" className="p-8 text-ink">Loading staff console…</div>}><AdminApp /></Suspense>} />
         <Route path="/*" element={<PublicApp />} />
       </Routes>
     </Router>

@@ -22,16 +22,18 @@ export const BurgerAssembly: React.FC = () => {
   const [fallbackFailed, setFallbackFailed] = useState(false);
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
 
-  // On a first hard load the branded intro is the arrival moment, and this
-  // ~3.9s build cannot also fit after it: letting it run late reveals a burger
-  // with no bun, and holding it until the curtain lifts reveals an empty
-  // outline for longer still. So when an intro is covering this load the burger
-  // resolves instantly behind the curtain and the reveal exposes a hero that is
-  // finished and steaming. On SPA navigation back to the home page there is no
-  // curtain to hide behind, so the build plays in full exactly as designed.
-  const skipBuild = useRef(!isIntroGateOpen()).current;
+  // The build waits for the curtain, then plays - the whole point of the hero
+  // is watching it stack, so it must not finish while it is still hidden.
+  //
+  // It does run tighter after an intro: the visitor has already waited ~3.3s,
+  // and following that with the full ~3.9s build would mean roughly seven
+  // seconds before the hero settles. At this pace the choreography is still
+  // read beat by beat but lands in about half the time. Arriving by SPA
+  // navigation there is no preceding wait, so it plays at its designed speed.
+  const introPlayed = useRef(!isIntroGateOpen()).current;
+  const pace = introPlayed ? 0.5 : 1;
   const layersReady = imagesLoaded;
-  const canAnimate = imagesLoaded && (skipBuild || introDone);
+  const canAnimate = imagesLoaded && introDone;
 
   useEffect(() => whenIntroDone(() => setIntroDone(true)), []);
 
@@ -52,13 +54,9 @@ export const BurgerAssembly: React.FC = () => {
       setAssembled(true);
       return;
     }
-    if (skipBuild) {
-      setAssembled(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setAssembled(true), 3150);
+    const timer = window.setTimeout(() => setAssembled(true), 3150 * pace);
     return () => window.clearTimeout(timer);
-  }, [canAnimate, reduceMotion, skipBuild]);
+  }, [canAnimate, reduceMotion, pace]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch' || reduceMotion) return;
@@ -69,7 +67,7 @@ export const BurgerAssembly: React.FC = () => {
   return (
     <div className="burger-stage relative isolate w-full max-w-[660px] mx-auto aspect-square" onPointerMove={handlePointerMove} onPointerLeave={() => setPointer({ x: 0, y: 0 })}>
       <div className="burger-heat-halo absolute inset-[10%]" aria-hidden="true" />
-      <motion.div className="burger-outline absolute inset-0" initial={{ opacity: 0.5 }} animate={{ opacity: canAnimate ? 0 : 0.5 }} transition={{ duration: reduceMotion ? 0 : 0.32, delay: reduceMotion || skipBuild ? 0 : canAnimate ? 3.9 : 0 }} aria-hidden="true" />
+      <motion.div className="burger-outline absolute inset-0" initial={{ opacity: 0.5 }} animate={{ opacity: canAnimate ? 0 : 0.5 }} transition={{ duration: reduceMotion ? 0 : 0.32, delay: reduceMotion ? 0 : canAnimate ? 3.9 * pace : 0 }} aria-hidden="true" />
       <motion.div className="absolute inset-0" animate={reduceMotion ? undefined : { rotateX: pointer.y * -5, rotateY: pointer.x * 6, x: pointer.x * 8, y: pointer.y * 6 }} transition={{ type: 'spring', stiffness: 90, damping: 18, mass: 0.7 }} style={{ transformStyle: 'preserve-3d' }}>
         <motion.div
           className="absolute inset-0"
@@ -81,7 +79,7 @@ export const BurgerAssembly: React.FC = () => {
           transition={{ duration: 0.72, times: [0, 0.24, 0.58, 1], ease: [0.22, 1, 0.36, 1] }}
         >
           {!layersReady && !fallbackFailed && <motion.img initial={{ opacity: 0, scale: 0.9, rotate: -3 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} src={fallbackSrc} alt="Jimmy's smash burger" onError={() => setFallbackFailed(true)} className="absolute inset-0 z-10 w-full h-full object-contain drop-shadow-[0_32px_24px_rgba(0,0,0,0.45)]" />}
-          {layersReady && layers.map((layer) => <motion.img key={layer.id} src={layer.src} alt={layer.alt} initial={reduceMotion ? { opacity: 1 } : { opacity: 0, ...layer.initial }} animate={canAnimate ? { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 } : (reduceMotion ? { opacity: 1 } : { opacity: 0, ...layer.initial })} transition={reduceMotion || skipBuild ? { duration: 0 } : { type: 'spring', stiffness: 92, damping: 15, mass: 0.82, delay: layer.delay }} className="absolute inset-0 z-10 w-full h-full object-contain drop-shadow-[0_32px_24px_rgba(0,0,0,0.45)]" />)}
+          {layersReady && layers.map((layer) => <motion.img key={layer.id} src={layer.src} alt={layer.alt} initial={reduceMotion ? { opacity: 1 } : { opacity: 0, ...layer.initial }} animate={canAnimate ? { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 } : (reduceMotion ? { opacity: 1 } : { opacity: 0, ...layer.initial })} transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 92, damping: 15, mass: 0.82, delay: layer.delay * pace }} className="absolute inset-0 z-10 w-full h-full object-contain drop-shadow-[0_32px_24px_rgba(0,0,0,0.45)]" />)}
           {layersReady && (
             <motion.img
               src={fallbackSrc}

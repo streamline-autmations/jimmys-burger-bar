@@ -1,4 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAdminResource } from './useAdminResource';
+import { AdminRefresh } from './AdminRefresh';
+import { matchesSearch, nextStatuses } from './operations';
+import { getLocalDayBounds, controlClass } from './adminUtils';
+import React, { useRef, useCallback, useMemo, useState } from 'react';
 import { Bike, Clock3, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { formatZar } from '../../lib/cartStore';
 import { supabase } from '../../lib/supabase';
@@ -6,11 +10,9 @@ import {
   actionableCardClass,
   cardClass,
   formatDateTime,
-  formatTimeOnly,
   historicalCardClass,
   isActionable,
   isClosed,
-  thClass,
   titleCase,
 } from './adminUtils';
 import { AdminEmpty, AdminError, AdminSkeleton } from './AdminStates';
@@ -31,7 +33,7 @@ const Destination: React.FC<{ order: OrderWithItems }> = ({ order }) => {
       <Icon size={14} aria-hidden="true" />
       {titleCase(order.order_type)}
       {order.order_type === 'table' && order.table_number && (
-        <span className="font-normal text-ink/60">· Table {order.table_number}</span>
+        <span className="font-normal text-ink/65">· Table {order.table_number}</span>
       )}
     </p>
   );
@@ -39,7 +41,7 @@ const Destination: React.FC<{ order: OrderWithItems }> = ({ order }) => {
 
 const ItemList: React.FC<{ items: OrderItem[] }> = ({ items }) =>
   items.length === 0 ? (
-    <span className="text-ink/45">No items found</span>
+    <span className="text-ink/65">No items found</span>
   ) : (
     <ul className="space-y-1">
       {items.map((item) => (
@@ -51,34 +53,34 @@ const ItemList: React.FC<{ items: OrderItem[] }> = ({ items }) =>
   );
 
 export const AdminOrders: React.FC = () => {
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState('all');
+  const [search, setSearch] = useState('');
+  const [view, setView] = useState('active');
+  const [limit, setLimit] = useState(200);
+
+  const mutation = useRef(false);
+  const [feedback, setFeedback] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [updateErrors, setUpdateErrors] = useState<Record<string, string>>({});
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const { data, error: fetchError } = await supabase
-      .from('orders')
-      .select('*, order_items(*)')
-      .order('created_at', { ascending: false })
-      .limit(200);
+  const load = useCallback(async () => {
+    let query = supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: view === 'active' }).order('id').limit(limit);
+    if (view === 'active') query = query.not('status', 'in', '(completed,cancelled)');
+    if (view === 'history') query = query.in('status', ['completed', 'cancelled']);
+    if (view === 'today') { const { start, end } = getLocalDayBounds(); query = query.gte('requested_time', start).lt('requested_time', end); }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  }, [view, limit]);
+  const { data: orders, setData: setOrders, loading, error, updatedAt, refresh: fetchOrders } = useAdminResource<OrderWithItems[]>(load, []);
 
-    if (fetchError) setError(fetchError.message);
-    else setOrders(data ?? []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void fetchOrders();
-  }, [fetchOrders]);
 
   const openCount = useMemo(() => orders.filter((order) => isActionable(order.status)).length, [orders]);
 
   const updateStatus = async (order: OrderWithItems, status: OrderStatus) => {
-    if (order.status === status) return;
+    if (mutation.current || !nextStatuses(order.status).includes(status)) return;
+    mutation.current = true;
+    setFeedback('');
     setSavingId(order.id);
     setUpdateErrors((current) => {
       const next = { ...current };
@@ -86,26 +88,29 @@ export const AdminOrders: React.FC = () => {
       return next;
     });
 
-    const { error: updateError } = await supabase.from('orders').update({ status }).eq('id', order.id);
-    if (updateError) {
-      setUpdateErrors((current) => ({ ...current, [order.id]: updateError.message }));
-    } else {
-      setOrders((current) => current.map((item) => (item.id === order.id ? { ...item, status } : item)));
-    }
-    setSavingId(null);
+    try {
+      const { data, error: updateError } = await supabase.from('orders').update({ status }).eq('id', order.id).eq('status', order.status).select('id');
+      if (updateError || data?.length !== 1) throw new Error('conflict');
+      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status } : item));
+      setFeedback('Status saved. Contact the customer if they need an update.');
+      await fetchOrders();
+    } catch {
+      setUpdateErrors((current) => ({ ...current, [order.id]: 'Could not verify this change. Refresh before trying again; another staff member may have updated it.' }));
+    } finally { mutation.current = false; setSavingId(null); }
   };
 
   const statusControl = (order: OrderWithItems) => (
     <AdminStatusControl
-      id={`order-status-${order.id}`}
       value={order.status as OrderStatus}
       options={ORDER_STATUSES}
-      saving={savingId === order.id}
+      saving={savingId !== null || loading || !!error}
       error={updateErrors[order.id]}
       describedAs={`Update status for order ${order.order_no}`}
       onChange={(next) => void updateStatus(order, next)}
     />
   );
+
+  const filtered = orders.filter((item) => (status === 'all' || item.status === status) && matchesSearch(search, item.order_no, item.customer_name, item.phone, item.email));
 
   return (
     <section>
@@ -115,23 +120,32 @@ export const AdminOrders: React.FC = () => {
         count={loading ? undefined : `${orders.length} shown · ${openCount} still open`}
       />
 
+      <p role="status" className="mb-3 text-sm font-semibold">{feedback}</p>
+      <AdminRefresh disabled={savingId !== null} loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchOrders()} />
+      <div role="group" aria-label="Order status filter" className="mb-4 flex flex-wrap gap-2">
+        {['all', ...ORDER_STATUSES].map((value) => <button key={value} aria-pressed={status === value} onClick={() => setStatus(value)} className={`min-h-11 rounded-xl border border-ink/20 px-3 text-sm font-bold ${status === value ? 'bg-primary text-surface' : 'bg-surface'}`}>{titleCase(value)} ({value === 'all' ? orders.length : orders.filter((item) => item.status === value).length})</button>)}
+      </div>
+      <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_220px]">
+        <label className="text-sm font-semibold">Search loaded records<input type="search" className={controlClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, contact or reference" /></label>
+        <label className="text-sm font-semibold">Date / queue<select disabled={savingId !== null} className={controlClass} value={view} onChange={(event) => { setView(event.target.value); setLimit(200); }}><option value="active">Open orders</option><option value="today">Today</option><option value="history">History</option><option value="all">All dates</option></select></label>
+      </div>
+      <p className="mb-4 text-sm text-ink/75">{filtered.length} matching / {orders.length} loaded. Search applies to loaded records.</p>
+
       {error && (
         <div className="mb-6">
           <AdminError message={error} onRetry={() => void fetchOrders()} />
         </div>
       )}
 
-      {loading ? (
+      {loading && !updatedAt ? (
         <AdminSkeleton />
-      ) : orders.length === 0 ? (
-        <AdminEmpty title="No orders yet" hint="New online orders will land here as they come in." />
+      ) : error && !updatedAt ? null : filtered.length === 0 ? (
+        <AdminEmpty title="No matching orders" hint="Try another search, status or date view. Refresh to check for new requests." />
       ) : (
         <>
-          {/* Phone and tablet: a card per order. The desktop table is 1250px
-              wide, so on a phone everything from the items rightwards - the
-              total, the requested time, the status control - sat off screen. */}
-          <ul className="space-y-3 xl:hidden">
-            {orders.map((order) => (
+          {/* The same complete order detail is available at every width. */}
+          <ul className="grid gap-4 lg:grid-cols-2">
+            {filtered.map((order) => (
               <li
                 key={order.id}
                 className={`p-4 ${
@@ -157,7 +171,7 @@ export const AdminOrders: React.FC = () => {
                   <Destination order={order} />
                   <span className="inline-flex items-center gap-1.5 font-semibold text-ink/75">
                     <Clock3 size={14} aria-hidden="true" />
-                    Wants it {formatTimeOnly(order.requested_time)}
+                    Requested {formatDateTime(order.requested_time)}
                   </span>
                 </div>
 
@@ -165,7 +179,7 @@ export const AdminOrders: React.FC = () => {
                   <p className="mt-2 rounded-xl bg-paper/80 px-3 py-2 text-sm leading-relaxed text-ink/70">
                     {order.delivery_address}
                     {order.delivery_notes && (
-                      <span className="mt-1 block italic text-ink/55">{order.delivery_notes}</span>
+                      <span className="mt-1 block italic text-ink/65">{order.delivery_notes}</span>
                     )}
                   </p>
                 )}
@@ -181,83 +195,17 @@ export const AdminOrders: React.FC = () => {
                   <Phone size={14} aria-hidden="true" />
                   Call customer
                 </a>
+                <a className="ml-3 inline-flex min-h-11 items-center underline text-sm" href={`mailto:${order.email}`}>Email customer</a>
 
                 <div className="mt-3 border-t border-ink/10 pt-3">{statusControl(order)}</div>
               </li>
             ))}
           </ul>
 
-          <div className={`${cardClass} hidden overflow-hidden xl:block`}>
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-ink/10 bg-paper/60">
-                <tr>
-                  <th className={thClass}>Order</th>
-                  <th className={thClass}>Customer</th>
-                  <th className={thClass}>Destination</th>
-                  <th className={thClass}>Items</th>
-                  <th className={thClass}>Total</th>
-                  <th className={thClass}>Wanted</th>
-                  <th className={`${thClass} w-56`}>Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink/10">
-                {orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className={`align-top transition-colors hover:bg-paper/50 ${
-                      isClosed(order.status) ? 'text-ink/55' : ''
-                    }`}
-                  >
-                    <td className="relative whitespace-nowrap px-4 py-4">
-                      {isActionable(order.status) && (
-                        <span className="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden="true" />
-                      )}
-                      <p className="font-display font-bold text-primary">{order.order_no}</p>
-                      <p className="mt-1 text-xs text-ink/45">{formatDateTime(order.created_at)}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-semibold">{order.customer_name}</p>
-                      <a className="mt-1 block text-xs text-ink/55 hover:text-primary" href={`tel:${order.phone}`}>
-                        {order.phone}
-                      </a>
-                      <a className="block text-xs text-ink/55 hover:text-primary" href={`mailto:${order.email}`}>
-                        {order.email}
-                      </a>
-                    </td>
-                    <td className="max-w-60 px-4 py-4">
-                      <Destination order={order} />
-                      {order.order_type === 'delivery' && order.delivery_address && (
-                        <p className="mt-1 text-xs leading-relaxed text-ink/60">{order.delivery_address}</p>
-                      )}
-                      {order.order_type === 'delivery' && order.delivery_notes && (
-                        <p className="mt-1 text-xs italic leading-relaxed text-ink/45">{order.delivery_notes}</p>
-                      )}
-                    </td>
-                    <td className="min-w-48 px-4 py-4">
-                      <ItemList items={order.order_items} />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 font-display text-base font-bold text-primary">
-                      {formatZar(order.total)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <p className="font-display text-base font-bold text-primary">
-                        {formatTimeOnly(order.requested_time)}
-                      </p>
-                      <p className="mt-1 text-xs text-ink/45">{formatDateTime(order.requested_time)}</p>
-                    </td>
-                    <td className="w-56 px-4 py-4">
-                      <div className="mb-2.5">
-                        <AdminStatusBadge status={order.status} />
-                      </div>
-                      {statusControl(order)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
         </>
       )}
+      {orders.length >= limit && <button className="mt-5 min-h-11 rounded-xl border border-ink/20 px-5 font-bold" disabled={loading || savingId !== null} onClick={() => setLimit((value) => value + 200)}>Load more records</button>}
     </section>
   );
 };

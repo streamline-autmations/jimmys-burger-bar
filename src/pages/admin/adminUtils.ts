@@ -1,3 +1,4 @@
+import { restaurantDate, restaurantInstant } from '../../lib/tradingHours';
 // ---------------------------------------------------------------------------
 // Shared surface language for the staff tool.
 //
@@ -39,17 +40,20 @@ export const controlClass =
   'disabled:opacity-50 disabled:pointer-events-none';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-ZA', {
+  timeZone: 'Africa/Johannesburg',
   dateStyle: 'medium',
   timeStyle: 'short',
 });
 
 const dateFormatter = new Intl.DateTimeFormat('en-ZA', {
+  timeZone: 'Africa/Johannesburg',
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 });
 
 const timeOnlyFormatter = new Intl.DateTimeFormat('en-ZA', {
+  timeZone: 'Africa/Johannesburg',
   hour: '2-digit',
   minute: '2-digit',
 });
@@ -58,7 +62,7 @@ export const formatDateTime = (value: string | null): string =>
   value ? dateTimeFormatter.format(new Date(value)) : 'Not specified';
 
 export const formatBookingDate = (value: string): string =>
-  dateFormatter.format(new Date(`${value}T00:00:00`));
+  dateFormatter.format(restaurantInstant(value, '00:00'));
 
 export const formatBookingTime = (value: string): string => value.slice(0, 5);
 
@@ -68,19 +72,10 @@ export const formatTimeOnly = (value: string | null): string =>
 export const titleCase = (value: string): string =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 
-export const getLocalToday = (): string => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
+export const getLocalToday = restaurantDate;
 export const getLocalDayBounds = (): { start: string; end: string } => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  return { start: start.toISOString(), end: end.toISOString() };
+  const start = restaurantInstant(restaurantDate(), '00:00');
+  return { start: start.toISOString(), end: new Date(start.getTime() + 86400000).toISOString() };
 };
 
 export const getErrorMessage = (error: unknown): string =>

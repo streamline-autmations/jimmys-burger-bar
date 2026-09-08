@@ -28,9 +28,11 @@ export async function generateOrderReceipt(order: {
   deliveryAddress: string;
   lines: CartLine[];
   total: number;
+  requestedTime?: string;
+  placedAt?: string;
 }): Promise<void> {
   const logoDataUrl = await loadLogoDataUrl();
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
   const width = doc.internal.pageSize.getWidth();
   const margin = 48;
 
@@ -57,7 +59,7 @@ export async function generateOrderReceipt(order: {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(92, 101, 119);
-  doc.text(`Placed ${new Date().toLocaleString('en-ZA')}`, margin, 173);
+  doc.text(`Requested ${order.requestedTime ?? 'Time to be confirmed'} (SAST)`, margin, 173);
 
   const fulfilment = order.orderType === 'delivery'
     ? `Delivery: ${order.deliveryAddress}`
@@ -94,6 +96,7 @@ export async function generateOrderReceipt(order: {
 
   y += 31;
   order.lines.forEach((line, index) => {
+    if (y > 650) { doc.addPage(); y = 60; }
     if (index % 2 === 0) {
       doc.setFillColor(255, 252, 246);
       doc.rect(margin, y - 18, width - margin * 2, 28, 'F');
@@ -107,6 +110,7 @@ export async function generateOrderReceipt(order: {
     y += 28;
   });
 
+  if (y > 620) { doc.addPage(); y = 60; }
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(1.5);
   doc.line(margin, y, width - margin, y);
@@ -126,7 +130,7 @@ export async function generateOrderReceipt(order: {
   doc.text(config.venue.phone, width - margin, 730, { align: 'right' });
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NAVY);
-  doc.text("Thanks for choosing Jimmy's.", margin, 757);
+  doc.text("Request received. Subject to acceptance. Not proof of payment.", margin, 757);
 
   doc.save(`jimmys-order-${order.orderNo}.pdf`);
 }

@@ -17,7 +17,7 @@ export const AdminGuard: React.FC<React.PropsWithChildren> = ({ children }) => {
         setSession(data.session);
         setChecking(false);
       }
-    });
+    }).catch(() => { if (active) { setSession(null); setChecking(false); } });
 
     const {
       data: { subscription },

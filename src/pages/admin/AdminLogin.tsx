@@ -42,7 +42,7 @@ export const AdminLogin: React.FC = () => {
         <img src="/images/logo.png" alt="Jimmy's Burger Bar" width={72} height={72} className="mb-6 h-16 w-auto" />
         <p className={eyebrowClass}>Staff console</p>
         <h1 className="mt-1 font-display text-3xl font-bold text-primary">Sign in</h1>
-        <p className="mt-2 text-ink/60">Use the staff administrator account.</p>
+        <p className="mt-2 text-ink/65">Use the staff administrator account.</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
@@ -56,7 +56,7 @@ export const AdminLogin: React.FC = () => {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className={`${controlClass} py-3 placeholder:text-ink/35`}
+              className={`${controlClass} py-3 placeholder:text-ink/65`}
               placeholder="admin@example.com"
             />
           </div>
@@ -71,13 +71,13 @@ export const AdminLogin: React.FC = () => {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className={`${controlClass} py-3 placeholder:text-ink/35`}
+              className={`${controlClass} py-3 placeholder:text-ink/65`}
               placeholder="Enter your password"
             />
           </div>
 
           {error && (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900" role="alert">
+            <p className="rounded-xl border border-accent bg-accent/15 px-4 py-3 text-sm font-medium text-ink" role="alert">
               {error}
             </p>
           )}

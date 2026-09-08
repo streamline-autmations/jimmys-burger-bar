@@ -29,7 +29,7 @@ export async function generateBookingConfirmation(booking: {
   notes: string;
 }): Promise<void> {
   const logoDataUrl = await loadLogoDataUrl();
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
   const width = doc.internal.pageSize.getWidth();
   const margin = 48;
 
@@ -42,7 +42,7 @@ export async function generateBookingConfirmation(booking: {
   doc.text("JIMMY'S", 134, 42);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('TABLE BOOKING CONFIRMATION', 134, 64);
+  doc.text('TABLE BOOKING REQUEST', 134, 64);
   doc.setFillColor(...GOLD);
   doc.rect(0, 100, width, 3, 'F');
 
@@ -51,7 +51,7 @@ export async function generateBookingConfirmation(booking: {
   doc.setFontSize(9);
   doc.text('BOOKING REFERENCE', margin, 130);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
+  doc.setFontSize(12);
   doc.text(`#${booking.reference}`, margin, 153);
 
   doc.setDrawColor(...GOLD);
@@ -93,7 +93,7 @@ export async function generateBookingConfirmation(booking: {
   doc.text(config.venue.phone, width - margin, 730, { align: 'right' });
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NAVY);
-  doc.text("See you soon at Jimmy's.", margin, 757);
+  doc.text("Pending: your table is not confirmed until Jimmy's contacts you.", margin, 757);
 
   doc.save(`jimmys-booking-${booking.reference}.pdf`);
 }

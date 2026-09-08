@@ -1,8 +1,9 @@
+import { readSession, writeSession } from '../lib/sessionDraft';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle, LoaderCircle } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle } from 'lucide-react';
 import { config } from '../config';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
@@ -17,42 +18,37 @@ import {
   type CartLine,
 } from '../lib/cartStore';
 import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
+import { contactError, requestedTimeError, restaurantDate, restaurantInstant, tradingHours, latestTime } from '../lib/tradingHours';
 import { supabase } from '../lib/supabase';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 
-type AddressSuggestion = {
-  display_name: string;
-  place_id: number | string;
-};
-
-const getDefaultRequestedTime = () => {
-  const requestedDate = new Date();
-  requestedDate.setMinutes(requestedDate.getMinutes() + config.ordering.avgWaitMins);
-  return `${requestedDate.getHours().toString().padStart(2, '0')}:${requestedDate.getMinutes().toString().padStart(2, '0')}`;
-};
+const getDefaultRequestedTime = () => '';
 
 export const Order: React.FC = () => {
   const { menu, ordering } = config;
 
+  const [previousReference, setPreviousReference] = useState(() => readSession('jimmys-order-reference'));
   const [step, setStep] = useState<Step>('browse');
   const [activeCategory, setActiveCategory] = useState(menu.categories[0].name);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isAddressSuggestionsOpen, setIsAddressSuggestionsOpen] = useState(false);
-  const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [requestedTime, setRequestedTime] = useState(getDefaultRequestedTime);
+  const sending = useRef(false);
+  const [uncertain, setUncertain] = useState(false);
+  const today = restaurantDate();
+  const hours = tradingHours(today);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  useEffect(() => { setSubmitError(null); }, [customerName, customerPhone, customerEmail, requestedTime, deliveryAddress]);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (submitError) errorRef.current?.focus(); }, [submitError]);
   const categoryRailRef = useRef<HTMLDivElement>(null);
-  const isAddressInputFocusedRef = useRef(false);
-  const skipNextAddressSearchRef = useRef(false);
   const [placedOrder, setPlacedOrder] = useState<{
     orderNo: string; requestedTime: string;
     total: number; lines: CartLine[]; orderType: OrderType; tableNumber: string; address: string;
@@ -109,73 +105,6 @@ export const Order: React.FC = () => {
     activeButton?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [activeCategory]);
 
-  useEffect(() => {
-    if (skipNextAddressSearchRef.current) {
-      skipNextAddressSearchRef.current = false;
-      return;
-    }
-
-    const query = deliveryAddress.trim();
-    if (orderType !== 'delivery' || query.length < 3) {
-      setAddressSuggestions([]);
-      setIsAddressSuggestionsOpen(false);
-      setIsAddressLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const debounceTimer = window.setTimeout(async () => {
-      setIsAddressLoading(true);
-
-      try {
-        const params = new URLSearchParams({
-          format: 'json',
-          addressdetails: '1',
-          countrycodes: 'za',
-          limit: '5',
-          q: query,
-        });
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error('Address lookup failed');
-
-        const data: unknown = await response.json();
-        const suggestions = Array.isArray(data)
-          ? data.filter((result): result is AddressSuggestion => (
-              typeof result === 'object'
-              && result !== null
-              && typeof result.display_name === 'string'
-              && (typeof result.place_id === 'number' || typeof result.place_id === 'string')
-            )).slice(0, 5)
-          : [];
-
-        setAddressSuggestions(suggestions);
-        setIsAddressSuggestionsOpen(suggestions.length > 0 && isAddressInputFocusedRef.current);
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          setAddressSuggestions([]);
-          setIsAddressSuggestionsOpen(false);
-        }
-      } finally {
-        if (!controller.signal.aborted) setIsAddressLoading(false);
-      }
-    }, 400);
-
-    return () => {
-      window.clearTimeout(debounceTimer);
-      controller.abort();
-    };
-  }, [deliveryAddress, orderType]);
-
-  const selectAddressSuggestion = (suggestion: AddressSuggestion) => {
-    skipNextAddressSearchRef.current = true;
-    setDeliveryAddress(suggestion.display_name);
-    setAddressSuggestions([]);
-    setIsAddressSuggestionsOpen(false);
-    setIsAddressLoading(false);
-  };
-
   const scrollToCategory = (name: string) => {
     setActiveCategory(name);
     const element = document.getElementById(`order-${name}`);
@@ -194,22 +123,29 @@ export const Order: React.FC = () => {
   }, [count, customerName, customerEmail, customerPhone, deliveryAddress, orderType, requestedTime, tableNumber]);
 
   const handlePlaceOrder = async () => {
-    if (!canPlaceOrder) return;
+    if (sending.current || uncertain) return;
+    const validation = contactError(customerName, customerPhone, customerEmail) || requestedTimeError(today, requestedTime);
+    if (validation) { setSubmitError(validation); return; }
+    if (!canPlaceOrder) { setSubmitError('Add an item and complete the details for your order type.'); return; }
+    const breakfast = menu.categories.find((category) => category.name === 'Breakfast');
+    if (requestedTime >= '12:00' && lines.some((line) => breakfast?.items.some((item) => item.name === line.name))) {
+      setSubmitError('Breakfast is served until 12. Choose an earlier time or remove breakfast items.'); return;
+    }
+    sending.current = true;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     const orderNo = generateOrderNumber();
-    const requestedDate = new Date();
-    const [requestedHours, requestedMinutes] = requestedTime.split(':').map(Number);
-    requestedDate.setHours(requestedHours, requestedMinutes, 0, 0);
+    writeSession('jimmys-order-reference', orderNo);
+    const requestedDate = restaurantInstant(today, requestedTime);
 
     try {
       const { data, error } = await supabase.rpc('create_order', {
         p_order_no: orderNo,
-        p_customer_name: customerName,
-        p_email: customerEmail,
-        p_phone: customerPhone,
+        p_customer_name: customerName.trim(),
+        p_email: customerEmail.trim(),
+        p_phone: customerPhone.trim(),
         p_order_type: orderType,
         p_table_number: orderType === 'table' ? tableNumber : null,
         p_delivery_address: orderType === 'delivery' ? deliveryAddress : null,
@@ -221,7 +157,8 @@ export const Order: React.FC = () => {
       });
 
       if (error || !data?.[0]) {
-        setSubmitError("We couldn't place your order. Please try again.");
+        setUncertain(true);
+        setSubmitError(`We could not verify receipt of ${orderNo}. Contact Jimmy's with this reference before ordering again.`);
         return;
       }
 
@@ -229,13 +166,17 @@ export const Order: React.FC = () => {
       clear();
       setStep('confirmed');
     } catch {
-      setSubmitError("We couldn't place your order. Please try again.");
+      setUncertain(true);
+        setSubmitError(`We could not verify receipt of ${orderNo}. Contact Jimmy's with this reference before ordering again.`);
     } finally {
+      sending.current = false;
       setIsSubmitting(false);
     }
   };
 
   const startNewOrder = () => {
+    writeSession('jimmys-order-reference', null);
+    setPreviousReference(null);
     setPlacedOrder(null);
     setCustomerName('');
     setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes('');
@@ -262,6 +203,14 @@ export const Order: React.FC = () => {
     );
   }
 
+  if (previousReference) return <div className="pt-32 pb-24 px-5 max-w-xl mx-auto min-h-screen">
+    <h1 className="font-display text-3xl font-bold">Check your last request</h1>
+    <p className="mt-4 break-words">Reference: {previousReference}</p>
+    <p className="mt-3">This tab previously sent an order request. Contact Jimmy's to check its status before placing another order.</p>
+    <a className="inline-block my-5 underline" href={`https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(`Please check existing order ${previousReference}. This is not a new order.`)}`}>Check with Jimmy's on WhatsApp</a>
+    <button className="block min-h-11 border border-ink/25 rounded-xl px-4" onClick={() => { if (window.confirm('Have you checked the previous request with Jimmy’s? Starting again may create a second order.')) { writeSession('jimmys-order-reference', null); setPreviousReference(null); } }}>I have checked. Start another order</button>
+  </div>;
+
   return (
     <div className="pt-28 min-h-screen pb-28 lg:pb-16">
       <AnimatePresence mode="wait">
@@ -278,7 +227,7 @@ export const Order: React.FC = () => {
                 <span className="font-script text-2xl text-primary">skip the queue</span>
                 <h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4">Order online</h1>
                 <p className="text-ink/60 text-lg">
-                  Build your order below and send it straight to Jimmy's on WhatsApp. No app, no commission, no wait on hold.
+                  Order directly from Jimmy's for collection. Choose a requested time and wait for the restaurant to confirm it.
                 </p>
               </motion.div>
             </div>
@@ -334,10 +283,10 @@ export const Order: React.FC = () => {
                         const price = parsePrice(item.price);
                         const qty = lines.find((l) => l.name === item.name)?.qty ?? 0;
                         return (
-                          <div key={item.name} className="flex items-center gap-4">
-                            <div className="flex-1 min-w-0">
+                          <div key={item.name} className="flex flex-wrap items-center gap-3">
+                            <div className="flex-1 min-w-[150px]">
                               <div className="flex items-baseline gap-3">
-                                <h3 className="font-display font-bold text-ink leading-snug truncate">{item.name}</h3>
+                                <h3 className="font-display font-bold text-ink leading-snug">{item.name}</h3>
                                 <span className="font-display font-bold text-ink whitespace-nowrap">{item.price}</span>
                               </div>
                               <p className="text-sm text-ink/55 leading-relaxed pr-4">{item.description}</p>
@@ -347,6 +296,8 @@ export const Order: React.FC = () => {
                               {qty === 0 ? (
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
+                                  aria-label={`Add ${item.name}`}
+                                  disabled={price <= 0}
                                   onClick={() => add(item.name, price)}
                                   className="flex items-center gap-1.5 bg-ink/5 hover:bg-primary hover:text-surface text-ink px-3.5 py-2 rounded-full font-display font-bold text-sm transition-colors"
                                 >
@@ -358,7 +309,7 @@ export const Order: React.FC = () => {
                                     whileTap={{ scale: 0.85 }}
                                     onClick={() => remove(item.name)}
                                     aria-label={`Remove one ${item.name}`}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-surface text-primary shadow-sm"
+                                    className="w-11 h-11 flex items-center justify-center rounded-full bg-surface text-primary shadow-sm"
                                   >
                                     <Minus size={14} />
                                   </motion.button>
@@ -367,7 +318,7 @@ export const Order: React.FC = () => {
                                     whileTap={{ scale: 0.85 }}
                                     onClick={() => add(item.name, price)}
                                     aria-label={`Add one more ${item.name}`}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-primary text-surface shadow-sm"
+                                    className="w-11 h-11 flex items-center justify-center rounded-full bg-primary text-surface shadow-sm"
                                   >
                                     <Plus size={14} />
                                   </motion.button>
@@ -405,7 +356,7 @@ export const Order: React.FC = () => {
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.25 }}
                   onClick={() => setStep('checkout')}
-                  className="lg:hidden fixed bottom-6 left-4 right-20 z-40 bg-ink text-paper rounded-full py-4 px-6 flex items-center justify-between font-display font-bold shadow-xl shadow-ink/25"
+                  className="lg:hidden fixed bottom-6 left-4 right-4 z-40 bg-ink text-paper rounded-full py-4 px-6 flex items-center justify-between font-display font-bold shadow-xl shadow-ink/25"
                 >
                   <span className="flex items-center gap-2">
                     <ShoppingBag size={18} />
@@ -419,28 +370,32 @@ export const Order: React.FC = () => {
         )}
 
         {step === 'checkout' && (
-          <motion.div
+          <motion.form
             key="checkout"
+            noValidate
+            onSubmit={(event) => { event.preventDefault(); void handlePlaceOrder(); }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="max-w-2xl mx-auto px-4 md:px-8"
           >
-            <button
+            <button type="button"
+              disabled={isSubmitting || uncertain}
               onClick={() => setStep('browse')}
               className="inline-flex items-center gap-1.5 text-ink/55 hover:text-ink font-medium text-sm mb-6"
             >
               <ArrowLeft size={16} /> Back to menu
             </button>
 
-            <span className="font-script text-2xl text-primary">almost there</span>
+            <span className="block font-script text-2xl text-primary">almost there</span>
             <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">Checkout</h1>
 
-            <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] mb-6">
-              <label className="block font-display font-bold text-ink text-sm mb-2">Your name</label>
+            <fieldset disabled={isSubmitting || uncertain} className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] mb-6">
+              <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-name">Your name</label>
               <input
                 type="text"
+                id="order-name" autoComplete="name" maxLength={100}
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="e.g. Riaan"
@@ -448,9 +403,10 @@ export const Order: React.FC = () => {
                 className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
               />
 
-              <label className="block font-display font-bold text-ink text-sm mb-2">Phone number</label>
+              <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-phone">Phone number</label>
               <input
                 type="tel"
+                id="order-phone" autoComplete="tel" maxLength={30}
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="082 123 4567"
@@ -458,9 +414,10 @@ export const Order: React.FC = () => {
                 className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
               />
 
-              <label className="block font-display font-bold text-ink text-sm mb-2">Email address</label>
+              <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-email">Email address</label>
               <input
                 type="email"
+                id="order-email" autoComplete="email" maxLength={254}
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="you@email.com"
@@ -470,13 +427,18 @@ export const Order: React.FC = () => {
 
               <label className="block font-display font-bold text-ink text-sm mb-2">How would you like it?</label>
               <OrderTypeToggle value={orderType} onChange={setOrderType} />
+              <p className="mt-3 text-sm text-ink/75">{orderType === 'collection' ? ordering.collectionNote : orderType === 'delivery' ? ordering.deliveryNote : ordering.tableNote}</p>
+              <p className="mt-3 text-sm text-ink/75">Requested for today, {today}, in South African time. {hours ? `Open ${hours.open} to ${hours.close === '24:00' ? 'midnight' : hours.close}.` : "Closed today. Contact Jimmy's for Coffee & Cars dates."}</p>
 
               <div className="mt-4">
-                <label className="block font-display font-bold text-ink text-sm mb-2">What time would you like it ready?</label>
+                <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-time">What time would you like it ready?</label>
                 <input
                   type="time"
+                  min={hours?.open}
+                  max={latestTime(hours?.close)}
                   required
-                  value={requestedTime}
+                  id="order-time"
+                value={requestedTime}
                   onChange={(e) => setRequestedTime(e.target.value)}
                   className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
                 />
@@ -484,10 +446,11 @@ export const Order: React.FC = () => {
 
               {orderType === 'table' && (
                 <div className="mt-4">
-                  <label className="block font-display font-bold text-ink text-sm mb-2">Table number</label>
+                  <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-table">Table number</label>
                   <input
                     type="text"
-                    value={tableNumber}
+                    id="order-table"
+                value={tableNumber}
                     onChange={(e) => setTableNumber(e.target.value)}
                     placeholder="e.g. 7"
                     className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -497,58 +460,8 @@ export const Order: React.FC = () => {
               {orderType === 'delivery' && (
                 <div className="mt-4 space-y-4">
                   <div>
-                    <label className="block font-display font-bold text-ink text-sm mb-2">Delivery address</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={deliveryAddress}
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        onFocus={() => {
-                          isAddressInputFocusedRef.current = true;
-                          if (addressSuggestions.length > 0) setIsAddressSuggestionsOpen(true);
-                        }}
-                        onBlur={() => {
-                          isAddressInputFocusedRef.current = false;
-                          window.setTimeout(() => setIsAddressSuggestionsOpen(false), 150);
-                        }}
-                        required
-                        autoComplete="street-address"
-                        role="combobox"
-                        aria-autocomplete="list"
-                        aria-expanded={isAddressSuggestionsOpen}
-                        aria-controls="delivery-address-suggestions"
-                        placeholder="Street number and suburb"
-                        className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 pr-11 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      />
-                      {isAddressLoading && (
-                        <LoaderCircle
-                          size={18}
-                          aria-label="Looking up addresses"
-                          className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-primary"
-                        />
-                      )}
-                      {isAddressSuggestionsOpen && addressSuggestions.length > 0 && (
-                        <div
-                          id="delivery-address-suggestions"
-                          role="listbox"
-                          className="absolute z-40 top-full left-0 right-0 mt-2 overflow-hidden bg-surface rounded-xl shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]"
-                        >
-                          {addressSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion.place_id}
-                              type="button"
-                              role="option"
-                              aria-selected="false"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => selectAddressSuggestion(suggestion)}
-                              className="block w-full px-4 py-3 text-left text-sm text-ink/80 hover:bg-paper focus:bg-paper focus:outline-none border-b border-ink/[0.06] last:border-b-0"
-                            >
-                              {suggestion.display_name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-address">Delivery address</label>
+                    <input id="order-address" type="text" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required autoComplete="street-address" maxLength={250} placeholder="Street number and suburb" className="booking-input" />
                   </div>
                   <div>
                     <label className="block font-display font-bold text-ink text-sm mb-2">Delivery notes <span className="font-body font-normal text-ink/45">(optional)</span></label>
@@ -556,14 +469,14 @@ export const Order: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-
+            </fieldset>
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] mb-6">
               <h2 className="font-display text-lg font-extrabold text-primary mb-4">Your order</h2>
+              {count === 0 && <p>Your cart is empty. Go back to the menu to add an item.</p>}
               <div className="space-y-3">
                 {lines.map((line) => (
-                  <div key={line.name} className="flex items-baseline gap-3">
-                    <span className="font-display font-bold text-ink text-sm shrink-0">{line.qty}x</span>
+                  <div key={line.name} className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center shrink-0"><button type="button" disabled={isSubmitting || uncertain} aria-label={`Remove one ${line.name}`} onClick={() => remove(line.name)} className="min-w-11 min-h-11">−</button>{line.qty}<button type="button" disabled={isSubmitting || uncertain || line.qty >= 99} aria-label={`Add one more ${line.name}`} onClick={() => add(line.name, line.price)} className="min-w-11 min-h-11">+</button></span>
                     <h3 className="font-display font-bold text-ink leading-snug">{line.name}</h3>
                     <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" />
                     <span className="font-display font-bold text-ink whitespace-nowrap">{formatZar(line.qty * line.price)}</span>
@@ -576,20 +489,22 @@ export const Order: React.FC = () => {
               </div>
             </div>
 
+            <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. Your requested time is subject to confirmation.</p>
             <button
-              onClick={handlePlaceOrder}
-              disabled={!canPlaceOrder || isSubmitting}
+              type="submit"
+              disabled={isSubmitting || uncertain || count === 0}
               className="w-full inline-flex items-center justify-center gap-2.5 bg-primary text-surface py-4 rounded-full font-display font-bold text-base transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none shadow-lg shadow-primary/20"
             >
               {isSubmitting ? 'Placing order…' : 'Place order'}
             </button>
+            {submitError && <a className="block mt-3 text-center underline" href={`https://wa.me/${config.venue.whatsapp}`}>Contact Jimmy's on WhatsApp</a>}
             {submitError && (
-              <p className="text-center text-primary text-sm mt-3">{submitError}</p>
+              <p ref={errorRef} tabIndex={-1} role="alert" className="text-center text-primary text-sm mt-3">{submitError}</p>
             )}
             {(!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) && (
               <p className="text-center text-ink/45 text-sm mt-3">Name, phone and email are required to place the order.</p>
             )}
-          </motion.div>
+          </motion.form>
         )}
 
         {step === 'confirmed' && placedOrder && (
@@ -615,7 +530,7 @@ export const Order: React.FC = () => {
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]">
               <p className="font-display font-bold text-ink">Jimmy's has received your order.</p>
               <p className="text-ink/60 text-sm mt-2">Requested for {placedOrder.requestedTime}</p>
-              <p className="text-ink/45 text-xs mt-1">This confirms your order was received. Jimmy's will take it from here.</p>
+              <p className="text-ink/45 text-xs mt-1">Your request is saved. Please wait for Jimmy's to confirm acceptance and timing. This is not a payment receipt.</p>
             </div>
 
             <button
@@ -623,7 +538,7 @@ export const Order: React.FC = () => {
                 setReceiptError(null);
                 try {
                   const { generateOrderReceipt } = await import('../lib/generateOrderReceipt');
-                  await generateOrderReceipt({ orderNo: placedOrder.orderNo, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total });
+                  await generateOrderReceipt({ orderNo: placedOrder.orderNo, requestedTime: placedOrder.requestedTime, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total });
                 } catch {
                   setReceiptError('Could not generate the receipt. Please try again.');
                 }
@@ -633,11 +548,11 @@ export const Order: React.FC = () => {
             {receiptError && <p role="alert" className="text-primary/80 text-sm mt-3">{receiptError}</p>}
 
             <a
-              href={buildOrderWhatsAppUrl({ orderNo: placedOrder.orderNo, lines: placedOrder.lines, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, total: placedOrder.total, name: customerName })}
+              href={buildOrderWhatsAppUrl({ orderNo: placedOrder.orderNo, requestedTime: placedOrder.requestedTime, deliveryAddress: placedOrder.address, lines: placedOrder.lines, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, total: placedOrder.total, name: customerName })}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
-            ><MessageCircle size={16} /> Also send via WhatsApp</a>
+            ><MessageCircle size={16} /> Ask about this order</a>
 
             <button
               onClick={startNewOrder}
@@ -661,6 +576,8 @@ const OrderTypeToggle: React.FC<{ value: OrderType; onChange: (v: OrderType) => 
     {(['collection', 'delivery', 'table'] as OrderType[]).map((type) => (
       <button
         key={type}
+        type="button"
+        aria-pressed={value === type}
         onClick={() => onChange(type)}
         className={`relative flex-1 py-2.5 rounded-full font-display font-bold text-sm transition-colors ${
           value === type ? 'text-surface' : 'text-ink/55 hover:text-ink'

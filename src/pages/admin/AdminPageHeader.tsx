@@ -13,7 +13,7 @@ export const AdminPageHeader: React.FC<{
       <h1 className="mt-1 font-display text-[1.75rem] font-bold leading-tight text-primary sm:text-4xl">
         {title}
       </h1>
-      {count && <p className="mt-1 text-sm font-medium text-ink/55">{count}</p>}
+      {count && <p className="mt-1 text-sm font-medium text-ink/65">{count}</p>}
     </div>
     {children}
   </div>

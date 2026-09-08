@@ -7,7 +7,7 @@ export const AdminLoading: React.FC<{ label?: string; fullPage?: boolean }> = ({
   fullPage = false,
 }) => (
   <div
-    className={`flex items-center justify-center gap-2 text-ink/60 ${fullPage ? 'min-h-[100dvh] bg-paper' : 'py-16'}`}
+    className={`flex items-center justify-center gap-2 text-ink/65 ${fullPage ? 'min-h-[100dvh] bg-paper' : 'py-16'}`}
     role="status"
   >
     <LoaderCircle className="animate-spin" size={20} aria-hidden="true" />
@@ -39,7 +39,7 @@ export const AdminError: React.FC<{ message: string; onRetry?: () => void }> = (
   onRetry,
 }) => (
   <div
-    className="flex flex-wrap items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-900"
+    className="flex flex-wrap items-start gap-3 rounded-2xl border border-accent bg-accent/15 px-4 py-3.5 text-sm text-ink"
     role="alert"
   >
     <AlertCircle className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
@@ -48,7 +48,7 @@ export const AdminError: React.FC<{ message: string; onRetry?: () => void }> = (
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-red-900 px-3.5 text-xs font-bold text-white transition-colors hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-900/40"
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-bold text-white transition-colors hover:bg-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
         <RefreshCw size={13} aria-hidden="true" />
         Try again
@@ -64,6 +64,6 @@ export const AdminEmpty: React.FC<{ title: string; hint?: string }> = ({ title, 
       <Inbox size={20} aria-hidden="true" />
     </span>
     <p className={panelHeadingClass}>{title}</p>
-    {hint && <p className="max-w-xs text-sm text-ink/55">{hint}</p>}
+    {hint && <p className="max-w-xs text-sm text-ink/65">{hint}</p>}
   </div>
 );

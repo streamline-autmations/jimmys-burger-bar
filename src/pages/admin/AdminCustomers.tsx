@@ -1,4 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useAdminResource } from './useAdminResource';
+import { AdminRefresh } from './AdminRefresh';
+import { matchesSearch } from './operations';
+import { controlClass } from './adminUtils';
+import React, { useCallback, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { cardClass, formatDateTime, thClass } from './adminUtils';
 import { AdminEmpty, AdminError, AdminSkeleton } from './AdminStates';
@@ -6,35 +10,34 @@ import { AdminPageHeader } from './AdminPageHeader';
 import type { Customer } from './types';
 
 export const AdminCustomers: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(200);
 
-  const fetchCustomers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const { data, error: fetchError } = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
 
-    if (fetchError) setError(fetchError.message);
-    else setCustomers(data ?? []);
-    setLoading(false);
-  }, []);
+  const load = useCallback(async () => {
+    const query = supabase.from('customers').select('*').order('created_at', { ascending: false }).order('id').limit(limit);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  }, [limit]);
+  const { data: customers, loading, error, updatedAt, refresh: fetchCustomers } = useAdminResource<Customer[]>(load, []);
 
-  useEffect(() => {
-    void fetchCustomers();
-  }, [fetchCustomers]);
+
+  const filtered = customers.filter((item) => matchesSearch(search, item.name, item.phone, item.email));
 
   return (
     <section>
       <AdminPageHeader
         eyebrow="Guest directory"
         title="Customers"
-        count={loading ? undefined : `${customers.length} on file`}
+        count={loading ? undefined : `${customers.length} loaded`}
       />
+
+      <AdminRefresh loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchCustomers()} />
+      <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_220px]">
+        <label className="text-sm font-semibold">Search loaded records<input type="search" className={controlClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, contact or reference" /></label>
+      </div>
+      <p className="mb-4 text-sm text-ink/75">{filtered.length} matching / {customers.length} loaded. Search applies to loaded records.</p>
 
       {error && (
         <div className="mb-6">
@@ -42,20 +45,20 @@ export const AdminCustomers: React.FC = () => {
         </div>
       )}
 
-      {loading ? (
+      {loading && !updatedAt ? (
         <AdminSkeleton rows={3} />
-      ) : customers.length === 0 ? (
+      ) : error && !updatedAt ? null : filtered.length === 0 ? (
         <AdminEmpty title="No customers yet" hint="Guests are added automatically when they book or order." />
       ) : (
         <>
           <ul className="space-y-3 lg:hidden">
-            {customers.map((customer) => (
+            {filtered.map((customer) => (
               <li key={customer.id} className={`${cardClass} p-4`}>
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 truncate font-display text-base font-bold text-primary">{customer.name}</p>
-                  <span className="shrink-0 rounded-full bg-accent/25 px-2.5 py-1 text-xs font-bold text-[#6b4708]">
+                  <span className="shrink-0 rounded-full bg-accent/25 px-2.5 py-1 text-xs font-bold text-ink">
                     {customer.interaction_count}{' '}
-                    {customer.interaction_count === 1 ? 'visit' : 'visits'}
+                    {customer.interaction_count === 1 ? 'interaction' : 'interactions'}
                   </span>
                 </div>
                 <div className="mt-2 space-y-1 text-sm">
@@ -70,7 +73,7 @@ export const AdminCustomers: React.FC = () => {
                     </a>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-ink/45">Last seen {formatDateTime(customer.last_interaction_at)}</p>
+                <p className="mt-2 text-xs text-ink/65">Last interaction {formatDateTime(customer.last_interaction_at)}</p>
               </li>
             ))}
           </ul>
@@ -87,7 +90,7 @@ export const AdminCustomers: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/10">
-                {customers.map((customer) => (
+                {filtered.map((customer) => (
                   <tr key={customer.id} className="transition-colors hover:bg-paper/50">
                     <td className="px-4 py-4 font-semibold">{customer.name}</td>
                     <td className="px-4 py-4">
@@ -96,7 +99,7 @@ export const AdminCustomers: React.FC = () => {
                           {customer.email}
                         </a>
                       ) : (
-                        '—'
+                        'Not provided'
                       )}
                     </td>
                     <td className="px-4 py-4">
@@ -105,7 +108,7 @@ export const AdminCustomers: React.FC = () => {
                           {customer.phone}
                         </a>
                       ) : (
-                        '—'
+                        'Not provided'
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-4 text-ink/65">
@@ -121,6 +124,7 @@ export const AdminCustomers: React.FC = () => {
           </div>
         </>
       )}
+      {customers.length >= limit && <button className="mt-5 min-h-11 rounded-xl border border-ink/20 px-5 font-bold" disabled={loading} onClick={() => setLimit((value) => value + 200)}>Load more records</button>}
     </section>
   );
 };

@@ -61,6 +61,7 @@ export const AdminLayout: React.FC<React.PropsWithChildren> = ({ children }) => 
 
           <button
             type="button"
+            aria-label={signingOut ? 'Signing out' : 'Logout'}
             onClick={handleSignOut}
             disabled={signingOut}
             className="inline-flex min-h-10 items-center gap-2 rounded-full border border-ink/15 px-3.5 font-display text-sm font-bold text-ink transition-colors hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-40"
@@ -70,7 +71,7 @@ export const AdminLayout: React.FC<React.PropsWithChildren> = ({ children }) => 
           </button>
         </div>
         {signOutError && (
-          <p className="mx-auto max-w-7xl px-4 pb-3 text-right text-sm font-medium text-red-700 sm:px-6 lg:px-8" role="alert">
+          <p className="mx-auto max-w-7xl px-4 pb-3 text-right text-sm font-medium text-ink sm:px-6 lg:px-8" role="alert">
             {signOutError}
           </p>
         )}
@@ -91,7 +92,7 @@ export const AdminLayout: React.FC<React.PropsWithChildren> = ({ children }) => 
               end={end}
               className={({ isActive }) =>
                 `flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 ${
-                  isActive ? 'text-primary' : 'text-ink/50'
+                  isActive ? 'text-primary' : 'text-ink/65'
                 }`
               }
             >

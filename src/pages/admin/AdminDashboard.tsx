@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useAdminResource } from './useAdminResource';
+import { AdminRefresh } from './AdminRefresh';
+import React, { useCallback } from 'react';
 import { ArrowRight, CalendarDays, Clock3, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatZar } from '../../lib/cartStore';
@@ -37,19 +39,14 @@ const initialData: DashboardData = {
 };
 
 const todayLabel = new Intl.DateTimeFormat('en-ZA', {
+  timeZone: 'Africa/Johannesburg',
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 });
 
 export const AdminDashboard: React.FC = () => {
-  const [data, setData] = useState<DashboardData>(initialData);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async () => {
     const today = getLocalToday();
     const { start, end } = getLocalDayBounds();
 
@@ -61,11 +58,11 @@ export const AdminDashboard: React.FC = () => {
       todayBookings,
       newOrders,
     ] = await Promise.all([
-      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('booking_date', today),
+      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('booking_date', today).neq('status', 'cancelled'),
       supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .gte('requested_time', start)
+        .neq('status', 'cancelled').gte('requested_time', start)
         .lt('requested_time', end),
       supabase
         .from('bookings')
@@ -76,10 +73,10 @@ export const AdminDashboard: React.FC = () => {
       supabase
         .from('bookings')
         .select('*')
-        .eq('booking_date', today)
+        .eq('booking_date', today).neq('status', 'cancelled')
         .order('booking_time', { ascending: true })
         .limit(8),
-      supabase.from('orders').select('*').eq('status', 'new').order('created_at', { ascending: false }).limit(8),
+      supabase.from('orders').select('*').eq('status', 'new').order('created_at', { ascending: true }).limit(8),
     ]);
 
     const firstError = [
@@ -91,24 +88,17 @@ export const AdminDashboard: React.FC = () => {
       newOrders.error,
     ].find(Boolean);
 
-    if (firstError) {
-      setError(firstError.message);
-    } else {
-      setData({
-        todayBookingsCount: todayBookingsCount.count ?? 0,
-        todayOrdersCount: todayOrdersCount.count ?? 0,
-        pendingBookingsCount: pendingBookingsCount.count ?? 0,
-        newOrdersCount: newOrdersCount.count ?? 0,
-        todayBookings: todayBookings.data ?? [],
-        newOrders: newOrders.data ?? [],
-      });
-    }
-    setLoading(false);
+    if (firstError) throw firstError;
+    return {
+      todayBookingsCount: todayBookingsCount.count ?? 0,
+      todayOrdersCount: todayOrdersCount.count ?? 0,
+      pendingBookingsCount: pendingBookingsCount.count ?? 0,
+      newOrdersCount: newOrdersCount.count ?? 0,
+      todayBookings: todayBookings.data ?? [],
+      newOrders: newOrders.data ?? [],
+    };
   }, []);
-
-  useEffect(() => {
-    void fetchDashboard();
-  }, [fetchDashboard]);
+  const { data, loading, error, updatedAt, refresh: fetchDashboard } = useAdminResource(load, initialData);
 
   // Two tiers, deliberately. The top row is what somebody has to DO something
   // about; the strip underneath is context. The previous four identical tiles
@@ -125,7 +115,7 @@ export const AdminDashboard: React.FC = () => {
     {
       label: 'Pending bookings',
       value: data.pendingBookingsCount,
-      hint: 'awaiting confirmation',
+      hint: 'upcoming, awaiting confirmation',
       to: '/admin/bookings',
       icon: UtensilsCrossed,
     },
@@ -145,15 +135,16 @@ export const AdminDashboard: React.FC = () => {
         </h1>
       </div>
 
+      <AdminRefresh loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchDashboard()} />
       {error && (
         <div className="mb-6">
           <AdminError message={error} onRetry={() => void fetchDashboard()} />
         </div>
       )}
 
-      {loading ? (
+      {loading && !updatedAt ? (
         <AdminSkeleton rows={3} />
-      ) : (
+      ) : error && !updatedAt ? null : (
         <>
           <div className="grid gap-3 sm:grid-cols-2">
             {needsAction.map(({ label, value, hint, to, icon: Icon }) => {
@@ -180,13 +171,13 @@ export const AdminDashboard: React.FC = () => {
                     <span className={`mt-1 block text-sm font-bold ${active ? 'text-surface' : 'text-ink'}`}>
                       {label}
                     </span>
-                    <span className={`block text-xs ${active ? 'text-surface/70' : 'text-ink/50'}`}>{hint}</span>
+                    <span className={`block text-xs ${active ? 'text-surface/70' : 'text-ink/65'}`}>{hint}</span>
                   </span>
                   <ArrowRight
                     size={18}
                     aria-hidden="true"
                     className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${
-                      active ? 'text-surface/80' : 'text-ink/35'
+                      active ? 'text-surface/80' : 'text-ink/65'
                     }`}
                   />
                 </Link>
@@ -202,16 +193,16 @@ export const AdminDashboard: React.FC = () => {
                 </span>
                 <span className="min-w-0">
                   <span className="block font-display text-xl font-bold leading-none text-primary">{value}</span>
-                  <span className="mt-0.5 block truncate text-xs font-medium text-ink/55">{label}</span>
+                  <span className="mt-0.5 block truncate text-xs font-medium text-ink/65">{label}</span>
                 </span>
               </div>
             ))}
           </div>
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <article className={panelClass}>
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <h2 className={panelHeadingClass}>Today&apos;s service</h2>
+            <article className={`${panelClass} min-w-0`}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h2 className={panelHeadingClass}>Today&apos;s service (up to 8)</h2>
                 <Link
                   to="/admin/bookings"
                   className="shrink-0 rounded text-sm font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -220,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
                 </Link>
               </div>
               {data.todayBookings.length === 0 ? (
-                <p className="py-8 text-center text-sm text-ink/50">No bookings today.</p>
+                <p className="py-8 text-center text-sm text-ink/65">No bookings today.</p>
               ) : (
                 <ul className="divide-y divide-ink/10">
                   {data.todayBookings.map((booking) => (
@@ -230,7 +221,7 @@ export const AdminDashboard: React.FC = () => {
                       </time>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold">{booking.name}</p>
-                        <p className="text-xs text-ink/55">
+                        <p className="text-xs text-ink/65">
                           {booking.guests} {booking.guests === 1 ? 'guest' : 'guests'} ·{' '}
                           {titleCase(booking.seating_preference)}
                         </p>
@@ -242,8 +233,8 @@ export const AdminDashboard: React.FC = () => {
               )}
             </article>
 
-            <article className={panelClass}>
-              <div className="mb-4 flex items-center justify-between gap-4">
+            <article className={`${panelClass} min-w-0`}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <h2 className={panelHeadingClass}>Waiting to be accepted</h2>
                 <Link
                   to="/admin/orders"
@@ -253,7 +244,7 @@ export const AdminDashboard: React.FC = () => {
                 </Link>
               </div>
               {data.newOrders.length === 0 ? (
-                <p className="py-8 text-center text-sm text-ink/50">Nothing waiting. Kitchen is clear.</p>
+                <p className="py-8 text-center text-sm text-ink/65">No orders waiting for acceptance.</p>
               ) : (
                 <ul className="divide-y divide-ink/10">
                   {data.newOrders.map((order) => (
@@ -265,7 +256,7 @@ export const AdminDashboard: React.FC = () => {
                         <p className="truncate font-semibold">
                           {order.order_no} · {order.customer_name}
                         </p>
-                        <p className="text-xs text-ink/55">{titleCase(order.order_type)}</p>
+                        <p className="text-xs text-ink/65">{titleCase(order.order_type)}</p>
                       </div>
                       <span className="shrink-0 font-display font-bold text-primary">{formatZar(order.total)}</span>
                     </li>

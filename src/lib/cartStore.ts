@@ -1,7 +1,8 @@
+import { config } from '../config';
+import { readSession, writeSession } from './sessionDraft';
 import { create } from 'zustand';
 
-// Cart state for the online-ordering demo. Client-side only — nothing here
-// ever touches a backend. Keyed by item name since the menu data (config.ts)
+// Cart draft for direct ordering. Order.tsx submits an atomic database request. Keyed by item name since the menu data (config.ts)
 // doesn't carry stable ids.
 
 export type OrderType = 'collection' | 'table' | 'delivery';
@@ -24,18 +25,33 @@ interface CartState {
   clear: () => void;
 }
 
+function restoredLines(): Record<string, CartLine> {
+  try {
+    const saved = JSON.parse(readSession('jimmys-cart') ?? '{}');
+    const menu = [...config.menu.categories.flatMap((category) => category.items), ...config.ordering.nonAlcoholicDrinks];
+    const result: Record<string, CartLine> = {};
+    for (const item of menu) {
+      const qty = saved[item.name];
+      const price = Number(item.price.replace(/[^0-9.]/g, ''));
+      if (Number.isInteger(qty) && qty > 0 && qty <= 99 && price > 0) result[item.name] = { name: item.name, qty, price };
+    }
+    return result;
+  } catch { return {}; }
+}
+
 export const useCartStore = create<CartState>((set) => ({
-  lines: {},
+  lines: restoredLines(),
   orderType: 'collection',
   tableNumber: '',
 
   add: (name, price) =>
     set((state) => {
+      if (!Number.isFinite(price) || price <= 0) return state;
       const existing = state.lines[name];
       return {
         lines: {
           ...state.lines,
-          [name]: { name, price, qty: (existing?.qty ?? 0) + 1 },
+          [name]: { name, price, qty: Math.min(99, (existing?.qty ?? 0) + 1) },
         },
       };
     }),
@@ -56,6 +72,7 @@ export const useCartStore = create<CartState>((set) => ({
 
   setQty: (name, qty) =>
     set((state) => {
+      if (!Number.isFinite(qty) || !Number.isInteger(qty) || qty > 99) return state;
       if (qty <= 0) {
         const rest = { ...state.lines };
         delete rest[name];
@@ -77,10 +94,14 @@ export const parsePrice = (price: string): number => {
   return cleaned ? parseFloat(cleaned) : 0;
 };
 
-export const formatZar = (amount: number): string => `R${Math.round(amount)}`;
+export const formatZar = (amount: number): string => `R${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
 
 export const selectCartLines = (state: CartState): CartLine[] => Object.values(state.lines);
 export const selectCartCount = (state: CartState): number =>
   Object.values(state.lines).reduce((sum, line) => sum + line.qty, 0);
 export const selectCartTotal = (state: CartState): number =>
   Object.values(state.lines).reduce((sum, line) => sum + line.qty * line.price, 0);
+
+useCartStore.subscribe((state) => {
+  writeSession('jimmys-cart', JSON.stringify(Object.fromEntries(Object.values(state.lines).map((line) => [line.name, line.qty]))));
+});

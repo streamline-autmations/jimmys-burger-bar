@@ -455,3 +455,7 @@ html[data-intro-active] {
     -webkit-text-stroke-width: 1.5px;
   }
 }
+
+/* Operational controls and customer form actions must be visible by keyboard. */
+:where(button, a, input, select, textarea):focus-visible { outline: 3px solid rgb(var(--color-accent)); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .animate-pulse, .animate-spin { animation: none !important; } }

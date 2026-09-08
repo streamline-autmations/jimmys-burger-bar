@@ -8,6 +8,8 @@ interface BuildOrderMessageArgs {
   tableNumber: string;
   total: number;
   name: string;
+  requestedTime?: string;
+  deliveryAddress?: string;
 }
 
 // Builds the wa.me deep link that carries the whole order as pre-filled
@@ -20,19 +22,23 @@ export const buildOrderWhatsAppUrl = ({
   tableNumber,
   total,
   name,
+  requestedTime,
+  deliveryAddress,
 }: BuildOrderMessageArgs): string => {
   const typeLine =
     orderType === 'table'
       ? `Table order, Table ${tableNumber || '?'}`
-      : 'Collection order';
+      : orderType === 'delivery' ? 'Delivery request' : 'Collection request';
 
   const itemLines = lines
     .map((line) => `${line.qty}x ${line.name}: ${formatZar(line.qty * line.price)}`)
     .join('\n');
 
   const messageParts = [
-    `Hi! Order #${orderNo} from ${name || 'a customer'}.`,
+    `Hi! Please check existing order #${orderNo} from ${name || 'a customer'}. This is a follow-up, not a new order.`,
     typeLine,
+    requestedTime ? `Requested time: ${requestedTime} (SAST)` : '',
+    orderType === 'delivery' && deliveryAddress ? `Address: ${deliveryAddress}` : '',
     '',
     itemLines,
     '',
@@ -44,8 +50,8 @@ export const buildOrderWhatsAppUrl = ({
   return `https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(message)}`;
 };
 
-// #JB-1042 style order number. Cosmetic only — nothing persists it.
+// Persisted reference with a UUID suffix to avoid the old 9,000-number collision space.
 export const generateOrderNumber = (): string => {
-  const digits = Math.floor(1000 + Math.random() * 9000);
+  const digits = crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase();
   return `${config.ordering.orderPrefix}-${digits}`;
 };

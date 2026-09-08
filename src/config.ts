@@ -7,10 +7,10 @@
 
 export const config = {
   // ---- Feature flags -------------------------------------------------------
-  // Premium/paid features stay OFF by default — they are the upsell.
+  // Active customer capabilities for this installation.
   features: {
-    ordering: true,       // online ordering + cart — upsell demo, now live
-    reservations: false,  // table booking system (not yet built)
+    ordering: true,       // Direct orders stored through create_order
+    reservations: true,   // Booking requests embedded on Visit
     scrollVideo: false,   // experimental scroll-scrubbed hero (R&D)
   },
 
@@ -53,10 +53,10 @@ export const config = {
     // NOTE: Sundays are closed EXCEPT the monthly Coffee & Cars morning
     // (specials.event) — that one Sunday they open for the event.
     hours: [
-      { day: "Mon – Tue", time: "09:00 – 20:00" },
-      { day: "Wed – Thu", time: "09:00 – 21:00" },
-      { day: "Fri – Sat", time: "09:00 – 00:00" },
-      { day: "Sunday", time: "Closed" },
+      { days: [1, 2], day: "Mon – Tue", time: "09:00 – 20:00" },
+      { days: [3, 4], day: "Wed – Thu", time: "09:00 – 21:00" },
+      { days: [5, 6], day: "Fri – Sat", time: "09:00 – 00:00" },
+      { days: [0], day: "Sunday", time: "Closed" },
     ],
     rating: "4.7",
     reviewCount: "64",
@@ -96,16 +96,12 @@ export const config = {
     ]
   },
 
-  // ---- Online ordering (upsell demo) ---------------------------------------
-  // Client-side only: cart -> WhatsApp deep link. The wait time and order
-  // tracking below are illustrative (demo of what the paid feature looks
-  // like), never real kitchen data — gated entirely behind features.ordering.
+  // Direct orders are stored atomically in Supabase; notifications run externally.
   ordering: {
-    avgWaitMins: 18,
     orderPrefix: "JB",
-    collectionNote: "Ready for collection at 57 Loch Street.",
-    tableNote: "We'll bring it straight to your table.",
-    deliveryNote: "Your delivery address is saved on the order confirmation.",
+    collectionNote: "Collection requested at 57 Loch Street. Please wait for Jimmy's to confirm the time.",
+    tableNote: "Table service requested. Please check with staff before ordering.",
+    deliveryNote: "Delivery requested. Jimmy's must confirm availability, timing and any delivery charge.",
     nonAlcoholicDrinks: [
       { name: 'Coke', description: '330ml can', price: 'R25' },
       { name: 'Coke Zero', description: '330ml can', price: 'R25' },

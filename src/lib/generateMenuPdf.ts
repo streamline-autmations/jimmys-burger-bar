@@ -5,14 +5,14 @@ import { config } from '../config';
 // so it can never drift out of sync with the on-site menu. Uses jsPDF's
 // built-in Helvetica (no custom font embedding) to stay dependency-light.
 export function generateMenuPdf() {
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 48;
   const contentWidth = pageWidth - margin * 2;
 
-  const ink: [number, number, number] = [30, 42, 78];
-  const primary: [number, number, number] = [29, 78, 148];
+  const ink: [number, number, number] = [23, 37, 68];
+  const primary: [number, number, number] = [23, 37, 68];
   const accent: [number, number, number] = [242, 169, 59];
   const gray: [number, number, number] = [110, 118, 138];
 

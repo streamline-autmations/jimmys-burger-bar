@@ -14,6 +14,23 @@ const layers: Layer[] = [
 
 const fallbackSrc = '/images/burger-layers/burger-complete.webp';
 
+// Resolves once the bitmap is both fetched and decoded. Never rejects: a layer
+// that fails to load must not stall the build, since the stage already has its
+// own error path back to the flat fallback image.
+const preloadAndDecode = (src: string): Promise<void> =>
+  new Promise((resolve) => {
+    const image = new Image();
+    image.onerror = () => resolve();
+    image.onload = () => {
+      if (typeof image.decode !== 'function') {
+        resolve();
+        return;
+      }
+      image.decode().then(() => resolve(), () => resolve());
+    };
+    image.src = src;
+  });
+
 export const BurgerAssembly: React.FC = () => {
   const reduceMotion = useReducedMotion();
   const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -38,13 +55,25 @@ export const BurgerAssembly: React.FC = () => {
   useEffect(() => whenIntroDone(() => setIntroDone(true)), []);
 
   useEffect(() => {
-    let loaded = 0;
     let cancelled = false;
-    layers.forEach(({ src }) => {
-      const image = new Image();
-      image.onload = () => { loaded += 1; if (!cancelled && loaded === layers.length) setImagesLoaded(true); };
-      image.src = src;
+
+    // Decode, not merely load.
+    //
+    // Every layer is a 2400x2400 webp, which decodes to roughly 23MB of bitmap.
+    // Waiting on `onload` alone leaves that decode to happen lazily, the first
+    // time each layer is actually painted - which is the exact frame it becomes
+    // visible mid-build. Profiled on the live site at 4x CPU throttling, that
+    // put 98/195/168/92ms main-thread blocks and 100-258ms dropped-frame gaps
+    // right between one layer landing and the next appearing: the stutter after
+    // the bottom bun. Decoding up front moves that cost behind the intro, where
+    // there is nothing to stutter.
+    //
+    // The complete burger is included because it crossfades in at the end of
+    // the build and would otherwise pay the same cost on the settle beat.
+    void Promise.all([...layers.map(({ src }) => src), fallbackSrc].map(preloadAndDecode)).then(() => {
+      if (!cancelled) setImagesLoaded(true);
     });
+
     return () => { cancelled = true; };
   }, []);
 

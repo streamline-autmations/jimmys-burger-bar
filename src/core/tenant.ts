@@ -10,6 +10,7 @@ import { createMoneyFormatter, toMinor, fromMinor, type Minor } from './domain/m
 import { createTimeHelpers } from './domain/time';
 import { createHours } from './domain/hours';
 import { resolveCopy } from './config/copy';
+import { jimmysSections } from '../tenants/jimmys/sections';
 
 export const formatMoney = createMoneyFormatter(config.currency);
 
@@ -34,5 +35,12 @@ export const copy = resolveCopy(config.copy);
  * from the same origin during development cannot read each other's cart.
  */
 export const storageKey = (name: string): string => `${config.slug}-${name}`;
+
+/**
+ * The tenant's home-page composition. Registered here alongside the config so
+ * a tenant is one directory, and adding a restaurant does not mean editing a
+ * page component.
+ */
+export const sections = { jimmys: jimmysSections }[config.slug] ?? jimmysSections;
 
 export type { Minor };

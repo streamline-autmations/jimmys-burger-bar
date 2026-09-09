@@ -6,6 +6,7 @@ import { AdminDashboard } from './AdminDashboard';
 import { AdminGuard } from './AdminGuard';
 import { AdminLogin } from './AdminLogin';
 import { AdminOrders } from './AdminOrders';
+import { AdminSecurity } from './AdminMfa';
 
 const guarded = (page: React.ReactNode) => <AdminGuard>{page}</AdminGuard>;
 
@@ -16,6 +17,7 @@ export const AdminApp: React.FC = () => (
     <Route path="bookings" element={guarded(<AdminBookings />)} />
     <Route path="orders" element={guarded(<AdminOrders />)} />
     <Route path="customers" element={guarded(<AdminCustomers />)} />
+    <Route path="security" element={guarded(<AdminSecurity />)} />
     <Route path="*" element={<Navigate to="/admin" replace />} />
   </Routes>
 );

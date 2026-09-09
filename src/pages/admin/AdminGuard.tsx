@@ -4,10 +4,12 @@ import { Navigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { AdminLayout } from './AdminLayout';
 import { AdminLoading } from './AdminStates';
+import { MfaChallenge, useAal } from './AdminMfa';
 
 export const AdminGuard: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
+  const aal = useAal(session);
 
   useEffect(() => {
     let active = true;
@@ -36,6 +38,11 @@ export const AdminGuard: React.FC<React.PropsWithChildren> = ({ children }) => {
 
   if (checking) return <AdminLoading label="Checking your session…" fullPage />;
   if (!session) return <Navigate to="/admin/login" replace />;
+
+  // Only reached when a VERIFIED authenticator exists on the account, so an
+  // account without two-factor set up is never blocked here.
+  if (aal.loading) return <AdminLoading label="Checking your session…" fullPage />;
+  if (aal.needsChallenge) return <MfaChallenge onVerified={aal.refresh} />;
 
   return <AdminLayout>{children}</AdminLayout>;
 };

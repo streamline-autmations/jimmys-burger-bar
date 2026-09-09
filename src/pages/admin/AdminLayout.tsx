@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, LogOut, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
+import { LayoutDashboard, LogOut, ShieldCheck, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { eyebrowClass } from './adminUtils';
@@ -58,6 +58,23 @@ export const AdminLayout: React.FC<React.PropsWithChildren> = ({ children }) => 
               </NavLink>
             ))}
           </nav>
+
+          {/* One-time action, so it stays out of the four-slot mobile tab bar and
+              lives here at every width instead. */}
+          <NavLink
+            to="/admin/security"
+            aria-label="Account security"
+            className={({ isActive }) =>
+              `inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 font-display text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                isActive
+                  ? 'border-primary bg-primary text-surface'
+                  : 'border-ink/15 text-ink hover:bg-paper'
+              }`
+            }
+          >
+            <ShieldCheck size={16} aria-hidden="true" />
+            <span className="hidden lg:inline">Security</span>
+          </NavLink>
 
           <button
             type="button"

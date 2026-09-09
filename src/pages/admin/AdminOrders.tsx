@@ -4,7 +4,8 @@ import { matchesSearch, nextStatuses } from './operations';
 import { getLocalDayBounds, controlClass } from './adminUtils';
 import React, { useRef, useCallback, useMemo, useState } from 'react';
 import { Bike, Clock3, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
-import { formatZar } from '../../lib/cartStore';
+import { formatCartMoney } from '../../lib/cartStore';
+import { toMinor } from '../../core/domain/money';
 import { supabase } from '../../lib/supabase';
 import {
   actionableCardClass,
@@ -163,7 +164,7 @@ export const AdminOrders: React.FC = () => {
                   </div>
                   <div className="shrink-0 text-right">
                     <AdminStatusBadge status={order.status} />
-                    <p className="mt-1.5 font-display text-lg font-bold text-primary">{formatZar(order.total)}</p>
+                    <p className="mt-1.5 font-display text-lg font-bold text-primary">{formatCartMoney(toMinor(order.total))}</p>
                   </div>
                 </div>
 

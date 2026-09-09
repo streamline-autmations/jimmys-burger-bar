@@ -1,5 +1,5 @@
 import { config } from '../config';
-import { formatZar, type CartLine, type OrderType } from './cartStore';
+import { formatCartMoney, type CartLine, type OrderType } from './cartStore';
 
 interface BuildOrderMessageArgs {
   orderNo: string;
@@ -31,7 +31,7 @@ export const buildOrderWhatsAppUrl = ({
       : orderType === 'delivery' ? 'Delivery request' : 'Collection request';
 
   const itemLines = lines
-    .map((line) => `${line.qty}x ${line.name}: ${formatZar(line.qty * line.price)}`)
+    .map((line) => `${line.qty}x ${line.name}: ${formatCartMoney(line.qty * line.price)}`)
     .join('\n');
 
   const messageParts = [
@@ -42,7 +42,7 @@ export const buildOrderWhatsAppUrl = ({
     '',
     itemLines,
     '',
-    `Total: ${formatZar(total)}`,
+    `Total: ${formatCartMoney(total)}`,
   ];
 
   const message = messageParts.join('\n');

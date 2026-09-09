@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { config } from '../config';
-import { formatZar, type CartLine, type OrderType } from './cartStore';
+import { formatCartMoney, type CartLine, type OrderType } from './cartStore';
 
 const NAVY: [number, number, number] = [23, 37, 68];
 const GOLD: [number, number, number] = [242, 169, 59];
@@ -106,7 +106,7 @@ export async function generateOrderReceipt(order: {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     doc.text(`${line.qty}x  ${line.name}`, margin + 10, y);
-    doc.text(formatZar(line.qty * line.price), width - margin - 10, y, { align: 'right' });
+    doc.text(formatCartMoney(line.qty * line.price), width - margin - 10, y, { align: 'right' });
     y += 28;
   });
 
@@ -118,7 +118,7 @@ export async function generateOrderReceipt(order: {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text('TOTAL', margin, y);
-  doc.text(formatZar(order.total), width - margin, y, { align: 'right' });
+  doc.text(formatCartMoney(order.total), width - margin, y, { align: 'right' });
 
   doc.setDrawColor(220, 224, 231);
   doc.setLineWidth(0.75);

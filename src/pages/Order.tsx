@@ -5,12 +5,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle } from 'lucide-react';
 import { config } from '../config';
+import { formatMoney, menuPrice, toStoredAmount } from '../core/tenant';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
 import {
   useCartStore,
-  parsePrice,
-  formatZar,
+  formatCartMoney,
   selectCartLines,
   selectCartCount,
   selectCartTotal,
@@ -151,9 +151,14 @@ export const Order: React.FC = () => {
         p_delivery_address: orderType === 'delivery' ? deliveryAddress : null,
         p_delivery_notes: orderType === 'delivery' ? (deliveryNotes || null) : null,
         p_requested_time: requestedDate.toISOString(),
-        p_total: total,
+        // The cart holds minor units; the orders table stores a decimal amount.
+        p_total: toStoredAmount(total),
         p_marketing_consent: false,
-        p_items: lines.map((line) => ({ name: line.name, qty: line.qty, unit_price: line.price })),
+        p_items: lines.map((line) => ({
+          name: line.name,
+          qty: line.qty,
+          unit_price: toStoredAmount(line.price),
+        })),
       });
 
       if (error || !data?.[0]) {
@@ -280,14 +285,14 @@ export const Order: React.FC = () => {
 
                     <div className="space-y-4 mt-4">
                       {category.items.map((item) => {
-                        const price = parsePrice(item.price);
+                        const price = menuPrice(item.price);
                         const qty = lines.find((l) => l.name === item.name)?.qty ?? 0;
                         return (
                           <div key={item.name} className="flex flex-wrap items-center gap-3">
                             <div className="flex-1 min-w-[150px]">
                               <div className="flex items-baseline gap-3">
                                 <h3 className="font-display font-bold text-ink leading-snug">{item.name}</h3>
-                                <span className="font-display font-bold text-ink whitespace-nowrap">{item.price}</span>
+                                <span className="font-display font-bold text-ink whitespace-nowrap">{formatMoney(menuPrice(item.price))}</span>
                               </div>
                               <p className="text-sm text-ink/55 leading-relaxed pr-4">{item.description}</p>
                             </div>
@@ -362,7 +367,7 @@ export const Order: React.FC = () => {
                     <ShoppingBag size={18} />
                     {count} item{count === 1 ? '' : 's'}
                   </span>
-                  <span>{formatZar(total)} · Checkout</span>
+                  <span>{formatCartMoney(total)} · Checkout</span>
                 </motion.button>
               )}
             </AnimatePresence>
@@ -479,13 +484,13 @@ export const Order: React.FC = () => {
                     <span className="inline-flex items-center shrink-0"><button type="button" disabled={isSubmitting || uncertain} aria-label={`Remove one ${line.name}`} onClick={() => remove(line.name)} className="min-w-11 min-h-11">−</button>{line.qty}<button type="button" disabled={isSubmitting || uncertain || line.qty >= 99} aria-label={`Add one more ${line.name}`} onClick={() => add(line.name, line.price)} className="min-w-11 min-h-11">+</button></span>
                     <h3 className="font-display font-bold text-ink leading-snug">{line.name}</h3>
                     <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" />
-                    <span className="font-display font-bold text-ink whitespace-nowrap">{formatZar(line.qty * line.price)}</span>
+                    <span className="font-display font-bold text-ink whitespace-nowrap">{formatCartMoney(line.qty * line.price)}</span>
                   </div>
                 ))}
               </div>
               <div className="flex items-baseline justify-between mt-6 pt-4 border-t border-ink/10">
                 <span className="font-display font-bold text-ink text-lg">Total</span>
-                <span className="font-display font-extrabold text-primary text-2xl">{formatZar(total)}</span>
+                <span className="font-display font-extrabold text-primary text-2xl">{formatCartMoney(total)}</span>
               </div>
             </div>
 
@@ -620,7 +625,7 @@ const CartPanel: React.FC<{
               <span className="font-display font-bold text-ink shrink-0">{line.qty}x</span>
               <span className="text-ink/80 truncate">{line.name}</span>
               <div className="flex-1 border-b border-dotted border-ink/15 min-w-[8px] translate-y-[-3px]" />
-              <span className="font-display font-bold text-ink whitespace-nowrap">{formatZar(line.qty * line.price)}</span>
+              <span className="font-display font-bold text-ink whitespace-nowrap">{formatCartMoney(line.qty * line.price)}</span>
             </div>
           ))}
         </div>
@@ -640,7 +645,7 @@ const CartPanel: React.FC<{
 
         <div className="flex items-baseline justify-between mb-5 pt-4 border-t border-ink/10">
           <span className="font-display font-bold text-ink">Total</span>
-          <span className="font-display font-extrabold text-primary text-xl">{formatZar(total)}</span>
+          <span className="font-display font-extrabold text-primary text-xl">{formatCartMoney(total)}</span>
         </div>
 
         <button

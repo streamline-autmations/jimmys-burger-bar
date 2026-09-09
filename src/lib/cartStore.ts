@@ -1,15 +1,26 @@
 import { config } from '../config';
 import { readSession, writeSession } from './sessionDraft';
+import { formatMoney, menuPrice } from '../core/tenant';
+import type { Minor } from '../core/domain/money';
 import { create } from 'zustand';
 
-// Cart draft for direct ordering. Order.tsx submits an atomic database request. Keyed by item name since the menu data (config.ts)
-// doesn't carry stable ids.
+// Cart draft for direct ordering. Order.tsx submits an atomic database request.
+//
+// Keyed by item name because the menu data in config.ts does not carry stable
+// ids yet. That is why a renamed dish silently drops out of a restored cart;
+// stable ids are the fix and belong with the menu restructure.
+//
+// Line prices are MINOR UNITS (cents), not rand. The orders table stores a
+// decimal amount, so anything crossing that boundary must go through
+// toStoredAmount - see Order.tsx. Sending cents to the database would multiply
+// every order by 100.
 
 export type OrderType = 'collection' | 'table' | 'delivery';
 
 export interface CartLine {
   name: string;
-  price: number; // parsed Rand amount, e.g. R100 -> 100
+  /** Minor units (cents). R100 is 10000. */
+  price: Minor;
   qty: number;
 }
 
@@ -32,7 +43,7 @@ function restoredLines(): Record<string, CartLine> {
     const result: Record<string, CartLine> = {};
     for (const item of menu) {
       const qty = saved[item.name];
-      const price = Number(item.price.replace(/[^0-9.]/g, ''));
+      const price = menuPrice(item.price);
       if (Number.isInteger(qty) && qty > 0 && qty <= 99 && price > 0) result[item.name] = { name: item.name, qty, price };
     }
     return result;
@@ -88,13 +99,12 @@ export const useCartStore = create<CartState>((set) => ({
   clear: () => set({ lines: {}, tableNumber: '' }),
 }));
 
-// Menu prices are strings like "R100" — parse to a number for cart math.
-export const parsePrice = (price: string): number => {
-  const cleaned = price.replace(/[^0-9.]/g, '');
-  return cleaned ? parseFloat(cleaned) : 0;
-};
-
-export const formatZar = (amount: number): string => `R${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
+/**
+ * Kept as the cart's money formatter so call sites read naturally, but the
+ * currency itself is now configuration - see src/core/domain/money.ts.
+ * The old name is gone deliberately: it asserted a currency in its signature.
+ */
+export const formatCartMoney = formatMoney;
 
 export const selectCartLines = (state: CartState): CartLine[] => Object.values(state.lines);
 export const selectCartCount = (state: CartState): number =>

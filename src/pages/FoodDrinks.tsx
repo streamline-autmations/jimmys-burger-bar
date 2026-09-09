@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Beer, Download, ShoppingBag, Utensils } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { config } from '../config';
+import { formatMoney, menuPrice } from '../core/tenant';
 import { fadeInUp } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
@@ -11,7 +12,8 @@ type Board = 'food' | 'drinks';
 type BoardItem = {
   name: string;
   description: string;
-  price: string;
+  /** Minor units. Formatted at render via formatMoney. */
+  price: number;
   popular?: boolean;
   tag?: string;
 };
@@ -66,7 +68,7 @@ const drinksCategories: BoardCategory[] = config.drinks.categories.map((category
   items: category.items.map((item) => ({
     name: item.name,
     description: item.detail,
-    price: item.price,
+    price: menuPrice(item.price),
     popular: 'popular' in item ? item.popular : undefined,
     tag: 'tag' in item ? item.tag : undefined,
   })),
@@ -372,7 +374,7 @@ export const FoodDrinks: React.FC = () => {
                       </h3>
                       <div className="flex-1 border-b border-dotted border-ink/20 min-w-5 -translate-y-1" />
                       <span className="font-display font-bold whitespace-nowrap">
-                        {item.price}
+                        {formatMoney(item.price)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">

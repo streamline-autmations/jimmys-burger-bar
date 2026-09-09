@@ -3,7 +3,8 @@ import { AdminRefresh } from './AdminRefresh';
 import React, { useCallback } from 'react';
 import { ArrowRight, CalendarDays, Clock3, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatZar } from '../../lib/cartStore';
+import { formatCartMoney } from '../../lib/cartStore';
+import { toMinor } from '../../core/domain/money';
 import { supabase } from '../../lib/supabase';
 import {
   cardClass,
@@ -258,7 +259,7 @@ export const AdminDashboard: React.FC = () => {
                         </p>
                         <p className="text-xs text-ink/65">{titleCase(order.order_type)}</p>
                       </div>
-                      <span className="shrink-0 font-display font-bold text-primary">{formatZar(order.total)}</span>
+                      <span className="shrink-0 font-display font-bold text-primary">{formatCartMoney(toMinor(order.total))}</span>
                     </li>
                   ))}
                 </ul>

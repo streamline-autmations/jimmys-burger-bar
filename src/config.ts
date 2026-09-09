@@ -5,7 +5,17 @@
 // Zyl) — see the brand board at ameli-designs.netlify.app/projects/jimmys-burger-bar.
 // ============================================================================
 
+import { ZAR } from "./core/domain/money";
+
 export const config = {
+  // ---- Locale ---------------------------------------------------------------
+  // Everything region-specific lives here rather than being hardcoded across
+  // five files. `currency` is explicit rather than derived from the locale,
+  // because Intl renders ZAR as "R 120,00" while Jimmy's menu says "R120".
+  locale: "en-ZA",
+  timezone: "Africa/Johannesburg",
+  currency: ZAR,
+
   // ---- Feature flags -------------------------------------------------------
   // Active customer capabilities for this installation.
   features: {
@@ -47,17 +57,26 @@ export const config = {
     // Real inbox, confirmed by Christiaan 2026-07-22.
     email: "jimmysburgerbar1@gmail.com",
     address: "57 Loch Street, Meyerton, Gauteng",
+    // How the restaurant's timezone is named to customers, e.g. "South African time".
+    timeLabel: "South African time",
     googleMapsEmbed: "https://maps.google.com/maps?q=Jimmy%27s+Burger+Bar+Meyerton&output=embed",
     googleReviews: "https://www.google.com/maps/place/Jimmy's+Burger+Bar/@-26.5615391,28.0190301,17z/data=!4m8!3m7!1s0x1e94fbae49f31b03:0x9e4f2e15531d645c!8m2!3d-26.5615391!4d28.021605!9m1!1b1!16s%2Fg%2F11t53yynk1?entry=ttu&g_ep=EgoyMDI2MDcyMi4wIKXMDSoASAFQAw%3D%3D",
     // Real trading hours, confirmed by Christiaan 2026-07-22.
     // NOTE: Sundays are closed EXCEPT the monthly Coffee & Cars morning
     // (specials.event) — that one Sunday they open for the event.
     hours: [
-      { days: [1, 2], day: "Mon – Tue", time: "09:00 – 20:00" },
-      { days: [3, 4], day: "Wed – Thu", time: "09:00 – 21:00" },
-      { days: [5, 6], day: "Fri – Sat", time: "09:00 – 00:00" },
-      { days: [0], day: "Sunday", time: "Closed" },
+      { days: [1, 2], label: "Mon – Tue", open: "09:00", close: "20:00" },
+      { days: [3, 4], label: "Wed – Thu", open: "09:00", close: "21:00" },
+      { days: [5, 6], label: "Fri – Sat", open: "09:00", close: "00:00" },
+      // No open/close means closed. Coffee & Cars Sundays are added to
+      // `closures` as dated exceptions once the dates are known.
+      { days: [0], label: "Sunday" },
     ],
+    // One-off closures and changed-hours days: public holidays, private
+    // functions, and the monthly Coffee & Cars Sunday once dates are confirmed.
+    // { date: "2026-12-25", reason: "Christmas Day" }
+    // { date: "2026-10-04", reason: "Coffee & Cars", open: "09:00", close: "14:00" }
+    closures: [] as { date: string; reason?: string; open?: string; close?: string }[],
     rating: "4.7",
     reviewCount: "64",
     hero: {
@@ -99,18 +118,21 @@ export const config = {
   // Direct orders are stored atomically in Supabase; notifications run externally.
   ordering: {
     orderPrefix: "JB",
+    // Shown when a customer picks a day the restaurant is closed. Tenant copy,
+    // because "contact us about Coffee & Cars" means nothing to another venue.
+    closedDayNote: "Choose an open day. For Coffee & Cars Sundays, contact Jimmy's to check the event date.",
     collectionNote: "Collection requested at 57 Loch Street. Please wait for Jimmy's to confirm the time.",
     tableNote: "Table service requested. Please check with staff before ordering.",
     deliveryNote: "Delivery requested. Jimmy's must confirm availability, timing and any delivery charge.",
     nonAlcoholicDrinks: [
-      { name: 'Coke', description: '330ml can', price: 'R25' },
-      { name: 'Coke Zero', description: '330ml can', price: 'R25' },
-      { name: 'Sprite', description: '330ml can', price: 'R25' },
-      { name: 'Fanta Orange', description: '330ml can', price: 'R25' },
-      { name: 'Still Water', description: '500ml', price: 'R18' },
-      { name: 'Sparkling Water', description: '500ml', price: 'R22' },
-      { name: 'Appletiser', description: '330ml', price: 'R30' },
-      { name: 'Heineken 0.0', description: 'Non-alcoholic beer', price: 'R30' },
+      { name: 'Coke', description: '330ml can', price: 25 },
+      { name: 'Coke Zero', description: '330ml can', price: 25 },
+      { name: 'Sprite', description: '330ml can', price: 25 },
+      { name: 'Fanta Orange', description: '330ml can', price: 25 },
+      { name: 'Still Water', description: '500ml', price: 18 },
+      { name: 'Sparkling Water', description: '500ml', price: 22 },
+      { name: 'Appletiser', description: '330ml', price: 30 },
+      { name: 'Heineken 0.0', description: 'Non-alcoholic beer', price: 30 },
     ],
   },
 
@@ -123,11 +145,11 @@ export const config = {
     // one on file. Cards with a poster render the real artwork instead of
     // the plain text card.
     fridays: [
-      { title: "Osso Buco", price: "R120", description: "Slow-braised beef shank, rich gravy, creamy mash and veg. Pure comfort food done right.", note: "While stocks last", poster: "/images/specials/osso-buco.jpg" },
-      { title: "Chicken Prego Roll", price: "R120", description: "Juicy chicken prego with chips, and a free Windhoek draught on the side.", note: "Free draught included", poster: "/images/specials/chicken-prego-roll.jpg" },
-      { title: "Greek Platter", price: "R180", description: "Homemade chicken, meatballs, steak strips, olives, salad, chips and flatbread with hummus and tsatsiki.", note: "While stocks last", poster: "/images/specials/greek-platter.jpg" },
-      { title: "Mexican Friday", price: "R120", description: "Five ice-cold Coronas for the table. Pair them with tacos and the Mexican burger.", note: "5x Corona", poster: "/images/specials/mexican-friday.jpg" },
-      { title: "Chicken Souvlaki", price: "", description: "Greek-style grilled chicken skewers served with pita, chips and salad.", note: "Ask what it's on for" },
+      { title: "Osso Buco", price: 120, description: "Slow-braised beef shank, rich gravy, creamy mash and veg. Pure comfort food done right.", note: "While stocks last", poster: "/images/specials/osso-buco.jpg" },
+      { title: "Chicken Prego Roll", price: 120, description: "Juicy chicken prego with chips, and a free Windhoek draught on the side.", note: "Free draught included", poster: "/images/specials/chicken-prego-roll.jpg" },
+      { title: "Greek Platter", price: 180, description: "Homemade chicken, meatballs, steak strips, olives, salad, chips and flatbread with hummus and tsatsiki.", note: "While stocks last", poster: "/images/specials/greek-platter.jpg" },
+      { title: "Mexican Friday", price: 120, description: "Five ice-cold Coronas for the table. Pair them with tacos and the Mexican burger.", note: "5x Corona", poster: "/images/specials/mexican-friday.jpg" },
+      { title: "Chicken Souvlaki", price: undefined, description: "Greek-style grilled chicken skewers served with pita, chips and salad.", note: "Ask what it's on for" },
     ],
     event: {
       title: "Coffee & Cars",
@@ -145,96 +167,96 @@ export const config = {
         name: "Breakfast",
         note: "Served until 12",
         items: [
-          { name: "Breakfast Bun", description: "Bun with bacon, egg and cheese, with chips", price: "R60" },
-          { name: "Breakfast Burger", description: "Beef burger with egg, bacon and chips", price: "R95", popular: true },
-          { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: "R70", popular: true },
-          { name: "Avo on Toast", description: "Smashed avo on toast with grilled tomatoes", price: "R60" },
-          { name: "Omelette", description: "Bacon and mushroom, or mushroom and cheese", price: "R60" },
-          { name: "Carb Clever Breakfast", description: "2 eggs, 2 bacon, tomato and avo", price: "R60" },
+          { name: "Breakfast Bun", description: "Bun with bacon, egg and cheese, with chips", price: 60 },
+          { name: "Breakfast Burger", description: "Beef burger with egg, bacon and chips", price: 95, popular: true },
+          { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 70, popular: true },
+          { name: "Avo on Toast", description: "Smashed avo on toast with grilled tomatoes", price: 60 },
+          { name: "Omelette", description: "Bacon and mushroom, or mushroom and cheese", price: 60 },
+          { name: "Carb Clever Breakfast", description: "2 eggs, 2 bacon, tomato and avo", price: 60 },
         ]
       },
       {
         name: "Burgers",
         note: "With chips · served all day",
         items: [
-          { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: "R90" },
-          { name: "Chicken Burger", description: "Chicken patty, cheese sauce, tomato, lettuce and Jimmy's sauce", price: "R90" },
-          { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce", price: "R100", popular: true },
-          { name: "Pizza Burger", description: "180g beef patty, tomato sauce, mozzarella and pepperoni", price: "R105" },
-          { name: "Gourmet Burger", description: "180g beef or chicken, sweet chilli, bacon, onion rings", price: "R130" },
-          { name: "Nacho Burger", description: "Chicken, bacon, sweet chilli, onion rings and nacho chips", price: "R130", popular: true },
+          { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 90 },
+          { name: "Chicken Burger", description: "Chicken patty, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 90 },
+          { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce", price: 100, popular: true },
+          { name: "Pizza Burger", description: "180g beef patty, tomato sauce, mozzarella and pepperoni", price: 105 },
+          { name: "Gourmet Burger", description: "180g beef or chicken, sweet chilli, bacon, onion rings", price: 130 },
+          { name: "Nacho Burger", description: "Chicken, bacon, sweet chilli, onion rings and nacho chips", price: 130, popular: true },
         ]
       },
       {
         name: "Small Plates",
         note: "Made for sharing",
         items: [
-          { name: "Russian & Chips", description: "Extra russian for R15", price: "R55" },
-          { name: "Jalapeño Poppers", description: "Crumbed jalapeños stuffed with melted cheese", price: "R65", popular: true },
-          { name: "Nachos", description: "Spicy, mild or plain · half R60", price: "R90" },
-          { name: "Steak Strips", description: "With cheese or pepper sauce", price: "R80" },
-          { name: "Loaded Fries", description: "The basket that never makes it home", price: "R60" },
-          { name: "Plate of Fries", description: "Crisp and golden", price: "R45" },
-          { name: "Plate of Onion Rings", description: "Stacked high", price: "R35" },
-          { name: "Meatballs", description: "House-made, saucy", price: "R60" },
+          { name: "Russian & Chips", description: "Extra russian for R15", price: 55 },
+          { name: "Jalapeño Poppers", description: "Crumbed jalapeños stuffed with melted cheese", price: 65, popular: true },
+          { name: "Nachos", description: "Spicy, mild or plain · half R60", price: 90 },
+          { name: "Steak Strips", description: "With cheese or pepper sauce", price: 80 },
+          { name: "Loaded Fries", description: "The basket that never makes it home", price: 60 },
+          { name: "Plate of Fries", description: "Crisp and golden", price: 45 },
+          { name: "Plate of Onion Rings", description: "Stacked high", price: 35 },
+          { name: "Meatballs", description: "House-made, saucy", price: 60 },
         ]
       },
       {
         name: "Platters",
         note: "Built for the table",
         items: [
-          { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: "R350", popular: true },
-          { name: "Snack Platter", description: "Chicken strips, chicken wings, jalapeño poppers, chips and onion rings", price: "R250" },
+          { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, popular: true },
+          { name: "Snack Platter", description: "Chicken strips, chicken wings, jalapeño poppers, chips and onion rings", price: 250 },
         ]
       },
       {
         name: "Steaks",
         note: "With chips and onion rings or salad",
         items: [
-          { name: "200g Rump Steak", description: "Pepper or mushroom sauce", price: "R110", popular: true },
-          { name: "300g Rump Steak", description: "Pepper or mushroom sauce", price: "R140" },
-          { name: "200g Jalapeño Steak", description: "Pepper or mushroom sauce", price: "R130" },
-          { name: "300g Jalapeño Steak", description: "Pepper or mushroom sauce", price: "R160" },
-          { name: "250g Fillet Steak", description: "Pepper or mushroom sauce", price: "R140" },
-          { name: "Extra Sauce", description: "Cheese, pepper or mushroom", price: "R25" },
+          { name: "200g Rump Steak", description: "Pepper or mushroom sauce", price: 110, popular: true },
+          { name: "300g Rump Steak", description: "Pepper or mushroom sauce", price: 140 },
+          { name: "200g Jalapeño Steak", description: "Pepper or mushroom sauce", price: 130 },
+          { name: "300g Jalapeño Steak", description: "Pepper or mushroom sauce", price: 160 },
+          { name: "250g Fillet Steak", description: "Pepper or mushroom sauce", price: 140 },
+          { name: "Extra Sauce", description: "Cheese, pepper or mushroom", price: 25 },
         ]
       },
       {
         name: "Chicken Meals",
         note: "With chips, salad or vegetables",
         items: [
-          { name: "Chicken Wings", description: "Glazed and grilled", price: "R90", popular: true },
-          { name: "Chicken Strips", description: "Golden and tender", price: "R70" },
-          { name: "Chicken Schnitzel", description: "Crumbed and pan-fried", price: "R95" },
+          { name: "Chicken Wings", description: "Glazed and grilled", price: 90, popular: true },
+          { name: "Chicken Strips", description: "Golden and tender", price: 70 },
+          { name: "Chicken Schnitzel", description: "Crumbed and pan-fried", price: 95 },
         ]
       },
       {
         name: "Toasted Sandwiches",
         note: "With chips",
         items: [
-          { name: "Chicken Mayo", description: "The classic, done properly", price: "R70" },
-          { name: "Bacon & Cheese", description: "Melted through", price: "R65" },
-          { name: "Cheese & Tomato", description: "Simple and right", price: "R50" },
+          { name: "Chicken Mayo", description: "The classic, done properly", price: 70 },
+          { name: "Bacon & Cheese", description: "Melted through", price: 65 },
+          { name: "Cheese & Tomato", description: "Simple and right", price: 50 },
         ]
       },
       {
         name: "Salads",
         note: "Fresh from the kitchen",
         items: [
-          { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: "R55" },
-          { name: "Jimmy's Salad", description: "Greek salad with chicken, bacon and avocado", price: "R80", popular: true },
-          { name: "Burger Salad", description: "Greek salad with a 180g patty, bacon and avocado", price: "R90" },
-          { name: "Chicken Salad", description: "Greek salad with chicken", price: "R70" },
-          { name: "Steak Salad", description: "Greek salad with steak", price: "R85" },
+          { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 55 },
+          { name: "Jimmy's Salad", description: "Greek salad with chicken, bacon and avocado", price: 80, popular: true },
+          { name: "Burger Salad", description: "Greek salad with a 180g patty, bacon and avocado", price: 90 },
+          { name: "Chicken Salad", description: "Greek salad with chicken", price: 70 },
+          { name: "Steak Salad", description: "Greek salad with steak", price: 85 },
         ]
       },
       {
         name: "Desserts",
         note: "Save space",
         items: [
-          { name: "Cake of the Day", description: "Chocolate or carrot, whichever's fresh", price: "R45" },
-          { name: "Ice Cream & Chocolate Sauce", description: "The one the kids fight over", price: "R30" },
-          { name: "Affogato", description: "Ice cream and a shot of espresso", price: "R45", popular: true },
+          { name: "Cake of the Day", description: "Chocolate or carrot, whichever's fresh", price: 45 },
+          { name: "Ice Cream & Chocolate Sauce", description: "The one the kids fight over", price: 30 },
+          { name: "Affogato", description: "Ice cream and a shot of espresso", price: 45, popular: true },
         ]
       },
     ],
@@ -248,9 +270,9 @@ export const config = {
     // food on a real restaurant's site misrepresents what a customer will
     // actually be served.
     featured: [
-      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: "R100", image: "/images/gallery/burger-macro.jpg" },
-      { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: "R350", image: "/images/menu/warrior-platter.jpeg" },
-      { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12.", price: "R70", image: "/images/gallery/breakfast-plate.jpg" },
+      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: 100, image: "/images/gallery/burger-macro.jpg" },
+      { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, image: "/images/menu/warrior-platter.jpeg" },
+      { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12.", price: 70, image: "/images/gallery/breakfast-plate.jpg" },
     ],
   },
 
@@ -263,74 +285,74 @@ export const config = {
         name: "Beer",
         note: "Always cold",
         items: [
-          { name: "Castle Lager", detail: "The local", price: "R28" },
-          { name: "Castle Lite", detail: "Extra cold", price: "R28" },
-          { name: "Black Label", detail: "Cold and consistent", price: "R28" },
-          { name: "Castle Milkstout", detail: "Dark and smooth", price: "R28" },
-          { name: "Windhoek Draught", detail: "440ml", price: "R40", popular: true },
-          { name: "Windhoek Lager", detail: "440ml", price: "R40" },
-          { name: "Heineken", detail: "Zero also in the fridge, R30", price: "R30" },
-          { name: "Corona", detail: "Lime included", price: "R35" },
-          { name: "Stella Artois", detail: "330ml", price: "R35" },
+          { name: "Castle Lager", detail: "The local", price: 28 },
+          { name: "Castle Lite", detail: "Extra cold", price: 28 },
+          { name: "Black Label", detail: "Cold and consistent", price: 28 },
+          { name: "Castle Milkstout", detail: "Dark and smooth", price: 28 },
+          { name: "Windhoek Draught", detail: "440ml", price: 40, popular: true },
+          { name: "Windhoek Lager", detail: "440ml", price: 40 },
+          { name: "Heineken", detail: "Zero also in the fridge, R30", price: 30 },
+          { name: "Corona", detail: "Lime included", price: 35 },
+          { name: "Stella Artois", detail: "330ml", price: 35 },
         ]
       },
       {
         name: "Ciders & Coolers",
         items: [
-          { name: "Savanna", detail: "Dry, Lite, Neat or non-alcoholic", price: "R35", popular: true },
-          { name: "Hunter's", detail: "Dry or Gold", price: "R35" },
-          { name: "Flying Fish", detail: "Pressed lemon", price: "R30" },
-          { name: "Belgravia", detail: "Dark Cherry or Dry Lemon", price: "R35" },
-          { name: "Red Square", detail: "Ice cold", price: "R35" },
-          { name: "Buffelsfontein & Kola", detail: "You know who you are", price: "R35" },
+          { name: "Savanna", detail: "Dry, Lite, Neat or non-alcoholic", price: 35, popular: true },
+          { name: "Hunter's", detail: "Dry or Gold", price: 35 },
+          { name: "Flying Fish", detail: "Pressed lemon", price: 30 },
+          { name: "Belgravia", detail: "Dark Cherry or Dry Lemon", price: 35 },
+          { name: "Red Square", detail: "Ice cold", price: 35 },
+          { name: "Buffelsfontein & Kola", detail: "You know who you are", price: 35 },
         ]
       },
       {
         name: "Cocktails",
         note: "Shaken at the bar",
         items: [
-          { name: "Frikkie van Zyl", detail: "Vodka, gin, orange juice and grenadine. The house special.", price: "R70", tag: "House", popular: true },
-          { name: "Margarita", detail: "Tequila, triple sec, fruit lagoon and lime", price: "R70" },
-          { name: "Martini", detail: "Martini Bianco, vodka, lime and lemon juice", price: "R70" },
-          { name: "Purple Rain", detail: "Vodka, Malibu, Butlers Blue, grenadine and lemonade", price: "R80" },
-          { name: "Strawberry Daiquiri", detail: "Vodka, Butlers strawberry, fruit lagoon and strawberry juice", price: "R80" },
-          { name: "Long Island Iced Tea", detail: "Malibu, Bacardi, vodka, gin, triple sec, tequila, lime and Coke", price: "R160" },
+          { name: "Frikkie van Zyl", detail: "Vodka, gin, orange juice and grenadine. The house special.", price: 70, tag: "House", popular: true },
+          { name: "Margarita", detail: "Tequila, triple sec, fruit lagoon and lime", price: 70 },
+          { name: "Martini", detail: "Martini Bianco, vodka, lime and lemon juice", price: 70 },
+          { name: "Purple Rain", detail: "Vodka, Malibu, Butlers Blue, grenadine and lemonade", price: 80 },
+          { name: "Strawberry Daiquiri", detail: "Vodka, Butlers strawberry, fruit lagoon and strawberry juice", price: 80 },
+          { name: "Long Island Iced Tea", detail: "Malibu, Bacardi, vodka, gin, triple sec, tequila, lime and Coke", price: 160 },
         ]
       },
       {
         name: "Shots",
         note: "For the brave table",
         items: [
-          { name: "Tequila", detail: "Gold or silver", price: "R27" },
-          { name: "Jägermeister", detail: "Ice cold", price: "R27" },
-          { name: "Jägerbomb", detail: "With Red Bull", price: "R35", popular: true },
-          { name: "Springbokkie", detail: "Green and gold", price: "R22" },
-          { name: "Melktertjie", detail: "Sweet and dangerous", price: "R20" },
-          { name: "Cactus Jack", detail: "Original R20, bubblegum R22", price: "R20" },
+          { name: "Tequila", detail: "Gold or silver", price: 27 },
+          { name: "Jägermeister", detail: "Ice cold", price: 27 },
+          { name: "Jägerbomb", detail: "With Red Bull", price: 35, popular: true },
+          { name: "Springbokkie", detail: "Green and gold", price: 22 },
+          { name: "Melktertjie", detail: "Sweet and dangerous", price: 20 },
+          { name: "Cactus Jack", detail: "Original R20, bubblegum R22", price: 20 },
         ]
       },
       {
         name: "Wine & Bubbles",
         note: "By the glass or bottle",
         items: [
-          { name: "Two Oceans Sauvignon Blanc", detail: "Glass R40", price: "R130" },
-          { name: "Fyn Bos Chenin Blanc", detail: "Glass R45", price: "R140" },
-          { name: "Van Loveren Merlot", detail: "Bottle", price: "R130" },
-          { name: "Fyn Bos Merlot", detail: "Glass R45", price: "R140" },
-          { name: "Four Cousins Rosé", detail: "Bottle", price: "R100" },
-          { name: "JC Le Roux", detail: "Lachanson, Ledomaine or Lafleurette", price: "R180", popular: true },
+          { name: "Two Oceans Sauvignon Blanc", detail: "Glass R40", price: 130 },
+          { name: "Fyn Bos Chenin Blanc", detail: "Glass R45", price: 140 },
+          { name: "Van Loveren Merlot", detail: "Bottle", price: 130 },
+          { name: "Fyn Bos Merlot", detail: "Glass R45", price: 140 },
+          { name: "Four Cousins Rosé", detail: "Bottle", price: 100 },
+          { name: "JC Le Roux", detail: "Lachanson, Ledomaine or Lafleurette", price: 180, popular: true },
         ]
       },
       {
         name: "Coffee & Shakes",
         note: "All day",
         items: [
-          { name: "Cappuccino", detail: "Double shot", price: "R30" },
-          { name: "Latte", detail: "Smooth", price: "R35" },
-          { name: "Hot Chocolate", detail: "Proper winter fuel", price: "R40" },
-          { name: "Iced Coffee", detail: "Cold brew over ice", price: "R38" },
-          { name: "Milkshake", detail: "Strawberry or chocolate · small R30", price: "R45", popular: true },
-          { name: "Rock Shandy", detail: "Lemonade, bitters and sparkling water", price: "R50" },
+          { name: "Cappuccino", detail: "Double shot", price: 30 },
+          { name: "Latte", detail: "Smooth", price: 35 },
+          { name: "Hot Chocolate", detail: "Proper winter fuel", price: 40 },
+          { name: "Iced Coffee", detail: "Cold brew over ice", price: 38 },
+          { name: "Milkshake", detail: "Strawberry or chocolate · small R30", price: 45, popular: true },
+          { name: "Rock Shandy", detail: "Lemonade, bitters and sparkling water", price: 50 },
         ]
       },
     ]

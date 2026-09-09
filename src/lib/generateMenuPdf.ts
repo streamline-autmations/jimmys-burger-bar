@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { config } from '../config';
+import { formatMoney, menuPrice } from '../core/tenant';
 
 // Builds a real, brand-colored PDF straight from the menu data in config.ts —
 // so it can never drift out of sync with the on-site menu. Uses jsPDF's
@@ -83,10 +84,11 @@ export function generateMenuPdf() {
       doc.text(item.name, margin, y);
 
       doc.setFontSize(11);
-      doc.text(item.price, pageWidth - margin, y, { align: 'right' });
+      const priceLabel = formatMoney(menuPrice(item.price));
+      doc.text(priceLabel, pageWidth - margin, y, { align: 'right' });
 
       const nameWidth = doc.getTextWidth(item.name);
-      const priceWidth = doc.getTextWidth(item.price);
+      const priceWidth = doc.getTextWidth(priceLabel);
       const dotsStart = margin + nameWidth + 8;
       const dotsEnd = pageWidth - margin - priceWidth - 8;
       if (dotsEnd > dotsStart) {

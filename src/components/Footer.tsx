@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { config } from '../config';
+import { hours as schedule } from '../core/tenant';
 import { Logo } from './Logo';
 
 // Navy footer: the closing bracket to the navy hero, in Jimmy's logo colors.
@@ -68,9 +69,9 @@ export const Footer: React.FC = () => {
               </h4>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
                 {config.venue.hours.map((h) => (
-                  <React.Fragment key={h.day}>
-                    <span>{h.day}</span>
-                    <span className="text-right">{h.time}</span>
+                  <React.Fragment key={h.label}>
+                    <span>{h.label}</span>
+                    <span className="text-right">{schedule.displayHours(h)}</span>
                   </React.Fragment>
                 ))}
               </div>

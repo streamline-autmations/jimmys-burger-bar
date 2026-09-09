@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Clock, Mail, MapPin, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { config } from '../config';
+import { hours as schedule } from '../core/tenant';
 import { Booking } from './Booking';
 import { fadeInUp, riseChild, staggerContainer } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
@@ -100,10 +101,10 @@ export const Visit: React.FC = () => {
               <div className="mt-10 pt-7 border-t border-surface/15">
                 <h3 className="font-display font-bold flex items-center gap-2"><Clock size={17} className="text-accent" /> Opening hours</h3>
                 <div className="mt-4">
-                  {venue.hours.map((hours) => (
-                    <div key={hours.day} className="flex justify-between gap-5 py-2.5 border-b border-surface/10 last:border-0 text-sm">
-                      <span className="text-surface/55">{hours.day}</span>
-                      <span className="font-semibold">{hours.time}</span>
+                  {venue.hours.map((row) => (
+                    <div key={row.label} className="flex justify-between gap-5 py-2.5 border-b border-surface/10 last:border-0 text-sm">
+                      <span className="text-surface/55">{row.label}</span>
+                      <span className="font-semibold">{schedule.displayHours(row)}</span>
                     </div>
                   ))}
                 </div>

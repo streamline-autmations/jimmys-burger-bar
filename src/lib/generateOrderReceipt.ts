@@ -1,19 +1,20 @@
 import { jsPDF } from 'jspdf';
 import { config } from '../config';
+import { copy } from '../core/tenant';
+import { docInk as NAVY, docAccent as GOLD, docWordmark } from '../core/documents/brand';
 import { formatCartMoney, type CartLine, type OrderType } from './cartStore';
 
-const NAVY: [number, number, number] = [23, 37, 68];
-const GOLD: [number, number, number] = [242, 169, 59];
+
 
 async function loadLogoDataUrl(): Promise<string> {
-  const response = await fetch('/images/logo.png');
-  if (!response.ok) throw new Error(`Unable to load Jimmy's logo (${response.status})`);
+  const response = await fetch(config.assets.logo);
+  if (!response.ok) throw new Error(`Unable to load logo (${response.status})`);
 
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error(`Unable to read Jimmy's logo`));
+    reader.onerror = () => reject(reader.error ?? new Error(`Unable to read logo`));
     reader.readAsDataURL(blob);
   });
 }
@@ -42,7 +43,7 @@ export async function generateOrderReceipt(order: {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text("JIMMY'S", 134, 42);
+  doc.text(docWordmark, 134, 42);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('ORDER CONFIRMATION', 134, 64);
@@ -65,7 +66,7 @@ export async function generateOrderReceipt(order: {
     ? `Delivery: ${order.deliveryAddress}`
     : order.orderType === 'table'
       ? `Table service: Table ${order.tableNumber}`
-      : 'Collection from 57 Loch Street, Meyerton';
+      : `Collection from ${config.venue.address}`;
 
   doc.setTextColor(...NAVY);
   doc.setFont('helvetica', 'bold');
@@ -132,5 +133,5 @@ export async function generateOrderReceipt(order: {
   doc.setTextColor(...NAVY);
   doc.text("Request received. Subject to acceptance. Not proof of payment.", margin, 757);
 
-  doc.save(`jimmys-order-${order.orderNo}.pdf`);
+  doc.save(`${copy.documents.filePrefix}-order-${order.orderNo}.pdf`);
 }

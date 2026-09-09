@@ -1,6 +1,7 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { LoaderCircle, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { config } from '../../config';
 import { cardClass, controlClass, eyebrowClass, getErrorMessage } from './adminUtils';
 
 // Two-factor for the staff console.
@@ -138,7 +139,7 @@ export const MfaChallenge: React.FC<{ onVerified: () => void }> = ({ onVerified 
         <p className={eyebrowClass}>Staff console</p>
         <h1 className="mt-1 font-display text-3xl font-bold text-primary">Enter your code</h1>
         <p className="mt-2 text-ink/65">
-          Open your authenticator app and enter the six digits it shows for Jimmy&apos;s.
+          Open your authenticator app and enter the six digits it shows for {config.venue.name}.
         </p>
 
         <form onSubmit={submit} className="mt-8 space-y-5">

@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { copy } from '../core/tenant';
 import { EASE, STAMP_EASE } from '../lib/motion';
 import { openIntroGate } from '../lib/introGate';
 
@@ -203,7 +204,7 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.32, delay: 0.1, ease: EASE }}
         >
-          Good food. Good people.
+          {copy.brand.tagline}
         </motion.p>
       </motion.div>
     );
@@ -285,7 +286,7 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
               animate={armed ? { y: '0%' } : undefined}
               transition={{ duration: 0.44, delay: STAGE.tagline, ease: EASE }}
             >
-              Good food. Good people.
+              {copy.brand.tagline}
             </motion.span>
           </span>
           <motion.span

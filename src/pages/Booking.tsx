@@ -6,10 +6,11 @@ import { fadeInUp } from '../lib/motion';
 import { data as db } from '../core/data';
 
 import { config } from '../config';
+import { storageKey, copy } from '../core/tenant';
 import { contactError, latestTime, requestedTimeError, restaurantDate, tradingHours } from '../lib/tradingHours';
 
 export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
-  const [previousReference, setPreviousReference] = useState(() => readSession('jimmys-booking-attempt'));
+  const [previousReference, setPreviousReference] = useState(() => readSession(storageKey('booking-attempt')));
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [booking, setBooking] = useState({ name: '', email: '', phone: '', guests: '2', date: '', time: '', seating: 'No preference', notes: '' });
   const sending = useRef(false);
-  const attemptId = useRef(readSession('jimmys-booking-attempt') ?? crypto.randomUUID());
+  const attemptId = useRef(readSession(storageKey('booking-attempt')) ?? crypto.randomUUID());
   const [reference, setReference] = useState('');
   const update = (key: keyof typeof booking, value: string) => setBooking((current) => ({ ...current, [key]: value }));
   const selectedHours = tradingHours(booking.date);
@@ -37,7 +38,7 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
     setSubmitError(null);
 
     const id = attemptId.current;
-    writeSession('jimmys-booking-attempt', id);
+    writeSession(storageKey('booking-attempt'), id);
     const bookingReference = id;
 
     try {
@@ -57,7 +58,7 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
       setReference(bookingReference);
       setSubmitted(true);
     } catch {
-      setSubmitError("We could not verify receipt. Contact Jimmy's before sending another request to avoid a duplicate.");
+      setSubmitError(copy.booking.uncertain);
     } finally {
       sending.current = false;
       setSubmitting(false);
@@ -78,11 +79,11 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
   if (previousReference) return <div className="max-w-xl mx-auto py-8 px-4">
     <h2 className="font-display text-2xl font-bold">Check your last booking request</h2>
     <p className="mt-3 text-sm break-all">Reference: {previousReference}</p>
-    <p className="mt-3">This tab previously sent a booking request. Check with Jimmy's before sending another.</p>
+    <p className="mt-3">{copy.booking.uncertain} Check before sending another.</p>
     <a className="inline-block my-4 underline" href={`https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(`Please check existing booking ${previousReference}. This is not a new request.`)}`}>Check with Jimmy's on WhatsApp</a>
     <button className="block min-h-11 rounded-xl border border-ink/25 px-4" onClick={() => {
       if (!window.confirm('Have you checked the previous request with Jimmy’s? A new request may create a second booking.')) return;
-      writeSession('jimmys-booking-attempt', null); attemptId.current = crypto.randomUUID(); setPreviousReference(null);
+      writeSession(storageKey('booking-attempt'), null); attemptId.current = crypto.randomUUID(); setPreviousReference(null);
     }}>I have checked. Make another request</button>
   </div>;
 
@@ -99,7 +100,7 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
       </div>
       <button onClick={downloadConfirmation} className="mt-6 inline-flex items-center gap-2 bg-primary text-surface px-6 py-3.5 rounded-full font-display font-bold"><Download size={16} /> Download booking slip</button>
       {downloadError && <p role="alert" className="text-primary/80 text-sm mt-3">{downloadError}</p>}
-      <button onClick={() => { attemptId.current = crypto.randomUUID(); writeSession('jimmys-booking-attempt', null); setBooking({ name: '', email: '', phone: '', guests: '2', date: '', time: '', seating: 'No preference', notes: '' }); setSubmitted(false); }} className="block mx-auto mt-6 text-primary font-display font-bold hover:underline">Make another booking</button>
+      <button onClick={() => { attemptId.current = crypto.randomUUID(); writeSession(storageKey('booking-attempt'), null); setBooking({ name: '', email: '', phone: '', guests: '2', date: '', time: '', seating: 'No preference', notes: '' }); setSubmitted(false); }} className="block mx-auto mt-6 text-primary font-display font-bold hover:underline">Make another booking</button>
     </div>
   );
 

@@ -1,6 +1,6 @@
 import { config } from '../config';
 import { readSession, writeSession } from './sessionDraft';
-import { formatMoney, menuPrice } from '../core/tenant';
+import { formatMoney, menuPrice, storageKey } from '../core/tenant';
 import type { Minor } from '../core/domain/money';
 import { create } from 'zustand';
 
@@ -38,7 +38,7 @@ interface CartState {
 
 function restoredLines(): Record<string, CartLine> {
   try {
-    const saved = JSON.parse(readSession('jimmys-cart') ?? '{}');
+    const saved = JSON.parse(readSession(storageKey('cart')) ?? '{}');
     const menu = [...config.menu.categories.flatMap((category) => category.items), ...config.ordering.nonAlcoholicDrinks];
     const result: Record<string, CartLine> = {};
     for (const item of menu) {
@@ -113,5 +113,5 @@ export const selectCartTotal = (state: CartState): number =>
   Object.values(state.lines).reduce((sum, line) => sum + line.qty * line.price, 0);
 
 useCartStore.subscribe((state) => {
-  writeSession('jimmys-cart', JSON.stringify(Object.fromEntries(Object.values(state.lines).map((line) => [line.name, line.qty]))));
+  writeSession(storageKey('cart'), JSON.stringify(Object.fromEntries(Object.values(state.lines).map((line) => [line.name, line.qty]))));
 });

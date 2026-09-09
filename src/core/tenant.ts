@@ -9,6 +9,7 @@ import { config } from '../config';
 import { createMoneyFormatter, toMinor, fromMinor, type Minor } from './domain/money';
 import { createTimeHelpers } from './domain/time';
 import { createHours } from './domain/hours';
+import { resolveCopy } from './config/copy';
 
 export const formatMoney = createMoneyFormatter(config.currency);
 
@@ -24,5 +25,14 @@ export const { restaurantDate, restaurantInstant, restaurantDayBounds } = create
 });
 
 export const hours = createHours(config.venue.hours, config.venue.closures);
+
+/** Tenant copy, merged over the product's generic English defaults. */
+export const copy = resolveCopy(config.copy);
+
+/**
+ * Namespaces browser storage per tenant, so two Restaurant Direct sites served
+ * from the same origin during development cannot read each other's cart.
+ */
+export const storageKey = (name: string): string => `${config.slug}-${name}`;
 
 export type { Minor };

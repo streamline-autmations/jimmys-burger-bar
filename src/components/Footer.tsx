@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { config } from '../config';
-import { hours as schedule } from '../core/tenant';
+import { hours as schedule, copy } from '../core/tenant';
 import { Logo } from './Logo';
 
 // Navy footer: the closing bracket to the navy hero, in Jimmy's logo colors.
@@ -81,7 +81,7 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-paper/15 text-center text-sm text-paper/40">
-        <p>© {new Date().getFullYear()} {config.venue.name} {config.venue.nameSuffix}. Website by Streamline Automations.</p>
+        <p>© {new Date().getFullYear()} {config.venue.name} {config.venue.nameSuffix}. {copy.brand.builtBy}</p>
       </div>
     </footer>
   );

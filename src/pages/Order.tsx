@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle } from 'lucide-react';
 import { config } from '../config';
-import { formatMoney, menuPrice, toStoredAmount } from '../core/tenant';
+import { formatMoney, menuPrice, toStoredAmount, storageKey, copy } from '../core/tenant';
 import { Starburst } from '../components/Starburst';
 import { fadeInUp, staggerContainer, riseChild } from '../lib/motion';
 import {
@@ -29,7 +29,7 @@ const getDefaultRequestedTime = () => '';
 export const Order: React.FC = () => {
   const { menu, ordering } = config;
 
-  const [previousReference, setPreviousReference] = useState(() => readSession('jimmys-order-reference'));
+  const [previousReference, setPreviousReference] = useState(() => readSession(storageKey('order-reference')));
   const [step, setStep] = useState<Step>('browse');
   const [activeCategory, setActiveCategory] = useState(menu.categories[0].name);
   const [customerName, setCustomerName] = useState('');
@@ -67,7 +67,7 @@ export const Order: React.FC = () => {
   const clear = useCartStore((s) => s.clear);
 
   const orderCategories = useMemo(
-    () => [...menu.categories, { name: 'Non-alcoholic drinks', note: 'Cold, zero-proof and ready to add', items: ordering.nonAlcoholicDrinks }],
+    () => [...menu.categories, { name: copy.order.softDrinksLabel, note: copy.order.softDrinksNote, items: ordering.nonAlcoholicDrinks }],
     [menu.categories, ordering.nonAlcoholicDrinks],
   );
 
@@ -137,7 +137,7 @@ export const Order: React.FC = () => {
     setSubmitError(null);
 
     const orderNo = generateOrderNumber();
-    writeSession('jimmys-order-reference', orderNo);
+    writeSession(storageKey('order-reference'), orderNo);
     const requestedDate = restaurantInstant(today, requestedTime);
 
     try {
@@ -166,7 +166,7 @@ export const Order: React.FC = () => {
       setStep('confirmed');
     } catch {
       setUncertain(true);
-        setSubmitError(`We could not verify receipt of ${orderNo}. Contact Jimmy's with this reference before ordering again.`);
+        setSubmitError(copy.order.uncertain);
     } finally {
       sending.current = false;
       setIsSubmitting(false);
@@ -174,7 +174,7 @@ export const Order: React.FC = () => {
   };
 
   const startNewOrder = () => {
-    writeSession('jimmys-order-reference', null);
+    writeSession(storageKey('order-reference'), null);
     setPreviousReference(null);
     setPlacedOrder(null);
     setCustomerName('');
@@ -205,9 +205,9 @@ export const Order: React.FC = () => {
   if (previousReference) return <div className="pt-32 pb-24 px-5 max-w-xl mx-auto min-h-screen">
     <h1 className="font-display text-3xl font-bold">Check your last request</h1>
     <p className="mt-4 break-words">Reference: {previousReference}</p>
-    <p className="mt-3">This tab previously sent an order request. Contact Jimmy's to check its status before placing another order.</p>
+    <p className="mt-3">{copy.order.priorReferenceBody}</p>
     <a className="inline-block my-5 underline" href={`https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(`Please check existing order ${previousReference}. This is not a new order.`)}`}>Check with Jimmy's on WhatsApp</a>
-    <button className="block min-h-11 border border-ink/25 rounded-xl px-4" onClick={() => { if (window.confirm('Have you checked the previous request with Jimmy’s? Starting again may create a second order.')) { writeSession('jimmys-order-reference', null); setPreviousReference(null); } }}>I have checked. Start another order</button>
+    <button className="block min-h-11 border border-ink/25 rounded-xl px-4" onClick={() => { if (window.confirm('Have you checked the previous request with Jimmy’s? Starting again may create a second order.')) { writeSession(storageKey('order-reference'), null); setPreviousReference(null); } }}>I have checked. Start another order</button>
   </div>;
 
   return (
@@ -226,7 +226,7 @@ export const Order: React.FC = () => {
                 <span className="font-script text-2xl text-primary">skip the queue</span>
                 <h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4">Order online</h1>
                 <p className="text-ink/60 text-lg">
-                  Order directly from Jimmy's for collection. Choose a requested time and wait for the restaurant to confirm it.
+                  {copy.order.intro} Choose a requested time and wait for the restaurant to confirm it.
                 </p>
               </motion.div>
             </div>
@@ -527,7 +527,7 @@ export const Order: React.FC = () => {
             <Starburst label="requested" value={placedOrder.requestedTime} className="w-28 h-28 mx-auto mb-8" />
 
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]">
-              <p className="font-display font-bold text-ink">Jimmy's has received your order.</p>
+              <p className="font-display font-bold text-ink">{copy.order.confirmedHeading}</p>
               <p className="text-ink/60 text-sm mt-2">Requested for {placedOrder.requestedTime}</p>
               <p className="text-ink/45 text-xs mt-1">Your request is saved. Please wait for Jimmy's to confirm acceptance and timing. This is not a payment receipt.</p>
             </div>

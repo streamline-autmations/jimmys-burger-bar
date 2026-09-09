@@ -165,7 +165,7 @@ export const Navbar: React.FC = () => {
                   transition={{ duration: 0.4, delay: 0.45 }}
                   className="mt-5 font-script text-surface/70 text-lg"
                 >
-                  57 Loch Street, Meyerton
+                  {config.venue.address}
                 </motion.span>
               </motion.div>
             </motion.div>

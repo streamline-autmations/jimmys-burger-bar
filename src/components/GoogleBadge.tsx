@@ -1,4 +1,5 @@
 import React from 'react';
+import { config } from '../config';
 import { Star, BadgeCheck } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -57,7 +58,7 @@ export const GoogleBadge: React.FC<{
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Read Jimmy's ${rating}-star rating and ${reviewCount} reviews on Google`}
+      aria-label={`Read ${config.venue.name}'s ${rating}-star rating and ${reviewCount} reviews on Google`}
       className={badgeClassName}
     >
       {content}

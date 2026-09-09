@@ -80,7 +80,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="mb-6">
         <p className={eyebrowClass}>{todayLabel.format(new Date())}</p>
         <h1 className="mt-1 font-display text-[1.75rem] font-bold leading-tight text-primary sm:text-4xl">
-          Today at Jimmy&apos;s
+          Today at {config.venue.name}
         </h1>
       </div>
 

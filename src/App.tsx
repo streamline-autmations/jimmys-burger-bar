@@ -13,6 +13,8 @@ import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
 import { BrandIntro } from './components/BrandIntro';
 import { closeIntroGate, openIntroGate } from './lib/introGate';
+import { config } from './config';
+import { copy } from './core/tenant';
 
 // Set only when the first-load intro has actually finished. Reading it is
 // idempotent, so React 18's StrictMode double-invoked state initialiser cannot
@@ -26,16 +28,14 @@ let introCompleted = false;
 
 const NotFound: React.FC = () => (
   <div className="pt-28 pb-24 min-h-[70dvh] flex flex-col items-center justify-center text-center px-4">
-    <span className="font-script text-2xl text-primary">wrong turn?</span>
-    <h1 className="font-display text-5xl md:text-7xl font-extrabold text-ink mt-1 mb-4">Page not found</h1>
-    <p className="text-ink/60 text-lg max-w-md mb-8">
-      That page isn't on the menu. Head back and try one of these instead.
-    </p>
+    <span className="font-script text-2xl text-primary">{copy.notFound.script}</span>
+    <h1 className="font-display text-5xl md:text-7xl font-extrabold text-ink mt-1 mb-4">{copy.notFound.heading}</h1>
+    <p className="text-ink/60 text-lg max-w-md mb-8">{copy.notFound.body}</p>
     <Link
       to="/"
       className="inline-flex items-center gap-2 bg-primary text-surface px-8 py-4 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97] shadow-lg shadow-primary/20"
     >
-      Back to Jimmy's
+      {copy.notFound.cta}
     </Link>
   </div>
 );
@@ -176,11 +176,11 @@ const AnimatedRoutes: React.FC = () => {
           className="fixed inset-0 z-[121] pointer-events-none flex flex-col items-center justify-center"
           aria-hidden="true"
         >
-          <img src="/images/logo.png" alt="" className="w-44 md:w-56 h-auto" />
+          <img src={config.assets.logo} alt="" className="w-44 md:w-56 h-auto" />
           <div className="mt-5 flex items-center gap-3 text-accent">
             <span className="h-px w-8 bg-accent/80" />
             <span className="font-display text-[10px] md:text-xs font-bold tracking-[0.22em] uppercase">
-              Good food. Good people.
+              {copy.brand.tagline}
             </span>
             <span className="h-px w-8 bg-accent/80" />
           </div>

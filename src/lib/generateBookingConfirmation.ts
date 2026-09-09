@@ -1,18 +1,19 @@
 import { jsPDF } from 'jspdf';
 import { config } from '../config';
+import { copy } from '../core/tenant';
+import { docInk as NAVY, docAccent as GOLD, docWordmark } from '../core/documents/brand';
 
-const NAVY: [number, number, number] = [23, 37, 68];
-const GOLD: [number, number, number] = [242, 169, 59];
+
 
 async function loadLogoDataUrl(): Promise<string> {
-  const response = await fetch('/images/logo.png');
-  if (!response.ok) throw new Error(`Unable to load Jimmy's logo (${response.status})`);
+  const response = await fetch(config.assets.logo);
+  if (!response.ok) throw new Error(`Unable to load logo (${response.status})`);
 
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error(`Unable to read Jimmy's logo`));
+    reader.onerror = () => reject(reader.error ?? new Error(`Unable to read logo`));
     reader.readAsDataURL(blob);
   });
 }
@@ -39,7 +40,7 @@ export async function generateBookingConfirmation(booking: {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text("JIMMY'S", 134, 42);
+  doc.text(docWordmark, 134, 42);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('TABLE BOOKING REQUEST', 134, 64);
@@ -93,7 +94,7 @@ export async function generateBookingConfirmation(booking: {
   doc.text(config.venue.phone, width - margin, 730, { align: 'right' });
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NAVY);
-  doc.text("Pending: your table is not confirmed until Jimmy's contacts you.", margin, 757);
+  doc.text(`Pending: ${copy.booking.pendingNote}`, margin, 757);
 
-  doc.save(`jimmys-booking-${booking.reference}.pdf`);
+  doc.save(`${copy.documents.filePrefix}-booking-${booking.reference}.pdf`);
 }

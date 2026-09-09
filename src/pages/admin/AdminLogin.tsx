@@ -2,6 +2,7 @@ import React, { FormEvent, useEffect, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { config } from '../../config';
 import { cardClass, controlClass, eyebrowClass } from './adminUtils';
 
 export const AdminLogin: React.FC = () => {
@@ -39,7 +40,7 @@ export const AdminLogin: React.FC = () => {
   return (
     <main className="flex min-h-[100dvh] items-center justify-center bg-paper px-4 py-12 text-ink">
       <div className={`${cardClass} w-full max-w-md p-6 sm:p-8`}>
-        <img src="/images/logo.png" alt="Jimmy's Burger Bar" width={72} height={72} className="mb-6 h-16 w-auto" />
+        <img src={config.assets.logo} alt={`${config.venue.name} ${config.venue.nameSuffix}`} width={72} height={72} className="mb-6 h-16 w-auto" />
         <p className={eyebrowClass}>Staff console</p>
         <h1 className="mt-1 font-display text-3xl font-bold text-primary">Sign in</h1>
         <p className="mt-2 text-ink/65">Use the staff administrator account.</p>

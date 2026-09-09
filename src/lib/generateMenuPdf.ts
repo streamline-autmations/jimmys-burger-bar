@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { config } from '../config';
 import { formatMoney, menuPrice } from '../core/tenant';
+import { docInk, docAccent, docWordmark } from '../core/documents/brand';
 
 // Builds a real, brand-colored PDF straight from the menu data in config.ts —
 // so it can never drift out of sync with the on-site menu. Uses jsPDF's
@@ -12,9 +13,9 @@ export function generateMenuPdf() {
   const margin = 48;
   const contentWidth = pageWidth - margin * 2;
 
-  const ink: [number, number, number] = [23, 37, 68];
-  const primary: [number, number, number] = [23, 37, 68];
-  const accent: [number, number, number] = [242, 169, 59];
+  const ink = docInk;
+  const primary = docInk;
+  const accent = docAccent;
   const gray: [number, number, number] = [110, 118, 138];
 
   let y = 0;
@@ -27,7 +28,7 @@ export function generateMenuPdf() {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(compact ? 16 : 26);
-    doc.text("JIMMY'S", margin, compact ? 29 : 46);
+    doc.text(docWordmark, margin, compact ? 29 : 46);
     doc.setFontSize(compact ? 8 : 11);
     doc.setFont('helvetica', 'normal');
     doc.text('BURGER BAR', margin + (compact ? 62 : 108), compact ? 29 : 46);
@@ -127,5 +128,5 @@ export function generateMenuPdf() {
     doc.text(`${config.venue.name} ${config.venue.nameSuffix}`, margin, pageHeight - 24);
   }
 
-  doc.save("jimmys-burger-bar-menu.pdf");
+  doc.save(`${config.venue.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-menu.pdf`);
 }

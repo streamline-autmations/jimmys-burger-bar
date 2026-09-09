@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LayoutDashboard, LogOut, ShieldCheck, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { config } from '../../config';
 import { eyebrowClass } from './adminUtils';
 
 const navItems = [
@@ -34,9 +35,9 @@ export const AdminLayout: React.FC<React.PropsWithChildren> = ({ children }) => 
       <header className="sticky top-0 z-30 border-b border-ink/10 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <NavLink to="/admin" className="mr-auto flex items-center gap-2.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
-            <img src="/images/logo.png" alt="" width={36} height={36} className="h-9 w-auto" />
+            <img src={config.assets.logo} alt="" width={36} height={36} className="h-9 w-auto" />
             <span className="leading-tight">
-              <span className="block font-display text-base font-bold text-primary">Jimmy&apos;s</span>
+              <span className="block font-display text-base font-bold text-primary">{config.venue.name}</span>
               <span className={`${eyebrowClass} block`}>Staff console</span>
             </span>
           </NavLink>

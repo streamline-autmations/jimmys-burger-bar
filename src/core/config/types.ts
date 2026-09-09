@@ -1,5 +1,6 @@
 import type { CurrencyConfig } from '../domain/money';
 import type { Closure, DayHours } from '../domain/hours';
+import type { CopyOverrides } from './copy';
 
 /**
  * Everything that differs between restaurants.
@@ -152,4 +153,6 @@ export interface RestaurantConfig {
   drinks: { intro: string; categories: MenuCategory[] };
   testimonials: Testimonial[];
   socials: { facebook: string; instagram: string };
+  /** Overrides the product's generic English copy. Only what differs. */
+  copy?: CopyOverrides;
 }

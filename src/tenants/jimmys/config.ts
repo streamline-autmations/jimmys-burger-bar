@@ -412,6 +412,40 @@ export const jimmys = defineRestaurant({
     { name: "Eugene Prins", rating: 5, text: "Very tasty food at affordable prices, and a very welcoming atmosphere and friendly staff as well." },
   ],
 
+  // Copy that a different restaurant would have to change. Marketing prose for
+  // the home page lives with its sections, not here.
+  copy: {
+    brand: {
+      tagline: "Good food. Good people.",
+      builtBy: "Website by Streamline Automations.",
+    },
+    notFound: {
+      cta: "Back to Jimmy's",
+    },
+    // Real claims only: menu, specials, address. No invented marketing.
+    marquee: [
+      "180g patties smashed to order",
+      "ice-cold beers",
+      "one big special every Friday",
+      "57 Loch Street, Meyerton",
+      "Coffee & Cars once a month",
+    ],
+    order: {
+      intro: "Order directly from Jimmy's for collection.",
+      confirmedHeading: "Jimmy's has received your order.",
+      uncertain: "We could not verify receipt of your order. Contact Jimmy's with this reference before ordering again.",
+      priorReferenceBody: "This tab previously sent an order request. Contact Jimmy's to check its status before placing another order.",
+      softDrinksNote: "Cold, zero-proof and ready to add",
+    },
+    booking: {
+      pendingNote: "This is a request, not a confirmed booking, until Jimmy's contacts you.",
+      uncertain: "We could not verify receipt. Contact Jimmy's before sending another request to avoid a duplicate.",
+    },
+    documents: {
+      filePrefix: "jimmys",
+    },
+  },
+
   socials: {
     facebook: "https://www.facebook.com/p/Jimmys-Burger-Bar-61560295359926/",
     instagram: "https://www.instagram.com/jimmys_burgerbar/",

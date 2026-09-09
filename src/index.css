@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Pacifico&family=Quicksand:wght@400;500;600;700&display=swap');
+/* Fonts are requested from index.html, generated from theme.googleFonts, so a
+   font swap in config actually downloads the family. An @import here also
+   render-blocks: the browser cannot start fetching until the CSS parses. */
 
 @tailwind base;
 @tailwind components;

@@ -26,3 +26,10 @@ dist-ssr
 
 # Local headless-browser QA profiles
 .edge-qa-*
+
+# Session handoff notes — personal working doc, not project documentation
+SESSION_CONTEXT.md
+
+# Browser QA artifacts
+.playwright-cli/
+.playwright-mcp/

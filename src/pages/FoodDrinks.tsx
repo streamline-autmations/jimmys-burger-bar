@@ -3,25 +3,13 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Beer, Download, ShoppingBag, Utensils } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { config } from '../config';
-import { formatMoney, menuPrice } from '../core/tenant';
+import { formatMoney } from '../core/tenant';
+import { buildBoard } from '../core/menu/board';
 import { fadeInUp } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Board = 'food' | 'drinks';
-type BoardItem = {
-  name: string;
-  description: string;
-  /** Minor units. Formatted at render via formatMoney. */
-  price: number;
-  popular?: boolean;
-  tag?: string;
-};
-type BoardCategory = {
-  name: string;
-  note?: string;
-  items: BoardItem[];
-};
 
 const boardMeta = {
   food: {
@@ -56,23 +44,8 @@ const boardPanelVariants = {
   }),
 };
 
-const foodCategories: BoardCategory[] = config.menu.categories.map((category) => ({
-  name: category.name,
-  note: category.note,
-  items: category.items.map((item) => ({ ...item })),
-}));
-
-const drinksCategories: BoardCategory[] = config.drinks.categories.map((category) => ({
-  name: category.name,
-  note: 'note' in category ? category.note : undefined,
-  items: category.items.map((item) => ({
-    name: item.name,
-    description: item.detail,
-    price: menuPrice(item.price),
-    popular: 'popular' in item ? item.popular : undefined,
-    tag: 'tag' in item ? item.tag : undefined,
-  })),
-}));
+const foodCategories = buildBoard(config.menu.categories);
+const drinksCategories = buildBoard(config.drinks.categories);
 
 export const FoodDrinks: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();

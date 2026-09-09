@@ -15,7 +15,11 @@ function load(file) {
   cache.set(file, module);
   const nativeRequire = createRequire(file);
   const require = (name) => name.startsWith('.') ? load(path.resolve(path.dirname(file), `${name}.ts`)) : nativeRequire(name);
-  const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  // Vite injects import.meta.env at build time; CommonJS has no import.meta,
+  // so the tenant resolver would crash the loader. Substituting an empty env
+  // makes it fall back to the default tenant, which is what tests want.
+  const source = fs.readFileSync(file, 'utf8').replace(/import\.meta\.env/g, '({})');
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   vm.runInThisContext(`(function(require,module,exports){${code}\n})`, { filename: file })(require, module, module.exports);
   return module.exports;
 }
@@ -26,6 +30,7 @@ const money = load('src/core/domain/money.ts');
 const hoursDomain = load('src/core/domain/hours.ts');
 const timeDomain = load('src/core/domain/time.ts');
 const config = load('src/config.ts').config;
+const board = load('src/core/menu/board.ts');
 const now = new Date('2026-09-07T08:00:00Z');
 
 test('restaurant dates use SAST at UTC midnight boundary', () => {
@@ -178,4 +183,30 @@ test('day bounds stay correct across a DST transition', () => {
   const bounds = london.restaurantDayBounds('2026-10-25');
   const span = (new Date(bounds.end) - new Date(bounds.start)) / 3600000;
   assert.equal(span, 25, 'the long DST day must be 25 hours, not 24');
+});
+
+test('menu boards convert config decimals into minor units', () => {
+  // Regression. The food board spread the config item verbatim, carrying a
+  // DECIMAL price into a field holding minor units, so every R60 dish rendered
+  // as R0.60. Nothing threw; it just showed customers the wrong prices.
+  const format = money.createMoneyFormatter(config.currency);
+  const food = board.buildBoard(config.menu.categories);
+  const drinks = board.buildBoard(config.drinks.categories);
+
+  const first = food[0].items[0];
+  assert.equal(first.price, money.toMinor(config.menu.categories[0].items[0].price));
+  assert.equal(format(first.price), 'R60', 'Breakfast Bun must render R60, not R0.60');
+
+  for (const category of [...food, ...drinks]) {
+    for (const item of category.items) {
+      assert.ok(item.price >= 100, `${item.name} priced under R1 - decimals leaked in as minor units`);
+      assert.equal(item.price % 1, 0, `${item.name} price must be a whole number of minor units`);
+    }
+  }
+});
+
+test('drinks detail is flattened onto description so the board has one shape', () => {
+  const drinks = board.buildBoard(config.drinks.categories);
+  const castle = drinks.flatMap((c) => c.items).find((i) => i.name === 'Castle Lager');
+  assert.equal(castle.description, 'The local');
 });

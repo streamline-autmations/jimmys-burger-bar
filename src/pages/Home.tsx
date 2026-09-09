@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useScroll, useTransform, useReducedMotion } fr
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Quote, Clock, MapPin } from 'lucide-react';
 import { config } from '../config';
+import { formatMoney, menuPrice } from '../core/tenant';
 import { Starburst } from '../components/Starburst';
 import { GoogleBadge, GoogleG } from '../components/GoogleBadge';
 import { Doodle } from '../components/Doodle';
@@ -205,7 +206,7 @@ export const Home: React.FC = () => {
               ) : (
                 <>
                   {s.price && (
-                    <Starburst value={s.price} className="absolute -top-5 -right-3 w-[86px] h-[86px] text-[26px]" />
+                    <Starburst value={formatMoney(menuPrice(s.price))} className="absolute -top-5 -right-3 w-[86px] h-[86px] text-[26px]" />
                   )}
                   <span className="font-script text-secondary text-xl block">Friday special</span>
                   <h3 className="font-display text-[28px] font-extrabold text-surface leading-tight mt-1.5 pr-10">{s.title}</h3>

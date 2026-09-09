@@ -1,12 +1,12 @@
 import { useAdminResource } from './useAdminResource';
 import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
-import { getLocalDayBounds, controlClass } from './adminUtils';
+import { controlClass } from './adminUtils';
 import React, { useRef, useCallback, useMemo, useState } from 'react';
 import { Bike, Clock3, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { formatCartMoney } from '../../lib/cartStore';
 import { toMinor } from '../../core/domain/money';
-import { supabase } from '../../lib/supabase';
+import { data as db, type ListView } from '../../core/data';
 import {
   actionableCardClass,
   cardClass,
@@ -56,7 +56,7 @@ const ItemList: React.FC<{ items: OrderItem[] }> = ({ items }) =>
 export const AdminOrders: React.FC = () => {
   const [status, setStatus] = useState('all');
   const [search, setSearch] = useState('');
-  const [view, setView] = useState('active');
+  const [view, setView] = useState<ListView>('active');
   const [limit, setLimit] = useState(200);
 
   const mutation = useRef(false);
@@ -65,13 +65,7 @@ export const AdminOrders: React.FC = () => {
   const [updateErrors, setUpdateErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    let query = supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: view === 'active' }).order('id').limit(limit);
-    if (view === 'active') query = query.not('status', 'in', '(completed,cancelled)');
-    if (view === 'history') query = query.in('status', ['completed', 'cancelled']);
-    if (view === 'today') { const { start, end } = getLocalDayBounds(); query = query.gte('requested_time', start).lt('requested_time', end); }
-    const { data, error } = await query;
-    if (error) throw error;
-    return data ?? [];
+    return db.listOrders({ view, limit });
   }, [view, limit]);
   const { data: orders, setData: setOrders, loading, error, updatedAt, refresh: fetchOrders } = useAdminResource<OrderWithItems[]>(load, []);
 
@@ -90,8 +84,7 @@ export const AdminOrders: React.FC = () => {
     });
 
     try {
-      const { data, error: updateError } = await supabase.from('orders').update({ status }).eq('id', order.id).eq('status', order.status).select('id');
-      if (updateError || data?.length !== 1) throw new Error('conflict');
+      await db.advanceOrderStatus(order.id, order.status, status);
       setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status } : item));
       setFeedback('Status saved. Contact the customer if they need an update.');
       await fetchOrders();
@@ -128,7 +121,7 @@ export const AdminOrders: React.FC = () => {
       </div>
       <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_220px]">
         <label className="text-sm font-semibold">Search loaded records<input type="search" className={controlClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, contact or reference" /></label>
-        <label className="text-sm font-semibold">Date / queue<select disabled={savingId !== null} className={controlClass} value={view} onChange={(event) => { setView(event.target.value); setLimit(200); }}><option value="active">Open orders</option><option value="today">Today</option><option value="history">History</option><option value="all">All dates</option></select></label>
+        <label className="text-sm font-semibold">Date / queue<select disabled={savingId !== null} className={controlClass} value={view} onChange={(event) => { setView(event.target.value as ListView); setLimit(200); }}><option value="active">Open orders</option><option value="today">Today</option><option value="history">History</option><option value="all">All dates</option></select></label>
       </div>
       <p className="mb-4 text-sm text-ink/75">{filtered.length} matching / {orders.length} loaded. Search applies to loaded records.</p>
 

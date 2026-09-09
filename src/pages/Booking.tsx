@@ -3,7 +3,7 @@ import React, { useId, useRef, useState } from 'react';
 import { CalendarCheck, Download, PartyPopper } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '../lib/motion';
-import { supabase } from '../lib/supabase';
+import { data as db } from '../core/data';
 
 import { config } from '../config';
 import { contactError, latestTime, requestedTimeError, restaurantDate, tradingHours } from '../lib/tradingHours';
@@ -41,23 +41,18 @@ export const Booking: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
     const bookingReference = id;
 
     try {
-      const { error } = await supabase.from('bookings').insert({
+      await db.createBooking({
         id,
         name: booking.name.trim(),
         email: booking.email.trim(),
         phone: booking.phone.trim(),
         guests: Number(booking.guests),
-        booking_date: booking.date,
-        booking_time: booking.time,
-        seating_preference: booking.seating,
+        bookingDate: booking.date,
+        bookingTime: booking.time,
+        seatingPreference: booking.seating,
         notes: booking.notes || null,
-        marketing_consent: false,
+        marketingConsent: false,
       });
-
-      if (error) {
-        setSubmitError("We could not verify receipt. Contact Jimmy's before sending another request to avoid a duplicate.");
-        return;
-      }
 
       setReference(bookingReference);
       setSubmitted(true);

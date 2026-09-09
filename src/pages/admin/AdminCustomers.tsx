@@ -3,7 +3,7 @@ import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch } from './operations';
 import { controlClass } from './adminUtils';
 import React, { useCallback, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { data as db } from '../../core/data';
 import { cardClass, formatDateTime, thClass } from './adminUtils';
 import { AdminEmpty, AdminError, AdminSkeleton } from './AdminStates';
 import { AdminPageHeader } from './AdminPageHeader';
@@ -15,10 +15,7 @@ export const AdminCustomers: React.FC = () => {
 
 
   const load = useCallback(async () => {
-    const query = supabase.from('customers').select('*').order('created_at', { ascending: false }).order('id').limit(limit);
-    const { data, error } = await query;
-    if (error) throw error;
-    return data ?? [];
+    return db.listCustomers({ limit });
   }, [limit]);
   const { data: customers, loading, error, updatedAt, refresh: fetchCustomers } = useAdminResource<Customer[]>(load, []);
 

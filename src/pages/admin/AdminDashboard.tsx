@@ -5,14 +5,13 @@ import { ArrowRight, CalendarDays, Clock3, ShoppingBag, UtensilsCrossed } from '
 import { Link } from 'react-router-dom';
 import { formatCartMoney } from '../../lib/cartStore';
 import { toMinor } from '../../core/domain/money';
-import { supabase } from '../../lib/supabase';
+import { data as db } from '../../core/data';
+import { config } from '../../config';
 import {
   cardClass,
   eyebrowClass,
   formatBookingTime,
   formatTimeOnly,
-  getLocalDayBounds,
-  getLocalToday,
   panelClass,
   panelHeadingClass,
   titleCase,
@@ -39,66 +38,15 @@ const initialData: DashboardData = {
   newOrders: [],
 };
 
-const todayLabel = new Intl.DateTimeFormat('en-ZA', {
-  timeZone: 'Africa/Johannesburg',
+const todayLabel = new Intl.DateTimeFormat(config.locale, {
+  timeZone: config.timezone,
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 });
 
 export const AdminDashboard: React.FC = () => {
-  const load = useCallback(async () => {
-    const today = getLocalToday();
-    const { start, end } = getLocalDayBounds();
-
-    const [
-      todayBookingsCount,
-      todayOrdersCount,
-      pendingBookingsCount,
-      newOrdersCount,
-      todayBookings,
-      newOrders,
-    ] = await Promise.all([
-      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('booking_date', today).neq('status', 'cancelled'),
-      supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .neq('status', 'cancelled').gte('requested_time', start)
-        .lt('requested_time', end),
-      supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .gte('booking_date', today)
-        .eq('status', 'pending'),
-      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'new'),
-      supabase
-        .from('bookings')
-        .select('*')
-        .eq('booking_date', today).neq('status', 'cancelled')
-        .order('booking_time', { ascending: true })
-        .limit(8),
-      supabase.from('orders').select('*').eq('status', 'new').order('created_at', { ascending: true }).limit(8),
-    ]);
-
-    const firstError = [
-      todayBookingsCount.error,
-      todayOrdersCount.error,
-      pendingBookingsCount.error,
-      newOrdersCount.error,
-      todayBookings.error,
-      newOrders.error,
-    ].find(Boolean);
-
-    if (firstError) throw firstError;
-    return {
-      todayBookingsCount: todayBookingsCount.count ?? 0,
-      todayOrdersCount: todayOrdersCount.count ?? 0,
-      pendingBookingsCount: pendingBookingsCount.count ?? 0,
-      newOrdersCount: newOrdersCount.count ?? 0,
-      todayBookings: todayBookings.data ?? [],
-      newOrders: newOrders.data ?? [],
-    };
-  }, []);
+  const load = useCallback(() => db.loadDashboard(), []);
   const { data, loading, error, updatedAt, refresh: fetchDashboard } = useAdminResource(load, initialData);
 
   // Two tiers, deliberately. The top row is what somebody has to DO something

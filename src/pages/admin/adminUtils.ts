@@ -1,4 +1,5 @@
-import { restaurantDate, restaurantInstant } from '../../lib/tradingHours';
+import { config } from '../../config';
+import { restaurantDate, restaurantInstant, restaurantDayBounds } from '../../core/tenant';
 // ---------------------------------------------------------------------------
 // Shared surface language for the staff tool.
 //
@@ -39,21 +40,27 @@ export const controlClass =
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:border-primary/60 ' +
   'disabled:opacity-50 disabled:pointer-events-none';
 
-const dateTimeFormatter = new Intl.DateTimeFormat('en-ZA', {
-  timeZone: 'Africa/Johannesburg',
+// Locale and zone come from the tenant, not from three hardcoded copies. The
+// point is that staff always read the RESTAURANT's clock, whatever their device
+// is set to - a manager checking the queue from another country still sees
+// service times, not their own.
+const { locale, timezone } = config;
+
+const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
+  timeZone: timezone,
   dateStyle: 'medium',
   timeStyle: 'short',
 });
 
-const dateFormatter = new Intl.DateTimeFormat('en-ZA', {
-  timeZone: 'Africa/Johannesburg',
+const dateFormatter = new Intl.DateTimeFormat(locale, {
+  timeZone: timezone,
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 });
 
-const timeOnlyFormatter = new Intl.DateTimeFormat('en-ZA', {
-  timeZone: 'Africa/Johannesburg',
+const timeOnlyFormatter = new Intl.DateTimeFormat(locale, {
+  timeZone: timezone,
   hour: '2-digit',
   minute: '2-digit',
 });
@@ -73,10 +80,9 @@ export const titleCase = (value: string): string =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 
 export const getLocalToday = restaurantDate;
-export const getLocalDayBounds = (): { start: string; end: string } => {
-  const start = restaurantInstant(restaurantDate(), '00:00');
-  return { start: start.toISOString(), end: new Date(start.getTime() + 86400000).toISOString() };
-};
+// Delegates to the domain helper, which derives the day's real length rather
+// than adding a flat 86,400,000ms - wrong on a DST changeover day.
+export const getLocalDayBounds = restaurantDayBounds;
 
 export const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : 'Something went wrong. Please try again.';

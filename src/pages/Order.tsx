@@ -19,7 +19,7 @@ import {
 } from '../lib/cartStore';
 import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
 import { contactError, requestedTimeError, restaurantDate, restaurantInstant, tradingHours, latestTime } from '../lib/tradingHours';
-import { supabase } from '../lib/supabase';
+import { data as db } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
@@ -141,33 +141,27 @@ export const Order: React.FC = () => {
     const requestedDate = restaurantInstant(today, requestedTime);
 
     try {
-      const { data, error } = await supabase.rpc('create_order', {
-        p_order_no: orderNo,
-        p_customer_name: customerName.trim(),
-        p_email: customerEmail.trim(),
-        p_phone: customerPhone.trim(),
-        p_order_type: orderType,
-        p_table_number: orderType === 'table' ? tableNumber : null,
-        p_delivery_address: orderType === 'delivery' ? deliveryAddress : null,
-        p_delivery_notes: orderType === 'delivery' ? (deliveryNotes || null) : null,
-        p_requested_time: requestedDate.toISOString(),
+      const created = await db.createOrder({
+        orderNo,
+        customerName: customerName.trim(),
+        email: customerEmail.trim(),
+        phone: customerPhone.trim(),
+        orderType,
+        tableNumber: orderType === 'table' ? tableNumber : null,
+        deliveryAddress: orderType === 'delivery' ? deliveryAddress : null,
+        deliveryNotes: orderType === 'delivery' ? (deliveryNotes || null) : null,
+        requestedTime: requestedDate.toISOString(),
         // The cart holds minor units; the orders table stores a decimal amount.
-        p_total: toStoredAmount(total),
-        p_marketing_consent: false,
-        p_items: lines.map((line) => ({
+        total: toStoredAmount(total),
+        marketingConsent: false,
+        items: lines.map((line) => ({
           name: line.name,
           qty: line.qty,
           unit_price: toStoredAmount(line.price),
         })),
       });
 
-      if (error || !data?.[0]) {
-        setUncertain(true);
-        setSubmitError(`We could not verify receipt of ${orderNo}. Contact Jimmy's with this reference before ordering again.`);
-        return;
-      }
-
-      setPlacedOrder({ orderNo: data[0].order_no, requestedTime, total, lines: [...lines], orderType, tableNumber, address: deliveryAddress });
+      setPlacedOrder({ orderNo: created.order_no, requestedTime, total, lines: [...lines], orderType, tableNumber, address: deliveryAddress });
       clear();
       setStep('confirmed');
     } catch {

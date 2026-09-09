@@ -1,10 +1,10 @@
 import { useAdminResource } from './useAdminResource';
 import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
-import { getLocalToday, controlClass } from './adminUtils';
+import { controlClass } from './adminUtils';
 import React, { useRef, useCallback, useMemo, useState } from 'react';
 import { CalendarDays, Clock3, Mail, Phone, Users } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { data as db, type ListView } from '../../core/data';
 import {
   actionableCardClass,
   cardClass,
@@ -25,7 +25,7 @@ type BookingFilter = 'all' | BookingStatus;
 
 export const AdminBookings: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [view, setView] = useState('active');
+  const [view, setView] = useState<ListView>('active');
   const [limit, setLimit] = useState(200);
 
   const [filter, setFilter] = useState<BookingFilter>('all');
@@ -35,13 +35,7 @@ export const AdminBookings: React.FC = () => {
   const [updateErrors, setUpdateErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    let query = supabase.from('bookings').select('*').order('created_at', { ascending: false }).order('id').limit(limit);
-    if (view === 'active') query = query.neq('status', 'cancelled').gte('booking_date', getLocalToday());
-    if (view === 'history') query = query.lt('booking_date', getLocalToday());
-    if (view === 'today') query = query.eq('booking_date', getLocalToday());
-    const { data, error } = await query;
-    if (error) throw error;
-    return data ?? [];
+    return db.listBookings({ view, limit });
   }, [view, limit]);
   const { data: bookings, setData: setBookings, loading, error, updatedAt, refresh: fetchBookings } = useAdminResource<Booking[]>(load, []);
 
@@ -68,8 +62,7 @@ export const AdminBookings: React.FC = () => {
     });
 
     try {
-      const { data, error: updateError } = await supabase.from('bookings').update({ status }).eq('id', booking.id).eq('status', booking.status).select('id');
-      if (updateError || data?.length !== 1) throw new Error('conflict');
+      await db.advanceBookingStatus(booking.id, booking.status, status);
       setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, status } : item));
       setFeedback('Status saved. Contact the customer if they need an update.');
       await fetchBookings();
@@ -125,7 +118,7 @@ export const AdminBookings: React.FC = () => {
       <AdminRefresh disabled={savingId !== null} loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchBookings()} />
       <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_220px]">
         <label className="text-sm font-semibold">Search loaded records<input type="search" className={controlClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, contact or reference" /></label>
-        <label className="text-sm font-semibold">Date / queue<select disabled={savingId !== null} className={controlClass} value={view} onChange={(event) => { setView(event.target.value); setLimit(200); }}><option value="active">Upcoming bookings</option><option value="today">Today</option><option value="history">History</option><option value="all">All dates</option></select></label>
+        <label className="text-sm font-semibold">Date / queue<select disabled={savingId !== null} className={controlClass} value={view} onChange={(event) => { setView(event.target.value as ListView); setLimit(200); }}><option value="active">Upcoming bookings</option><option value="today">Today</option><option value="history">History</option><option value="all">All dates</option></select></label>
       </div>
       <p className="mb-4 text-sm text-ink/75">{filteredBookings.length} matching / {bookings.length} loaded. Search applies to loaded records.</p>
 

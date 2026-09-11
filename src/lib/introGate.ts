@@ -12,6 +12,8 @@
 // exactly as before.
 // ---------------------------------------------------------------------------
 
+import { useEffect, useState } from 'react';
+
 let open = true;
 const waiters = new Set<() => void>();
 
@@ -38,3 +40,10 @@ export const whenIntroDone = (callback: () => void): (() => void) => {
     waiters.delete(callback);
   };
 };
+
+/** React view of the gate: false while the first-load intro still covers the page. */
+export function useIntroDone(): boolean {
+  const [done, setDone] = useState(isIntroGateOpen);
+  useEffect(() => whenIntroDone(() => setDone(true)), []);
+  return done;
+}

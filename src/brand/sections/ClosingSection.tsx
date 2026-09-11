@@ -32,7 +32,10 @@ export const ClosingSection: React.FC<{ content: ClosingContent }> = ({ content 
         </a>
       </motion.div>
 
-      <motion.div {...fadeInUp} className="relative min-h-[520px] lg:min-h-full overflow-hidden">
+      {/* Desktop: the photo bleeds to the viewport's right edge. Inside the
+          max-w-7xl grid it used to stop short and leave a strip of gold down
+          the right-hand side on any screen wider than the container. */}
+      <motion.div {...fadeInUp} className="relative min-h-[520px] lg:min-h-0 lg:absolute lg:inset-y-0 lg:right-0 lg:w-[52%] overflow-hidden">
         <img src={content.image} alt={content.imageAlt} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/65 via-transparent to-transparent lg:bg-gradient-to-r lg:from-accent/35 lg:via-transparent lg:to-transparent" />
         <div className="absolute left-5 right-5 bottom-5 md:left-8 md:right-auto md:bottom-8 md:w-[330px] bg-surface text-ink rounded-2xl p-6 shadow-2xl border border-ink/10">

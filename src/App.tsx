@@ -176,13 +176,13 @@ const AnimatedRoutes: React.FC = () => {
           className="fixed inset-0 z-[121] pointer-events-none flex flex-col items-center justify-center"
           aria-hidden="true"
         >
-          <img src={config.assets.logo} alt="" className="w-44 md:w-56 h-auto" />
-          <div className="mt-5 flex items-center gap-3 text-accent">
-            <span className="h-px w-8 bg-accent/80" />
-            <span className="font-display text-[10px] md:text-xs font-bold tracking-[0.22em] uppercase">
+          <img src={config.assets.logo} alt="" className="w-44 md:w-56 lg:w-[clamp(260px,22vw,360px)] h-auto" />
+          <div className="mt-5 lg:mt-8 flex items-center gap-3 lg:gap-4 text-accent">
+            <span className="h-px w-8 lg:w-12 bg-accent/80" />
+            <span className="font-display text-[10px] md:text-xs lg:text-sm font-bold tracking-[0.22em] uppercase">
               {copy.brand.tagline}
             </span>
-            <span className="h-px w-8 bg-accent/80" />
+            <span className="h-px w-8 lg:w-12 bg-accent/80" />
           </div>
         </motion.div>
       </motion.div>

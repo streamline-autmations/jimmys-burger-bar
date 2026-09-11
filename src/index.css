@@ -50,6 +50,20 @@ body {
    <BrandIntro> and removed the moment it finishes. */
 html[data-intro-active] {
   overflow: hidden;
+  /* Desktop browsers with classic scrollbars used to drop the scrollbar while
+     the intro played and bring it back at the end, which shifted the whole
+     page ~7px sideways the instant it was revealed. Reserving the gutter keeps
+     the layout the same width before and after, and the ink canvas colour
+     makes that reserved strip part of the navy intro rather than a pale edge.
+     Phones use overlay scrollbars, so none of this changes anything there. */
+  scrollbar-gutter: stable;
+  background-color: rgb(var(--color-ink));
+}
+
+/* Desktop: the intro's logo travels into the navbar, so the navbar's own copy
+   stays hidden until it has landed. Set and cleared by <BrandIntro>. */
+html[data-intro-handoff] [data-nav-logo] {
+  opacity: 0;
 }
 
 /* Subtle film grain over the whole page. Fixed + pointer-events-none so it

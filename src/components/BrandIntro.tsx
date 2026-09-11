@@ -1,8 +1,9 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { copy } from '../core/tenant';
 import { EASE, STAMP_EASE } from '../lib/motion';
 import { openIntroGate } from '../lib/introGate';
+import { useIsDesktop } from '../lib/useDesktop';
 
 // ---------------------------------------------------------------------------
 // FIRST-LOAD BRAND INTRO — "the poster goes up"
@@ -26,6 +27,13 @@ import { openIntroGate } from '../lib/introGate';
 // assembly to finish before showing itself, so a fast (cached) mount never
 // cuts the assembly short and a slow mount never leaves a gap. Both layers are
 // the same flat navy at hand-off, so the swap cannot be seen.
+//
+// DESKTOP (lg+, added 2026-09-11): the lockup is scaled for the canvas, and in
+// Stage 4 the logo does not leave with the poster. It travels into the
+// navbar's logo slot while the strips lift, and the navbar's own logo is
+// revealed underneath it at the end, so the brand stamp visibly becomes the
+// site's header instead of a splash that vanishes. Phones keep the original
+// fade-with-the-poster exit.
 // ---------------------------------------------------------------------------
 
 // Must match the #boot geometry in index.html.
@@ -99,8 +107,32 @@ const removeBootLayer = () => {
   document.getElementById('boot')?.remove();
 };
 
+type Handoff = { x: number; y: number; scale: number };
+
+// Desktop only: the move that lands the intro logo exactly on the navbar logo.
+// Null when there is nothing visible to land on (for example a reload that
+// restored a scrolled position with the bar tucked away), in which case the
+// lockup leaves with the poster the way it does on phones.
+const measureHandoff = (source: HTMLElement | null): Handoff | null => {
+  const target = document.querySelector<HTMLElement>('[data-nav-logo] img');
+  if (!source || !target) return null;
+  const from = source.getBoundingClientRect();
+  const to = target.getBoundingClientRect();
+  if (!from.width || !to.width || to.bottom <= 0) return null;
+  return {
+    x: to.left + to.width / 2 - (from.left + from.width / 2),
+    y: to.top + to.height / 2 - (from.top + from.height / 2),
+    scale: to.width / from.width,
+  };
+};
+
 export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const reduceMotion = useReducedMotion();
+  const isDesktop = useIsDesktop();
+  // Read inside the peel timer, which must not restart if the width changes.
+  const desktopRef = useRef(isDesktop);
+  desktopRef.current = isDesktop;
+  const logoRef = useRef<HTMLImageElement>(null);
 
   // Measured once at mount, so the hand-off lands on a fully assembled canvas
   // whether React arrived early on a warm cache or late on a cold one.
@@ -121,6 +153,7 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
   const [armed, setArmed] = useState(waitForAssembly === 0);
   const [peeling, setPeeling] = useState(false);
+  const [handoff, setHandoff] = useState<Handoff | null>(null);
 
   useEffect(() => {
     if (armed) return;
@@ -139,6 +172,15 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     document.documentElement.setAttribute('data-intro-active', '');
     return () => document.documentElement.removeAttribute('data-intro-active');
   }, []);
+
+  // Desktop: the navbar logo stays hidden for as long as the intro's copy of it
+  // is on screen, so only one logo is ever visible and the swap at unmount lands
+  // on an identical image in an identical place.
+  useLayoutEffect(() => {
+    if (!isDesktop || reduceMotion) return;
+    document.documentElement.setAttribute('data-intro-handoff', '');
+    return () => document.documentElement.removeAttribute('data-intro-handoff');
+  }, [isDesktop, reduceMotion]);
 
   useEffect(() => {
     if (!armed) return;
@@ -164,6 +206,9 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
     const timers = [
       window.setTimeout(() => {
+        // Measured before the peel starts, while the logo is still at rest.
+        // Batched with setPeeling, so the lockup never begins its phone exit.
+        if (desktopRef.current) setHandoff(measureHandoff(logoRef.current));
         setPeeling(true);
         // Hero motion is released here rather than at onDone. The peel takes
         // PEEL_LENGTH to clear, so waiting for it left the stage showing an
@@ -193,13 +238,13 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           alt=""
           width={224}
           height={224}
-          className="w-[52vw] max-w-[236px] sm:w-56 sm:max-w-none md:w-64 h-auto"
+          className="w-[52vw] max-w-[236px] sm:w-56 sm:max-w-none md:w-64 lg:w-[clamp(300px,26vw,420px)] h-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.32, ease: EASE }}
         />
         <motion.p
-          className="mt-5 font-display text-[11px] md:text-xs font-bold uppercase tracking-[0.22em] text-accent"
+          className="mt-5 lg:mt-8 font-display text-[11px] md:text-xs lg:text-base font-bold uppercase tracking-[0.22em] text-accent"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.32, delay: 0.1, ease: EASE }}
@@ -240,31 +285,51 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
       {/* One composed lockup: rule, logo, sticker and tagline are staged beats
           of a single reveal, and they leave together with the poster they are
-          printed on rather than running their own exits. */}
+          printed on rather than running their own exits. On desktop the logo
+          is the exception: it stays on top and travels to the navbar. */}
       <motion.div
         className="absolute inset-0 flex flex-col items-center justify-center px-6"
         initial={{ opacity: 1, y: 0 }}
-        animate={peeling ? { opacity: 0, y: -26 } : { opacity: 1, y: 0 }}
+        animate={peeling && !handoff ? { opacity: 0, y: -26 } : { opacity: 1, y: 0 }}
         transition={{ duration: 0.34, ease: EASE }}
       >
         <div className="relative">
           <motion.img
+            ref={logoRef}
             src="/images/logo.png"
             alt=""
             width={224}
             height={224}
-            className="w-[52vw] max-w-[236px] sm:w-56 sm:max-w-none md:w-64 h-auto"
+            className="w-[52vw] max-w-[236px] sm:w-56 sm:max-w-none md:w-64 lg:w-[clamp(300px,26vw,420px)] h-auto"
             initial={{ opacity: 0, scale: 0.72, y: 10 }}
-            animate={armed ? { opacity: 1, scale: 1, y: 0 } : undefined}
-            transition={{ duration: 0.54, delay: STAGE.logo, ease: STAMP_EASE }}
+            animate={
+              handoff
+                ? { opacity: 1, x: handoff.x, y: handoff.y, scale: handoff.scale }
+                : armed
+                  ? { opacity: 1, scale: 1, y: 0 }
+                  : undefined
+            }
+            transition={
+              handoff
+                ? { duration: PEEL_LENGTH / 1000, ease: EASE }
+                : { duration: 0.54, delay: STAGE.logo, ease: STAMP_EASE }
+            }
           />
           {/* Supporting detail, not a second focal point: it lands after the
               logo has settled and stays small enough to read as a sticker. */}
           <motion.div
-            className="absolute -top-1 -right-4 w-11 h-11 md:-top-2 md:-right-7 md:w-14 md:h-14"
+            className="absolute -top-1 -right-4 w-11 h-11 md:-top-2 md:-right-7 md:w-14 md:h-14 lg:-top-4 lg:-right-11 lg:w-20 lg:h-20"
             initial={{ opacity: 0, scale: 0.3, rotate: -28 }}
-            animate={armed ? { opacity: 1, scale: 1, rotate: 0 } : undefined}
-            transition={{ duration: 0.34, delay: STAGE.burst, ease: STAMP_EASE }}
+            animate={
+              handoff
+                ? { opacity: 0, scale: 0.4, rotate: 24 }
+                : armed
+                  ? { opacity: 1, scale: 1, rotate: 0 }
+                  : undefined
+            }
+            transition={
+              handoff ? { duration: 0.26, ease: EASE } : { duration: 0.34, delay: STAGE.burst, ease: STAMP_EASE }
+            }
           >
             <svg viewBox="0 0 100 100" className="w-full h-full">
               <polygon points={BURST_POINTS} className="fill-accent" />
@@ -272,16 +337,20 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           </motion.div>
         </div>
 
-        <div className="mt-6 flex items-center gap-3">
+        <motion.div
+          className="mt-6 lg:mt-9 flex items-center gap-3 lg:gap-4"
+          animate={handoff ? { opacity: 0, y: -18 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: EASE }}
+        >
           <motion.span
-            className="h-px w-8 bg-accent origin-right"
+            className="h-px w-8 lg:w-14 bg-accent origin-right"
             initial={{ scaleX: 0 }}
             animate={armed ? { scaleX: 1 } : undefined}
             transition={{ duration: 0.42, delay: STAGE.rule, ease: EASE }}
           />
           <span className="overflow-hidden py-0.5">
             <motion.span
-              className="block font-display text-[11px] md:text-sm font-bold tracking-[0.22em] uppercase text-accent"
+              className="block font-display text-[11px] md:text-sm lg:text-base font-bold tracking-[0.22em] lg:tracking-[0.26em] uppercase text-accent"
               initial={{ y: '115%' }}
               animate={armed ? { y: '0%' } : undefined}
               transition={{ duration: 0.44, delay: STAGE.tagline, ease: EASE }}
@@ -290,12 +359,12 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
             </motion.span>
           </span>
           <motion.span
-            className="h-px w-8 bg-accent origin-left"
+            className="h-px w-8 lg:w-14 bg-accent origin-left"
             initial={{ scaleX: 0 }}
             animate={armed ? { scaleX: 1 } : undefined}
             transition={{ duration: 0.42, delay: STAGE.rule, ease: EASE }}
           />
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );

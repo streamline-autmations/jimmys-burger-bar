@@ -31,8 +31,12 @@ const preloadAndDecode = (src: string): Promise<void> =>
     image.src = src;
   });
 
-export const BurgerAssembly: React.FC = () => {
+export const BurgerAssembly: React.FC<{
+  /** Desktop: follow the cursor across this whole element rather than only the stage. */
+  trackRef?: React.RefObject<HTMLElement>;
+}> = ({ trackRef }) => {
   const reduceMotion = useReducedMotion();
+  const stageRef = useRef<HTMLDivElement>(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [introDone, setIntroDone] = useState(isIntroGateOpen);
   const [assembled, setAssembled] = useState(false);
@@ -88,13 +92,39 @@ export const BurgerAssembly: React.FC = () => {
   }, [canAnimate, reduceMotion, pace]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'touch' || reduceMotion) return;
+    if (trackRef || event.pointerType === 'touch' || reduceMotion) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     setPointer({ x: (event.clientX - bounds.left) / bounds.width - 0.5, y: (event.clientY - bounds.top) / bounds.height - 0.5 });
   };
 
+  // Desktop: the cursor anywhere in the tracked area steers the burger,
+  // clamped to the same range the stage itself allows. It reads as the burger
+  // noticing the visitor, rather than only reacting once the pointer happens
+  // to cross it.
+  useEffect(() => {
+    const area = trackRef?.current;
+    if (!area || reduceMotion) return;
+    const clamp = (value: number) => Math.max(-0.5, Math.min(0.5, value));
+    const onMove = (event: PointerEvent) => {
+      const stage = stageRef.current;
+      if (event.pointerType === 'touch' || !stage) return;
+      const bounds = stage.getBoundingClientRect();
+      setPointer({
+        x: clamp((event.clientX - bounds.left) / bounds.width - 0.5),
+        y: clamp((event.clientY - bounds.top) / bounds.height - 0.5),
+      });
+    };
+    const onLeave = () => setPointer({ x: 0, y: 0 });
+    area.addEventListener('pointermove', onMove, { passive: true });
+    area.addEventListener('pointerleave', onLeave);
+    return () => {
+      area.removeEventListener('pointermove', onMove);
+      area.removeEventListener('pointerleave', onLeave);
+    };
+  }, [trackRef, reduceMotion]);
+
   return (
-    <div className="burger-stage relative isolate w-full max-w-[660px] mx-auto aspect-square" onPointerMove={handlePointerMove} onPointerLeave={() => setPointer({ x: 0, y: 0 })}>
+    <div ref={stageRef} className="burger-stage relative isolate w-full max-w-[660px] mx-auto aspect-square" onPointerMove={handlePointerMove} onPointerLeave={() => { if (!trackRef) setPointer({ x: 0, y: 0 }); }}>
       <div className="burger-heat-halo absolute inset-[10%]" aria-hidden="true" />
       <motion.div className="burger-outline absolute inset-0" initial={{ opacity: 0.5 }} animate={{ opacity: canAnimate ? 0 : 0.5 }} transition={{ duration: reduceMotion ? 0 : 0.32, delay: reduceMotion ? 0 : canAnimate ? 3.9 * pace : 0 }} aria-hidden="true" />
       <motion.div className="absolute inset-0" animate={reduceMotion ? undefined : { rotateX: pointer.y * -5, rotateY: pointer.x * 6, x: pointer.x * 8, y: pointer.y * 6 }} transition={{ type: 'spring', stiffness: 90, damping: 18, mass: 0.7 }} style={{ transformStyle: 'preserve-3d' }}>

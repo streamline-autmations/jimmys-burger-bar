@@ -151,6 +151,37 @@ transforms globally.
 `rotate-[]` class. Framer writes an inline `transform` which clobbers Tailwind's transform
 chain and flattens the cards. Keep the tilt in the variant.
 
+### Desktop motion layer (lg+, added 2026-09-11)
+
+Christiaan asked for desktop to reach mobile's level or beyond, with mobile left exactly
+as it was. Everything here is gated on `DESKTOP_QUERY` (`src/lib/useDesktop.ts`, equal to
+Tailwind `lg`) and on reduced motion being off; phones take the original code paths.
+
+- **Intro logo handoff** (`BrandIntro.tsx`): the lockup is scaled for the canvas, and at the
+  peel the logo travels into the navbar logo slot (`[data-nav-logo]`) instead of fading.
+  The navbar's own logo is hidden by `html[data-intro-handoff]` until it lands. The target
+  is measured at peel time; if the bar is off-screen it falls back to the phone exit.
+- **No scrollbar jump:** `html[data-intro-active]` reserves `scrollbar-gutter` and paints the
+  canvas ink, so the page is the same width during and after the intro. Removing it brings
+  back a ~7px sideways jump at the reveal AND misaligns the logo handoff.
+- **Hero entrance is gated** on the intro (`useIntroDone` in `introGate.ts`): headline words
+  rise from masks, "Done right." writes on via clip-path, then body and CTAs. It used to
+  play unseen behind the curtain. Also a scroll-out parallax (copy lifts and fades, burger
+  lags and shrinks), and the burger follows the cursor across the whole hero
+  (`BurgerAssembly` `trackRef`).
+- **Gallery pins** and vertical scroll walks the rail sideways (GSAP ScrollTrigger in
+  `GallerySection.tsx`; `pinSpacing: true` stays explicit, same flex-wrapper gotcha as
+  SmashStory). The lean comes from scroll velocity. Reduced-motion desktop gets an unpinned,
+  draggable rail.
+- **Specials rail** is mouse-draggable (`useDragScroll`) with prev/next buttons: a mouse wheel
+  cannot scroll an overflow-x rail, so the fifth poster was unreachable on desktop.
+- **Closing photo** bleeds to the right viewport edge on lg (absolute, 52% width).
+- **Route curtain** logo and tagline are sized up on lg.
+
+**Gotcha (WSL):** this repo lives on `/mnt/c`, where Vite's file watcher receives no change
+events, so a plain `npm run dev` silently keeps serving stale modules after edits. Start
+it with `CHOKIDAR_USEPOLLING=true`, or verify against `npm run build && npx vite preview`.
+
 ---
 
 ## Architecture

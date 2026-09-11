@@ -61,7 +61,8 @@ export const Navbar: React.FC = () => {
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between h-12">
-        <Link to="/" className="shrink-0" aria-label="Home">
+        {/* data-nav-logo is where the first-load intro lands its logo on desktop. */}
+        <Link to="/" className="shrink-0" aria-label="Home" data-nav-logo>
           <Logo className="h-11 md:h-12 w-auto" />
         </Link>
 

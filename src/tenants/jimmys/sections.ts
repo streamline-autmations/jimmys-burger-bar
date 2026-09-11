@@ -72,7 +72,7 @@ export const jimmysSections: SectionSpec[] = [
   },
   // Checkered-flag edge into Story: the existing Coffee & Cars racing motif
   // bent into a section break rather than the flat .checker strip.
-  { type: 'divider', content: { variant: 'checker', fill: 'rgb(var(--color-paper))' } },
+  { type: 'divider', content: { variant: 'checker', fill: 'rgb(var(--color-paper))', behind: 'rgb(var(--color-ink))' } },
   {
     type: 'story',
     content: {
@@ -119,7 +119,7 @@ export const jimmysSections: SectionSpec[] = [
       ],
     },
   },
-  { type: 'divider', content: { variant: 'checker', fill: 'rgb(var(--color-accent))', flip: true } },
+  { type: 'divider', content: { variant: 'checker', fill: 'rgb(var(--color-accent))', behind: 'rgb(var(--color-ink))', flip: true } },
   {
     type: 'closing',
     content: {

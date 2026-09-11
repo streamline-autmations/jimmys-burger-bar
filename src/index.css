@@ -461,6 +461,32 @@ html[data-intro-handoff] [data-nav-logo] {
   .special-stack { height: 390px; max-width: 320px; }
 }
 
+@media (min-width: 1024px) {
+  /* The halo is 660px across here, which turned the gold-over-navy disc into a
+     muddy brown plate for the whole burger build. Gold and navy are close to
+     complementary, so any translucent wash of one over the other desaturates.
+     On desktop the light is a white spotlight instead, and the gold is kept to
+     the thin rings, where a line can carry colour without mixing into a wash. */
+  .burger-heat-halo {
+    background:
+      radial-gradient(circle at 50% 55%, rgb(var(--color-surface) / 0.1) 0%, rgb(var(--color-surface) / 0.045) 30%, transparent 62%),
+      repeating-radial-gradient(circle at 50% 55%, transparent 0 30px, rgb(var(--color-accent) / 0.16) 31px 32px, transparent 33px 52px);
+    -webkit-mask-image: radial-gradient(circle at 50% 55%, #000 34%, transparent 70%);
+    mask-image: radial-gradient(circle at 50% 55%, #000 34%, transparent 70%);
+  }
+
+  /* The hand-held burger cutouts fill their panels from the bottom edge, so the
+     food carries the frame instead of floating small in it. */
+  .burger-hand-photo {
+    transform-origin: 50% 100%;
+    transform: scale(1.1);
+  }
+  .group:hover .burger-hand-photo,
+  .burger-wall-panel:hover > img {
+    transform: scale(1.13);
+  }
+}
+
 /* Outlined display type for the pinned Smash showcase. */
 .text-outline-surface {
   -webkit-text-stroke: 2.5px rgb(var(--color-surface));

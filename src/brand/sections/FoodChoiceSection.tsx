@@ -29,15 +29,19 @@ export const FoodChoiceSection: React.FC<{ content: FoodChoiceContent }> = ({ co
           <Link
             key={panel.title}
             to={panel.to}
-            className={`burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-primary block snap-center ring-1 ring-surface/10 ${
+            className={`burger-wall-panel group relative shrink-0 w-[86vw] md:w-auto min-h-[400px] md:min-h-[600px] overflow-hidden bg-primary lg:bg-surface/[0.04] block snap-center ring-1 ring-surface/10 ${
               index === 0 ? 'rounded-2xl md:rounded-r-none' : 'md:translate-y-10 rounded-2xl md:rounded-l-none'
             }`}
           >
+            {/* Desktop: the panels are lifted a shade off the navy section and
+                the burger is scaled up from the bottom edge (see
+                .burger-hand-photo in index.css), so each one reads as a
+                product poster rather than a large empty outline. */}
             <img src={panel.image} alt={panel.alt} loading="lazy" className="burger-hand-photo absolute inset-0 w-full h-full object-contain transition-transform duration-700" />
             <div className="absolute z-10 left-6 right-6 bottom-6 md:left-9 md:right-9 md:bottom-9 flex items-end justify-between gap-4 text-surface">
               <div>
                 <span className="text-xs font-bold tracking-[0.14em] uppercase text-accent">{panel.eyebrow}</span>
-                <h3 className="font-display text-3xl md:text-4xl font-extrabold mt-1">{panel.title}</h3>
+                <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mt-1">{panel.title}</h3>
               </div>
               <ArrowRight size={24} className="shrink-0 transition-transform duration-300 group-hover:translate-x-2" />
             </div>

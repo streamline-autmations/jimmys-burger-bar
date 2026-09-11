@@ -102,6 +102,8 @@ export interface DividerContent {
   variant: 'wave' | 'checker';
   /** CSS colour of the section BELOW - the shape is that section's top edge. */
   fill: string;
+  /** Checker only: CSS colour of the section ABOVE, seen through the empty squares. Defaults to transparent. */
+  behind?: string;
   flip?: boolean;
 }
 

@@ -34,12 +34,15 @@ const ReviewPoster: React.FC<{ review: Review; index: number; featured?: boolean
       } ${REVIEW_TILTS[index % REVIEW_TILTS.length]}`}
     >
       <span className={`absolute -top-3 left-1/2 -translate-x-1/2 h-6 bg-accent/85 border-x border-ink/10 shadow-sm ${featured ? 'w-24 rotate-[1deg]' : 'w-20 -rotate-[1deg]'}`} aria-hidden="true" />
-      <div>
+      {/* On desktop the featured poster stretches to the height of the two
+          stacked beside it. Its quote is set larger and centred in that space,
+          instead of parking at the top over a large blank card. */}
+      <div className={featured ? 'flex-1 flex flex-col' : undefined}>
         <div className="flex items-center justify-between gap-4 mb-6">
           <Quote className="text-accent" size={featured ? 38 : 28} fill="currentColor" strokeWidth={0} />
           <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-ink/35">{content.reviewerLabel}</span>
         </div>
-        <p className={`${featured ? 'font-display text-xl md:text-2xl leading-snug' : 'leading-relaxed'} text-ink/85`}>{review.text}</p>
+        <p className={`${featured ? 'font-display text-xl md:text-2xl lg:text-[1.7rem] xl:text-[1.9rem] leading-snug lg:leading-[1.3] lg:my-auto' : 'leading-relaxed'} text-ink/85`}>{review.text}</p>
       </div>
       <div className="flex items-center justify-between gap-3 pt-5 mt-8 border-t border-ink/10">
         <div className="flex items-center gap-3 min-w-0">

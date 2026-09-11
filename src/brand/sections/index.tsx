@@ -33,7 +33,7 @@ export const Section: React.FC<{ spec: SectionSpec }> = ({ spec }) => {
     case 'closing': return <ClosingSection content={spec.content} />;
     case 'divider':
       return spec.content.variant === 'checker'
-        ? <CheckerDivider fill={spec.content.fill} flip={spec.content.flip} />
+        ? <CheckerDivider fill={spec.content.fill} behind={spec.content.behind} flip={spec.content.flip} />
         : <WaveDivider fill={spec.content.fill} />;
     default: {
       // Exhaustiveness guard: a new section type without a case fails to compile.

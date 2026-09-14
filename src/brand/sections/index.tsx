@@ -1,4 +1,5 @@
 import React from 'react';
+import { MotionConfig } from 'framer-motion';
 import { Marquee } from '../../components/Marquee';
 import { WaveDivider, CheckerDivider } from '../../components/SectionDivider';
 import { HeroSection } from './HeroSection';
@@ -21,7 +22,10 @@ import type { SectionSpec } from './types';
  */
 export const Section: React.FC<{ spec: SectionSpec }> = ({ spec }) => {
   switch (spec.type) {
-    case 'hero': return <HeroSection content={spec.content} />;
+    // The hero's entrance and burger build are the load-in, played for every
+    // visitor (see App.tsx). Its parallax and cursor effects check the visitor's
+    // own setting inside the component.
+    case 'hero': return <MotionConfig reducedMotion="never"><HeroSection content={spec.content} /></MotionConfig>;
     case 'marquee': return <Marquee />;
     case 'specials': return <SpecialsSection content={spec.content} />;
     case 'foodChoice': return <FoodChoiceSection content={spec.content} />;

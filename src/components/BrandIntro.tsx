@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotionConfig } from 'framer-motion';
 import { copy } from '../core/tenant';
 import { EASE, STAMP_EASE } from '../lib/motion';
 import { openIntroGate } from '../lib/introGate';
@@ -127,7 +127,11 @@ const measureHandoff = (source: HTMLElement | null): Handoff | null => {
 };
 
 export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
-  const reduceMotion = useReducedMotion();
+  // Follows the MotionConfig it is rendered in, not the OS setting directly.
+  // App plays the intro for every visitor (client decision 2026-09-14), so
+  // this is false in practice; the reduced branch below stays for a tenant
+  // that opts back out.
+  const reduceMotion = Boolean(useReducedMotionConfig());
   const isDesktop = useIsDesktop();
   // Read inside the peel timer, which must not restart if the width changes.
   const desktopRef = useRef(isDesktop);

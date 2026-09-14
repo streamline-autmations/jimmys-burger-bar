@@ -155,7 +155,8 @@ chain and flattens the cards. Keep the tilt in the variant.
 
 Christiaan asked for desktop to reach mobile's level or beyond, with mobile left exactly
 as it was. Everything here is gated on `DESKTOP_QUERY` (`src/lib/useDesktop.ts`, equal to
-Tailwind `lg`) and on reduced motion being off; phones take the original code paths.
+Tailwind `lg`); phones take the original code paths. Which parts still respect reduced
+motion is set by the policy below.
 
 - **Intro logo handoff** (`BrandIntro.tsx`): the lockup is scaled for the canvas, and at the
   peel the logo travels into the navbar logo slot (`[data-nav-logo]`) instead of fading.
@@ -181,6 +182,27 @@ Tailwind `lg`) and on reduced motion being off; phones take the original code pa
 **Gotcha (WSL):** this repo lives on `/mnt/c`, where Vite's file watcher receives no change
 events, so a plain `npm run dev` silently keeps serving stale modules after edits. Start
 it with `CHOKIDAR_USEPOLLING=true`, or verify against `npm run build && npx vite preview`.
+
+### Reduced-motion policy (client decision, 2026-09-14)
+
+Windows ships with "Animation effects" off on many machines, and Christiaan's own desktop
+browser reports `prefers-reduced-motion: reduce`, so under the global
+`MotionConfig reducedMotion="user"` he saw no load-in at all. The split is now:
+
+- **Plays for every visitor** (wrapped in `MotionConfig reducedMotion="never"`): the
+  first-load intro (`App.tsx`, plus the `#boot` CSS in `index.html`, which no longer has a
+  reduced-motion override), the hero entrance and burger build (`sections/index.tsx`),
+  and the route curtain overlays (`App.tsx`). Those components read
+  `useReducedMotionConfig()`, not `useReducedMotion()`, so the wrappers are the single
+  place this policy lives.
+- **Still respects the setting:** Lenis smooth scroll, the pinned gallery, hero scroll
+  parallax, cursor tilt, steam/halo loops, the marquee and other infinite loops, rail
+  lean, and every in-page entrance outside the hero.
+
+Under the old policy the route curtain was worse than static: its sheets snapped away
+instantly while the logo kept its fade timing, so the logo hung over the new page for
+~600ms. The same day the curtain `HOLD` dropped from 0.5s to 0.2s and the logo now leaves
+as the strips begin to lift (it had been on screen for ~1s after landing).
 
 ---
 

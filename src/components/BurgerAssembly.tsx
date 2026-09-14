@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, useReducedMotionConfig } from 'framer-motion';
 import { isIntroGateOpen, whenIntroDone } from '../lib/introGate';
 
 type Layer = { id: string; src: string; alt: string; initial: { x: string; y: string; rotate: number; scale: number }; delay: number };
@@ -35,7 +35,12 @@ export const BurgerAssembly: React.FC<{
   /** Desktop: follow the cursor across this whole element rather than only the stage. */
   trackRef?: React.RefObject<HTMLElement>;
 }> = ({ trackRef }) => {
-  const reduceMotion = useReducedMotion();
+  // The build is the page's one-time load-in, so it follows the surrounding
+  // MotionConfig, which opts the hero in for every visitor (see sections/index).
+  // The cursor tilt and the idle steam loops are continuous motion, so they
+  // still follow the visitor's own reduced-motion setting.
+  const reduceMotion = Boolean(useReducedMotionConfig());
+  const reduceAmbient = Boolean(useReducedMotion());
   const stageRef = useRef<HTMLDivElement>(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [introDone, setIntroDone] = useState(isIntroGateOpen);
@@ -92,7 +97,7 @@ export const BurgerAssembly: React.FC<{
   }, [canAnimate, reduceMotion, pace]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (trackRef || event.pointerType === 'touch' || reduceMotion) return;
+    if (trackRef || event.pointerType === 'touch' || reduceAmbient) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     setPointer({ x: (event.clientX - bounds.left) / bounds.width - 0.5, y: (event.clientY - bounds.top) / bounds.height - 0.5 });
   };
@@ -103,7 +108,7 @@ export const BurgerAssembly: React.FC<{
   // to cross it.
   useEffect(() => {
     const area = trackRef?.current;
-    if (!area || reduceMotion) return;
+    if (!area || reduceAmbient) return;
     const clamp = (value: number) => Math.max(-0.5, Math.min(0.5, value));
     const onMove = (event: PointerEvent) => {
       const stage = stageRef.current;
@@ -121,13 +126,13 @@ export const BurgerAssembly: React.FC<{
       area.removeEventListener('pointermove', onMove);
       area.removeEventListener('pointerleave', onLeave);
     };
-  }, [trackRef, reduceMotion]);
+  }, [trackRef, reduceAmbient]);
 
   return (
     <div ref={stageRef} className="burger-stage relative isolate w-full max-w-[660px] mx-auto aspect-square" onPointerMove={handlePointerMove} onPointerLeave={() => { if (!trackRef) setPointer({ x: 0, y: 0 }); }}>
       <div className="burger-heat-halo absolute inset-[10%]" aria-hidden="true" />
       <motion.div className="burger-outline absolute inset-0" initial={{ opacity: 0.5 }} animate={{ opacity: canAnimate ? 0 : 0.5 }} transition={{ duration: reduceMotion ? 0 : 0.32, delay: reduceMotion ? 0 : canAnimate ? 3.9 * pace : 0 }} aria-hidden="true" />
-      <motion.div className="absolute inset-0" animate={reduceMotion ? undefined : { rotateX: pointer.y * -5, rotateY: pointer.x * 6, x: pointer.x * 8, y: pointer.y * 6 }} transition={{ type: 'spring', stiffness: 90, damping: 18, mass: 0.7 }} style={{ transformStyle: 'preserve-3d' }}>
+      <motion.div className="absolute inset-0" animate={reduceAmbient ? undefined : { rotateX: pointer.y * -5, rotateY: pointer.x * 6, x: pointer.x * 8, y: pointer.y * 6 }} transition={{ type: 'spring', stiffness: 90, damping: 18, mass: 0.7 }} style={{ transformStyle: 'preserve-3d' }}>
         <motion.div
           className="absolute inset-0"
           animate={
@@ -151,8 +156,8 @@ export const BurgerAssembly: React.FC<{
             />
           )}
         </motion.div>
-        {canAnimate && !reduceMotion && <div className={`burger-steam ${assembled ? 'is-hot' : ''}`} aria-hidden="true"><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /></div>}
-        {assembled && !reduceMotion && (
+        {canAnimate && !reduceAmbient && <div className={`burger-steam ${assembled ? 'is-hot' : ''}`} aria-hidden="true"><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /></div>}
+        {assembled && !reduceAmbient && (
           <svg
             viewBox="0 0 300 240"
             className="absolute z-[9] left-[22%] -top-[3%] w-[56%] h-[46%] overflow-visible pointer-events-none"

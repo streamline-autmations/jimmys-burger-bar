@@ -73,7 +73,14 @@ const ScrollToTop = () => {
 // the wipe was reading as too brief to register between pages. It is added to
 // the delays rather than the durations so the peel itself keeps its pace - a
 // slower peel would read as sluggish, a longer hold reads as deliberate.
-const HOLD = 0.5;
+//
+// Cut from 0.5 to 0.2 on 2026-09-14 (client-directed): with 0.5 the logo sat
+// at full opacity for about a second after it had landed, which read as the
+// logo overstaying rather than as a deliberate beat.
+const HOLD = 0.2;
+// The logo starts leaving just before the strips lift, so it is gone as the
+// page is revealed instead of lingering over the first frames of it.
+const LOGO_LEAVE_DELAY = HOLD - 0.05;
 const accentSheetVariants = {
   initial: { y: '0%' },
   enter: { y: '-102%', transition: { duration: 0.62, ease: EASE, delay: 0.48 + HOLD } },
@@ -105,7 +112,7 @@ const shutterVariants = {
 
 const logoVariants = {
   initial: { scale: 1, opacity: 1 },
-  enter: { scale: 1.04, y: -22, opacity: 0, transition: { duration: 0.3, ease: EASE, delay: 0.08 + HOLD } },
+  enter: { scale: 1.04, y: -22, opacity: 0, transition: { duration: 0.3, ease: EASE, delay: LOGO_LEAVE_DELAY } },
   exit: {
     scale: [0.76, 1.03, 1],
     y: [18, 0, 0],
@@ -143,6 +150,11 @@ const AnimatedRoutes: React.FC = () => {
           </Suspense>
         </main>
 
+        {/* The curtain plays for every visitor, like the first-load intro. Under
+            the global "user" setting a reduced-motion visitor's sheets snapped
+            away instantly while the logo kept its fade timing, so the logo hung
+            over the new page for ~600ms after the curtain had already gone. */}
+        <MotionConfig reducedMotion="never">
         {/* Under-sheets create a quick white and gold flash between pages. */}
         <motion.div
           variants={accentSheetVariants}
@@ -185,6 +197,7 @@ const AnimatedRoutes: React.FC = () => {
             <span className="h-px w-8 lg:w-12 bg-accent/80" />
           </div>
         </motion.div>
+        </MotionConfig>
       </motion.div>
     </AnimatePresence>
   );
@@ -227,7 +240,16 @@ const PublicApp: React.FC = () => {
         <AnimatedRoutes />
         <Footer />
       </div>
-      {introActive && <BrandIntro onDone={handleIntroDone} />}
+      {/* The first-load intro is a one-time, few-second brand moment, so it plays
+          for every visitor. Windows ships with animation effects switched off on
+          many machines, and under the global "user" setting those visitors got
+          a static fade with no load-in at all. Scroll-linked and continuous
+          motion elsewhere still respects the setting. */}
+      {introActive && (
+        <MotionConfig reducedMotion="never">
+          <BrandIntro onDone={handleIntroDone} />
+        </MotionConfig>
+      )}
     </MotionConfig>
   );
 };

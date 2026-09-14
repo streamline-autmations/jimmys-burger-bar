@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion, useReducedMotion, useReducedMotionConfig, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { config } from '../../config';
 import { GoogleBadge } from '../../components/GoogleBadge';
@@ -24,6 +24,11 @@ export const HeroSection: React.FC<{ content: HeroContent }> = ({ content }) => 
   const { venue } = config;
   const sectionRef = useRef<HTMLElement>(null);
   const isDesktop = useIsDesktop();
+  // Two different questions. The entrance is the one-time load-in and follows
+  // the MotionConfig around the hero, which plays it for every visitor. The
+  // scroll parallax and cursor tracking are continuous, so they follow the
+  // visitor's own reduced-motion setting.
+  const reduceLoadIn = Boolean(useReducedMotionConfig());
   const reduceMotion = useReducedMotion();
   const introDone = useIntroDone();
 
@@ -31,15 +36,16 @@ export const HeroSection: React.FC<{ content: HeroContent }> = ({ content }) => 
   // choreography that waits for the intro: at this width the hero IS the first
   // screen, and its entrance used to play out unseen behind the curtain, so the
   // peel revealed copy that was already sitting still.
-  const choreograph = isDesktop && !reduceMotion;
+  const choreograph = isDesktop && !reduceLoadIn;
+  const scrollFx = isDesktop && !reduceMotion;
 
   // Scroll-out: the copy lifts away faster than the page while the burger lags
   // and sinks back, so leaving the hero has depth instead of a flat slide.
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
-  const copyY = useTransform(scrollYProgress, [0, 1], choreograph ? [0, -140] : [0, 0]);
-  const copyOpacity = useTransform(scrollYProgress, [0.2, 0.75], choreograph ? [1, 0] : [1, 1]);
-  const burgerY = useTransform(scrollYProgress, [0, 1], choreograph ? [0, 110] : [0, 0]);
-  const burgerScale = useTransform(scrollYProgress, [0, 1], choreograph ? [1, 0.9] : [1, 1]);
+  const copyY = useTransform(scrollYProgress, [0, 1], scrollFx ? [0, -140] : [0, 0]);
+  const copyOpacity = useTransform(scrollYProgress, [0.2, 0.75], scrollFx ? [1, 0] : [1, 1]);
+  const burgerY = useTransform(scrollYProgress, [0, 1], scrollFx ? [0, 110] : [0, 0]);
+  const burgerScale = useTransform(scrollYProgress, [0, 1], scrollFx ? [1, 0.9] : [1, 1]);
 
   const item = (mobileDelay: number, desktopDelay: number) =>
     choreograph
@@ -111,7 +117,7 @@ export const HeroSection: React.FC<{ content: HeroContent }> = ({ content }) => 
         </motion.div>
         <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[310px] sm:max-w-[480px] md:max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0">
           <motion.div style={{ y: burgerY, scale: burgerScale }}>
-            <BurgerAssembly trackRef={choreograph ? sectionRef : undefined} />
+            <BurgerAssembly trackRef={scrollFx ? sectionRef : undefined} />
           </motion.div>
         </motion.div>
       </div>

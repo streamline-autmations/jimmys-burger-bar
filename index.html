@@ -73,11 +73,9 @@
       #boot i:nth-child(5) { left: 80%; transform: translate3d(0, -101%, 0); animation: bootIn 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.04s forwards; }
       @keyframes bootIn { to { transform: translate3d(0, 0, 0); } }
 
-      /* Reduced motion: no travel. The branded ground is simply already there. */
-      @media (prefers-reduced-motion: reduce) {
-        #boot { background: %TENANT_INK%; }
-        #boot i { animation: none; transform: none; }
-      }
+      /* No reduced-motion override here on purpose: the load-in plays for every
+         visitor, matching <BrandIntro>. Windows turns animation effects off on
+         many machines, which used to leave those visitors with no intro. */
 
       /* The staff tool gets the plain branded ground and no poster choreography:
          it clears the boot layer as soon as React mounts, so the assembly would

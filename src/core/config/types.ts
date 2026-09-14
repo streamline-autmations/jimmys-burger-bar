@@ -126,9 +126,9 @@ export interface BookingConfig {
 }
 
 export interface MotionConfig {
-  /** 'full' is the four-stage brand intro; 'short' suits a demo; 'off' skips it. */
-  intro: 'full' | 'short' | 'off';
-  /** Extra hold on the route curtain, in seconds. */
+  /** 'full' plays the four-stage first-load brand intro; 'off' skips straight to the page. */
+  intro: 'full' | 'off';
+  /** Seconds the route curtain holds over the viewport before it peels. */
   routeHold: number;
 }
 

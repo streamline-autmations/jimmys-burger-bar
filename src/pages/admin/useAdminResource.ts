@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { data as db } from '../../core/data';
 
 interface AdminResourceOptions {
   pollMs?: number;
@@ -70,6 +71,14 @@ export function useAdminResource<T>(
       window.removeEventListener('online', handleOnline);
     };
   }, [pollMs, refreshSilently]);
+
+  // Push updates where the adapter offers them; polling stays as the fallback.
+  useEffect(() => {
+    if (!db.subscribe) return;
+    return db.subscribe(() => {
+      if (!pausedRef.current) void refreshSilently();
+    });
+  }, [refreshSilently]);
 
   return { data, setData, loading, error, updatedAt, refresh };
 }

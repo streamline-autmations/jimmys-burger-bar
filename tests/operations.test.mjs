@@ -314,3 +314,143 @@ test('server refusals carry a reason the customer can act on', () => {
   assert.equal(reason('requested time is in the past'), 'time');
   assert.equal(reason('order total does not match its items'), undefined);
 });
+
+// ---------------------------------------------------------------------------
+// Demo build (VITE_DEMO=1). The records must be unmistakably fictional and the
+// demo adapter must follow the same rules as the database, or the walkthrough
+// sells behaviour the product does not have.
+// ---------------------------------------------------------------------------
+
+const seedModule = load('src/demo/seed.ts');
+const demoAdapterModule = load('src/demo/adapter.ts');
+const demoStore = load('src/demo/store.ts');
+const { ConflictError } = load('src/core/data/errors.ts');
+
+test('every seeded guest is unmistakably fictional', () => {
+  const { customers, orders, bookings } = seedModule.createSeed(new Date());
+  for (const row of [...customers, ...orders, ...bookings]) {
+    assert.match(row.email, /@example\.com$/, `${row.email} must be an example.com address`);
+    assert.match(row.phone, /^\+27 00 000 00\d\d$/, `${row.phone} must not be a diallable number`);
+  }
+  assert.ok(!customers.some((row) => /jimmy/i.test(row.email)), 'no seeded contact may belong to the restaurant');
+});
+
+test('seeded orders use real menu prices and consistent totals', () => {
+  const prices = new Map(orderableFromConfig().map((item) => [item.name, item.price]));
+  for (const order of seedModule.createSeed(new Date()).orders) {
+    let sum = 0;
+    for (const item of order.order_items) {
+      assert.equal(item.unit_price, prices.get(item.name), `${order.order_no}: ${item.name} must match the menu`);
+      sum += item.qty * item.unit_price;
+    }
+    assert.equal(order.total, sum, `${order.order_no} total`);
+  }
+});
+
+test('seeded guest counts agree with their orders and bookings', () => {
+  const { customers, orders, bookings } = seedModule.createSeed(new Date());
+  for (const customer of customers) {
+    const count = orders.filter((row) => row.customer_id === customer.id).length
+      + bookings.filter((row) => row.customer_id === customer.id).length;
+    assert.equal(customer.interaction_count, count, customer.name);
+  }
+});
+
+test('demo adapter follows the database rules', async () => {
+  const db = demoAdapterModule.adapter;
+  demoAdapterModule.setDemoLatency(0);
+  demoStore.resetRecords();
+
+  const future = new Date(Date.now() + 26 * 3600000);
+  future.setUTCHours(16, 0, 0, 0); // 18:00 SAST
+  const order = {
+    orderNo: 'JB-TESTDEMO01', customerName: 'Test Example', email: 'test@example.com', phone: '+27 00 000 0098',
+    orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
+    requestedTime: future.toISOString(), total: 200, marketingConsent: false,
+    items: [{ name: 'Smash Burger', qty: 2, unit_price: 100 }],
+  };
+
+  const first = await db.createOrder(order);
+  const again = await db.createOrder(order);
+  assert.equal(first.id, again.id, 'a retry returns the same order');
+  const active = await db.listOrders({ view: 'active', limit: 200 });
+  assert.equal(active.filter((row) => row.order_no === 'JB-TESTDEMO01').length, 1, 'placed order lands in the queue once');
+
+  await assert.rejects(db.createOrder({ ...order, orderNo: 'JB-TESTDEMO02', total: 0.02, items: [{ name: 'Smash Burger', qty: 2, unit_price: 0.01 }] }),
+    (error) => error.kind === 'rejected' && error.reason === 'menu');
+  const lateBreakfast = { ...order, orderNo: 'JB-TESTDEMO03', total: 60, items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 60 }] };
+  await assert.rejects(db.createOrder(lateBreakfast), (error) => error.reason === 'served');
+
+  const placed = active.find((row) => row.order_no === 'JB-TESTDEMO01');
+  await assert.rejects(db.advanceOrderStatus(placed.id, 'new', 'completed'), ConflictError, 'cannot skip stages');
+  await db.advanceOrderStatus(placed.id, 'new', 'accepted');
+  await assert.rejects(db.advanceOrderStatus(placed.id, 'new', 'accepted'), ConflictError, 'a stale change conflicts');
+
+  const history = await db.loadCustomerHistory(placed.customer_id);
+  assert.equal(history.orders[0].order_no, 'JB-TESTDEMO01', 'new guest has a history');
+  assert.equal((await db.lookupRequest('jb-testdemo01', 'TEST@example.com')).status, 'accepted');
+  assert.equal(await db.lookupRequest('JB-TESTDEMO01', 'someone@example.com'), null);
+
+  const dashboard = await db.loadDashboard();
+  assert.ok(dashboard.newOrdersCount >= 2, 'seeded queue is never empty');
+  assert.ok(dashboard.todayBookingsCount >= 3, "today's service is populated");
+  demoStore.resetRecords();
+});
+
+test('demo stores a fictional version of whatever contact details are typed', async () => {
+  const { adapter: db, fictionalContact, setDemoLatency } = demoAdapterModule;
+  setDemoLatency(0);
+  demoStore.resetRecords();
+  const typed = fictionalContact('Real.Person@gmail.com', '082 123 4567');
+  assert.equal(typed.email, 'real.person@example.com');
+  assert.match(typed.phone, /^\+27 00 000 00\d\d$/);
+  assert.equal(fictionalContact('', '+27 82 123 4567').phone, typed.phone, 'formats of one number map to one fictional number');
+
+  const future = new Date(Date.now() + 26 * 3600000);
+  future.setUTCHours(16, 0, 0, 0);
+  await db.createOrder({
+    orderNo: 'JB-TESTDEMO10', customerName: 'Real Person', email: 'Real.Person@gmail.com', phone: '082 123 4567',
+    orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
+    requestedTime: future.toISOString(), total: 100, marketingConsent: false,
+    items: [{ name: 'Smash Burger', qty: 1, unit_price: 100 }],
+  });
+  const stored = (await db.listOrders({ view: 'all', limit: 500 })).find((row) => row.order_no === 'JB-TESTDEMO10');
+  assert.equal(stored.email, 'real.person@example.com');
+  assert.doesNotMatch(JSON.stringify(await db.listCustomers({ limit: 500 })), /gmail|123 4567/);
+  assert.equal((await db.lookupRequest('JB-TESTDEMO10', 'real.person@gmail.com')).kind, 'order', 'the guest can still track with what they typed');
+  assert.equal((await db.lookupRequest('JB-TESTDEMO10', '+27 82 123 4567')).kind, 'order');
+  demoStore.resetRecords();
+});
+
+test('demo order checks match create_order exactly', async () => {
+  const { adapter: db, setDemoLatency } = demoAdapterModule;
+  setDemoLatency(0);
+  const future = new Date(Date.now() + 26 * 3600000);
+  future.setUTCHours(16, 0, 0, 0);
+  const base = {
+    customerName: 'Test Example', email: 'test@example.com', phone: '+27 00 000 0098',
+    orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
+    requestedTime: future.toISOString(), marketingConsent: false,
+  };
+  const refused = (order) => assert.rejects(db.createOrder({ ...base, ...order }), (error) => error.kind === 'rejected');
+  await refused({ orderNo: 'JB-V1', total: 0, items: [] });
+  await refused({ orderNo: 'JB-V2', total: 10000, items: [{ name: 'Smash Burger', qty: 100, unit_price: 100 }] });
+  await refused({ orderNo: 'JB-V3', total: 100.004, items: [{ name: 'Smash Burger', qty: 1, unit_price: 100 }] });
+  await refused({ orderNo: 'JB-V4', total: 99.99, items: [{ name: 'Smash Burger', qty: 1, unit_price: 99.99 }] });
+  await refused({ orderNo: 'JB-V5', total: 100, items: Array.from({ length: 101 }, () => ({ name: 'Smash Burger', qty: 1, unit_price: 100 })) });
+  demoStore.resetRecords();
+});
+
+test('no seeded order breaks the breakfast cut-off', () => {
+  const cutoffs = new Map(orderableFromConfig().filter((item) => item.availableUntil).map((item) => [item.name, item.availableUntil]));
+  const local = new Intl.DateTimeFormat('en-GB', { timeZone: config.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  for (const hour of [7, 11, 15, 21]) {
+    const at = new Date(); at.setUTCHours(hour - 2, 30, 0, 0);
+    for (const order of seedModule.createSeed(at).orders) {
+      for (const item of order.order_items) {
+        const until = cutoffs.get(item.name);
+        if (until) assert.ok(local.format(new Date(order.requested_time)) < until, `${order.order_no} ${item.name} after ${until}`);
+      }
+    }
+  }
+});

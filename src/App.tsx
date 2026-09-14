@@ -15,6 +15,7 @@ import { TextCursor } from './components/TextCursor';
 import { BrandIntro } from './components/BrandIntro';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { closeIntroGate, openIntroGate } from './lib/introGate';
+import { BuildOverlay } from './components/BuildOverlay';
 import { config } from './config';
 import { copy } from './core/tenant';
 
@@ -79,7 +80,7 @@ const ScrollToTop = () => {
 // Cut from 0.5 to 0.2 on 2026-09-14 (client-directed): with 0.5 the logo sat
 // at full opacity for about a second after it had landed, which read as the
 // logo overstaying rather than as a deliberate beat.
-const HOLD = 0.2;
+const HOLD = config.motion.routeHold;
 // The logo starts leaving just before the strips lift, so it is gone as the
 // page is revealed instead of lingering over the first frames of it.
 const LOGO_LEAVE_DELAY = HOLD - 0.05;
@@ -221,10 +222,16 @@ const PublicApp: React.FC = () => {
   // runs before the page's own components render, so hero motion is held back
   // from its very first frame instead of a beat later.
   const [introActive, setIntroActive] = useState(() => {
-    const playing = !introCompleted;
+    const playing = !introCompleted && config.motion.intro !== 'off';
     if (playing) closeIntroGate();
     return playing;
   });
+
+  // With the intro switched off nothing else would clear the pre-paint boot
+  // poster, so take it down before first paint.
+  useLayoutEffect(() => {
+    if (config.motion.intro === 'off') document.getElementById('boot')?.remove();
+  }, []);
 
   const handleIntroDone = React.useCallback(() => {
     introCompleted = true;
@@ -273,9 +280,10 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <BuildOverlay />
       <Routes>
         <Route path="/admin/*" element={<ErrorBoundary variant="console"><Suspense fallback={<div role="status" className="p-8 text-ink">Loading staff console…</div>}><AdminApp /></Suspense></ErrorBoundary>} />
-        <Route path="/*" element={<PublicApp />} />
+        <Route path="/*" element={<ErrorBoundary><PublicApp /></ErrorBoundary>} />
       </Routes>
     </Router>
   );

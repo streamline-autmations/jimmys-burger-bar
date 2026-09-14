@@ -18,17 +18,17 @@ import type { Plugin } from 'vite';
  * render-blocking CSS import.
  */
 
-async function loadTenant(slug: string) {
+async function loadTenant(slug: string, entry = `src/tenants/${slug}/config.ts`) {
   // The config is TypeScript with imports, so it is bundled to CJS in memory
   // rather than parsed. esbuild ships with Vite, so this adds no dependency.
   const result = await build({
-    entryPoints: [`src/tenants/${slug}/config.ts`],
+    entryPoints: [entry],
     bundle: true, write: false, format: 'cjs', platform: 'node', logLevel: 'silent',
   });
   const source = result.outputFiles[0].text;
   const module = { exports: {} as Record<string, unknown> };
   new Function('module', 'exports', 'require', source)(module, module.exports, require);
-  const config = module.exports[slug] ?? Object.values(module.exports)[0];
+  const config = module.exports[slug] ?? module.exports.config ?? Object.values(module.exports)[0];
   if (!config) throw new Error(`Tenant "${slug}" exported no config`);
   return config as Record<string, never>;
 }
@@ -36,12 +36,12 @@ async function loadTenant(slug: string) {
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export function tenantHtml(): Plugin {
+export function tenantHtml({ entry }: { entry?: string } = {}): Plugin {
   return {
     name: 'restaurant-direct:tenant-html',
     async transformIndexHtml(html) {
       const slug = process.env.VITE_TENANT ?? 'jimmys';
-      const config = await loadTenant(slug) as never as {
+      const config = await loadTenant(slug, entry) as never as {
         seo: { title: string; description: string; themeColor: string };
         assets: { favicon: string; ogImage: string; siteUrl: string };
         venue: { name: string; nameSuffix: string };

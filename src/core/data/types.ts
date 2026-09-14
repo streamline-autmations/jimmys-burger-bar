@@ -129,4 +129,12 @@ export interface DataAdapter {
    */
   advanceOrderStatus(id: string, from: string, to: OrderStatus): Promise<void>;
   advanceBookingStatus(id: string, from: string, to: BookingStatus): Promise<void>;
+
+  /**
+   * Optional push notification that records changed. Staff lists refresh
+   * immediately instead of waiting for their next poll. The demo store
+   * implements it (so an order placed on the phone appears in the queue at
+   * once); a Supabase realtime channel could later implement it the same way.
+   */
+  subscribe?(listener: () => void): () => void;
 }

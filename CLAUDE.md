@@ -47,6 +47,21 @@ Concretely:
 > risk is lower than food but not zero (a customer could still expect the depicted space
 > or scene). Log any resulting image here when it's added.
 
+> **2026-09-09 client override: sales demo build with fictional records.** Christiaan
+> decided the Restaurant Direct sales demo shows Jimmy's real design with fictional guests,
+> orders and bookings, with the misrepresentation risk stated. It exists ONLY as a separate
+> build (`npm run build:demo`, see `DEMO.md`) and these safeguards are the condition of the
+> override, so do not weaken any of them:
+> - build-time gate only (`VITE_DEMO=1` via `vite-plugin-demo.ts`); no query string,
+>   storage flag or runtime switch can put the real site into demo mode;
+> - its own Vercel project, never jimmysburgerbar.co.za or any client domain, and noindex;
+> - a permanent "Demo" strip on every screen, public and staff;
+> - every record `@example.com` with `+27 00 000 00xx` phones; no real person's details;
+> - all outbound links inert;
+> - `scripts/check-build.mjs` fails a production build that contains demo markers, and a
+>   demo build that references Supabase.
+> The real site still follows every rule above: no invented content, ever.
+
 ### Known outstanding content issues (do not ship more of these)
 
 | Issue | Where | Status |
@@ -220,6 +235,10 @@ as the strips begin to lift (it had been on screen for ~1s after landing).
   clip (`hero.videoMobile` / `posterMobile`, chosen once at mount in `Home.tsx`) — the
   16:9 file under `object-cover` on a portrait screen loses the composition entirely and
   wastes mobile data (portrait crop is ~0.6MB vs 1.9MB).
+- **Demo build** (`npm run build:demo`, see `DEMO.md`): `vite-plugin-demo.ts` swaps
+  `src/config.ts`, `src/core/data/adapter.ts`, `src/lib/supabase.ts` and
+  `src/components/BuildOverlay.tsx` for their `src/demo/` counterparts. Keep those four
+  modules as thin seams; anything a demo must replace goes behind one of them.
 - Motion presets live in `src/lib/motion.ts`. One easing curve. Entry-only, no infinite loops.
 - Mobile-first: most traffic is phones arriving from a WhatsApp link.
 

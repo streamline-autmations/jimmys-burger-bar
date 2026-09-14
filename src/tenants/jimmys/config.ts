@@ -71,12 +71,11 @@ export const jimmys = defineRestaurant({
     themeColor: "#172544",
   },
 
-  // The four-stage first-load sequence is Jimmy's signature, but it costs 3.4s
-  // before anything is readable - too long for a 60-second sales walkthrough,
-  // hence 'short' and 'off'.
+  // The four-stage first-load sequence is Jimmy's signature. routeHold is
+  // 0.2s by client direction (2026-09-14): at 0.5 the curtain logo overstayed.
   motion: {
     intro: "full" as const,
-    routeHold: 0.5,
+    routeHold: 0.2,
   },
 
   venue: {

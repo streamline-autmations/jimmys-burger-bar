@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AdminBookings } from './AdminBookings';
 import { AdminCustomers } from './AdminCustomers';
+import { AdminCustomerDetail } from './AdminCustomerDetail';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminGuard } from './AdminGuard';
 import { AdminLogin } from './AdminLogin';
@@ -17,6 +18,7 @@ export const AdminApp: React.FC = () => (
     <Route path="bookings" element={guarded(<AdminBookings />)} />
     <Route path="orders" element={guarded(<AdminOrders />)} />
     <Route path="customers" element={guarded(<AdminCustomers />)} />
+    <Route path="customers/:customerId" element={guarded(<AdminCustomerDetail />)} />
     <Route path="security" element={guarded(<AdminSecurity />)} />
     <Route path="*" element={<Navigate to="/admin" replace />} />
   </Routes>

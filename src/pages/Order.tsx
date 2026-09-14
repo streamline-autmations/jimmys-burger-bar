@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle, Search, WifiOff } from 'lucide-react';
 import { config } from '../config';
 import { formatMoney, menuPrice, toStoredAmount, storageKey, copy } from '../core/tenant';
 import { Starburst } from '../components/Starburst';
@@ -18,18 +18,59 @@ import {
   type CartLine,
 } from '../lib/cartStore';
 import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
-import { contactError, requestedTimeError, restaurantDate, restaurantInstant, tradingHours, latestTime } from '../lib/tradingHours';
-import { data as db } from '../core/data';
+import { contactFieldErrors, latestTime, openDates, restaurantDate, restaurantInstant, slotFieldErrors, tradingHours } from '../lib/tradingHours';
+import { data as db, SubmissionError, type NewOrder, type SubmissionFailure } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
+import { FormField } from '../components/forms/FormField';
+import { ErrorSummary } from '../components/forms/ErrorSummary';
+import { SubmissionNotice, UnconfirmedRequest } from '../components/forms/SubmissionNotice';
+import { useFormErrors } from '../lib/useFormErrors';
+import { useOnlineStatus } from '../lib/useOnlineStatus';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
+type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'address';
 
-const getDefaultRequestedTime = () => '';
+const FIELD_IDS: Record<CheckoutField, string> = {
+  cart: 'order-cart',
+  name: 'order-name',
+  phone: 'order-phone',
+  email: 'order-email',
+  date: 'order-date',
+  time: 'order-time',
+  table: 'order-table',
+  address: 'order-address',
+};
+const FIELD_ORDER: CheckoutField[] = ['cart', 'name', 'phone', 'email', 'date', 'time', 'table', 'address'];
+
+const PENDING_KEY = storageKey('order-reference');
+
+const fulfilmentModes = config.ordering.fulfilment as readonly OrderType[];
+const fulfilmentLabel: Record<OrderType, string> = { collection: 'Collection', delivery: 'Delivery', table: 'Table order' };
+
+const dayLabelFormatter = new Intl.DateTimeFormat(config.locale, {
+  timeZone: config.timezone, weekday: 'short', day: 'numeric', month: 'short',
+});
+
+/** "Today", "Tomorrow" or "Fri 18 Sep", on the restaurant's calendar. */
+const dayLabel = (date: string): string => {
+  const today = restaurantDate();
+  if (date === today) return 'Today';
+  if (date === restaurantDate(new Date(restaurantInstant(today, '12:00').getTime() + 86400000))) return 'Tomorrow';
+  return dayLabelFormatter.format(restaurantInstant(date, '12:00'));
+};
+
+/** Categories with an end time, e.g. breakfast until 12, keyed by item name. */
+const itemCutoffs = new Map(
+  config.menu.categories.flatMap((category) =>
+    category.availableUntil ? category.items.map((item) => [item.name, { until: category.availableUntil!, category: category.name }] as const) : [],
+  ),
+);
 
 export const Order: React.FC = () => {
   const { menu, ordering } = config;
+  const online = useOnlineStatus();
 
-  const [previousReference, setPreviousReference] = useState(() => readSession(storageKey('order-reference')));
+  const [previousReference, setPreviousReference] = useState(() => readSession(PENDING_KEY));
   const [step, setStep] = useState<Step>('browse');
   const [activeCategory, setActiveCategory] = useState(menu.categories[0].name);
   const [customerName, setCustomerName] = useState('');
@@ -37,34 +78,101 @@ export const Order: React.FC = () => {
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
-  const [requestedTime, setRequestedTime] = useState(getDefaultRequestedTime);
-  const sending = useRef(false);
-  const [uncertain, setUncertain] = useState(false);
-  const today = restaurantDate();
-  const hours = tradingHours(today);
+  // Recomputed every render: at most a week or two of days, and it must notice
+  // when today's last slot passes while the page sits open.
+  const availableDates = openDates(ordering.maxDaysAhead);
+  const datesKey = availableDates.join(',');
+  const [requestedDate, setRequestedDate] = useState(() => availableDates[0] ?? '');
+  const [requestedTime, setRequestedTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ kind: SubmissionFailure; offline: boolean; message: string } | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
-  useEffect(() => { setSubmitError(null); }, [customerName, customerPhone, customerEmail, requestedTime, deliveryAddress]);
-  const errorRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => { if (submitError) errorRef.current?.focus(); }, [submitError]);
   const categoryRailRef = useRef<HTMLDivElement>(null);
+  const noticeRef = useRef<HTMLDivElement>(null);
+  const confirmedHeadingRef = useRef<HTMLHeadingElement>(null);
   const [placedOrder, setPlacedOrder] = useState<{
-    orderNo: string; requestedTime: string;
+    orderNo: string; requestedDate: string; requestedTime: string;
     total: number; lines: CartLine[]; orderType: OrderType; tableNumber: string; address: string;
+    name: string; email: string; phone: string;
   } | null>(null);
   const stickyBelowHeader = useStickyHeaderOffset();
+
+  // One reference per attempt. It survives a failed send, so a retry after a
+  // timeout re-sends the same order and the server returns the one it already
+  // has rather than creating a second.
+  const attemptRef = useRef<string>(generateOrderNumber());
+  const sentPayload = useRef<NewOrder | null>(null);
+  // What the customer saw when that payload first went out. The confirmation,
+  // receipt and WhatsApp message are built from this, never from live state,
+  // which can move on (the day selection advances at closing time) during a retry.
+  type SentDetails = Omit<NonNullable<typeof placedOrder>, 'orderNo'>;
+  const sentDetails = useRef<SentDetails | null>(null);
+  // Once an attempt has been uncertain it stays uncertain until it succeeds:
+  // a later refusal only proves the RETRY saved nothing, not the first send.
+  const attemptWasUncertain = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  const sending = useRef(false);
 
   const lines = useCartStore(useShallow(selectCartLines));
   const count = useCartStore(selectCartCount);
   const total = useCartStore(selectCartTotal);
-  const orderType = useCartStore((s) => s.orderType);
+  const storedOrderType = useCartStore((s) => s.orderType);
   const tableNumber = useCartStore((s) => s.tableNumber);
   const add = useCartStore((s) => s.add);
   const remove = useCartStore((s) => s.remove);
   const setOrderType = useCartStore((s) => s.setOrderType);
   const setTableNumber = useCartStore((s) => s.setTableNumber);
   const clear = useCartStore((s) => s.clear);
+
+  // A cart restored from an earlier session may hold a mode this venue has since switched off.
+  const orderType: OrderType = fulfilmentModes.includes(storedOrderType) ? storedOrderType : fulfilmentModes[0];
+
+  // If today closes while the page is open, move the selection to the next open day.
+  useEffect(() => {
+    const dates = datesKey ? datesKey.split(',') : [];
+    if (!dates.includes(requestedDate)) setRequestedDate(dates[0] ?? '');
+  }, [datesKey, requestedDate]);
+
+  const selectedHours = tradingHours(requestedDate);
+
+  // Validation reads the clock, so it is re-run at submit with a fresh time.
+  const validate = (at: Date): Partial<Record<CheckoutField, string>> => {
+    const found: Partial<Record<CheckoutField, string>> = {
+      ...contactFieldErrors(customerName, customerPhone, customerEmail),
+      ...(availableDates.length === 0
+        ? { date: `There are no open days to order for in the next ${ordering.maxDaysAhead + 1} days. Please contact ${config.venue.name}.` }
+        : slotFieldErrors(requestedDate, requestedTime, at)),
+    };
+    if (count === 0) found.cart = 'Add at least one item to your order.';
+    if (orderType === 'table' && !tableNumber.trim()) found.table = 'Enter your table number.';
+    if (orderType === 'delivery' && !deliveryAddress.trim()) found.address = 'Enter the delivery address.';
+    if (!found.time && requestedTime) {
+      const late = lines.find((line) => {
+        const cutoff = itemCutoffs.get(line.name);
+        return cutoff && requestedTime >= cutoff.until;
+      });
+      if (late) {
+        const cutoff = itemCutoffs.get(late.name)!;
+        found.time = `${cutoff.category} is served until ${cutoff.until}. Choose an earlier time or remove ${cutoff.category.toLowerCase()} items.`;
+      }
+    }
+    return found;
+  };
+  const [clock, setClock] = useState(() => Date.now());
+  const errors = validate(new Date(clock));
+  const form = useFormErrors<CheckoutField>(errors);
+  const summaryItems = FIELD_ORDER
+    .filter((field) => form.visible[field])
+    .map((field) => ({ fieldId: FIELD_IDS[field], message: form.visible[field]! }));
+
+  const locked = isSubmitting || failure?.kind === 'uncertain';
+
+  // A definite refusal is cleared as soon as the customer changes something;
+  // an uncertain send is not, because it may still exist on the server.
+  useEffect(() => {
+    setFailure((current) => (current && current.kind !== 'uncertain' ? null : current));
+  }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, deliveryAddress, tableNumber, count]);
 
   const orderCategories = useMemo(
     () => [...menu.categories, { name: copy.order.softDrinksLabel, note: copy.order.softDrinksNote, items: ordering.nonAlcoholicDrinks }],
@@ -115,72 +223,123 @@ export const Order: React.FC = () => {
     }
   };
 
-  const canPlaceOrder = useMemo(() => {
-    if (count === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim() || !requestedTime) return false;
-    if (orderType === 'table' && !tableNumber.trim()) return false;
-    if (orderType === 'delivery' && !deliveryAddress.trim()) return false;
-    return true;
-  }, [count, customerName, customerEmail, customerPhone, deliveryAddress, orderType, requestedTime, tableNumber]);
+  const focusNotice = () => requestAnimationFrame(() => {
+    noticeRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    noticeRef.current?.focus({ preventScroll: true });
+  });
 
-  const handlePlaceOrder = async () => {
-    if (sending.current || uncertain) return;
-    const validation = contactError(customerName, customerPhone, customerEmail) || requestedTimeError(today, requestedTime);
-    if (validation) { setSubmitError(validation); return; }
-    if (!canPlaceOrder) { setSubmitError('Add an item and complete the details for your order type.'); return; }
-    const breakfast = menu.categories.find((category) => category.name === 'Breakfast');
-    if (requestedTime >= '12:00' && lines.some((line) => breakfast?.items.some((item) => item.name === line.name))) {
-      setSubmitError('Breakfast is served until 12. Choose an earlier time or remove breakfast items.'); return;
+  const send = async (payload: NewOrder) => {
+    if (sending.current) return;
+    if (!navigator.onLine) {
+      setFailure({
+        kind: failure?.kind === 'uncertain' ? 'uncertain' : 'rejected',
+        offline: true,
+        message: 'Nothing was sent because this device has no connection. Reconnect, then try again.',
+      });
+      focusNotice();
+      return;
     }
+
     sending.current = true;
-
     setIsSubmitting(true);
-    setSubmitError(null);
-
-    const orderNo = generateOrderNumber();
-    writeSession(storageKey('order-reference'), orderNo);
-    const requestedDate = restaurantInstant(today, requestedTime);
+    if (sentPayload.current?.orderNo !== payload.orderNo) {
+      sentDetails.current = {
+        requestedDate, requestedTime, total, lines: [...lines], orderType, tableNumber,
+        address: deliveryAddress, name: payload.customerName, email: payload.email, phone: payload.phone,
+      };
+    }
+    sentPayload.current = payload;
+    writeSession(PENDING_KEY, payload.orderNo);
+    // Only clear the checkpoint if it is still ours. A send that finishes after
+    // the customer left and started another must not erase the newer one.
+    const clearCheckpoint = () => { if (readSession(PENDING_KEY) === payload.orderNo) writeSession(PENDING_KEY, null); };
 
     try {
-      const created = await db.createOrder({
-        orderNo,
-        customerName: customerName.trim(),
-        email: customerEmail.trim(),
-        phone: customerPhone.trim(),
-        orderType,
-        tableNumber: orderType === 'table' ? tableNumber : null,
-        deliveryAddress: orderType === 'delivery' ? deliveryAddress : null,
-        deliveryNotes: orderType === 'delivery' ? (deliveryNotes || null) : null,
-        requestedTime: requestedDate.toISOString(),
-        // The cart holds minor units; the orders table stores a decimal amount.
-        total: toStoredAmount(total),
-        marketingConsent: false,
-        items: lines.map((line) => ({
-          name: line.name,
-          qty: line.qty,
-          unit_price: toStoredAmount(line.price),
-        })),
-      });
-
-      setPlacedOrder({ orderNo: created.order_no, requestedTime, total, lines: [...lines], orderType, tableNumber, address: deliveryAddress });
+      const created = await db.createOrder(payload);
+      clearCheckpoint();
+      attemptWasUncertain.current = false;
+      // Left the page mid-send: the order is saved, but the cart on screen may
+      // already be a new one, so it is not cleared from here.
+      if (!mounted.current || !sentDetails.current) return;
+      setFailure(null);
+      setPlacedOrder({ orderNo: created.order_no, ...sentDetails.current });
       clear();
       setStep('confirmed');
-    } catch {
-      setUncertain(true);
-        setSubmitError(copy.order.uncertain);
+    } catch (error) {
+      const failed = error instanceof SubmissionError ? error : new SubmissionError('uncertain');
+      const stillUncertain = failed.kind === 'uncertain' || attemptWasUncertain.current;
+      if (stillUncertain) {
+        attemptWasUncertain.current = true;
+      } else {
+        // A first attempt refused outright saved nothing, so the next gets a fresh reference.
+        clearCheckpoint();
+        attemptRef.current = generateOrderNumber();
+        sentPayload.current = null;
+        sentDetails.current = null;
+      }
+      if (!mounted.current) return;
+      setFailure({
+        kind: stillUncertain ? 'uncertain' : failed.kind,
+        offline: failed.offline,
+        message: failed.kind !== 'uncertain' && stillUncertain
+          ? `Trying again did not go through either. Your first attempt may still have reached ${config.venue.name}, so check its status before ordering again.`
+          : failed.kind === 'throttled' ? copy.order.throttled
+          : failed.kind === 'rejected' ? copy.order.rejected
+          : failed.offline ? 'The connection dropped while sending, so we could not confirm your order arrived.'
+          : 'The connection timed out before we heard back, so we cannot tell whether your order arrived.',
+      });
+      focusNotice();
     } finally {
       sending.current = false;
-      setIsSubmitting(false);
+      if (mounted.current) setIsSubmitting(false);
     }
   };
 
+  const handlePlaceOrder = () => {
+    if (locked) return;
+    const now = Date.now();
+    setClock(now);
+    if (!form.attempt(validate(new Date(now)))) return;
+    void send({
+      orderNo: attemptRef.current,
+      customerName: customerName.trim(),
+      email: customerEmail.trim(),
+      phone: customerPhone.trim(),
+      orderType,
+      tableNumber: orderType === 'table' ? tableNumber.trim() : null,
+      deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null,
+      deliveryNotes: orderType === 'delivery' ? (deliveryNotes.trim() || null) : null,
+      requestedTime: restaurantInstant(requestedDate, requestedTime).toISOString(),
+      // The cart holds minor units; the orders table stores a decimal amount.
+      total: toStoredAmount(total),
+      marketingConsent: false,
+      items: lines.map((line) => ({
+        name: line.name,
+        qty: line.qty,
+        unit_price: toStoredAmount(line.price),
+      })),
+    });
+  };
+
+  const retry = () => { if (sentPayload.current) void send(sentPayload.current); };
+
+  const discardAttempt = () => {
+    writeSession(PENDING_KEY, null);
+    attemptRef.current = generateOrderNumber();
+    sentPayload.current = null;
+    sentDetails.current = null;
+    attemptWasUncertain.current = false;
+    setFailure(null);
+  };
+
   const startNewOrder = () => {
-    writeSession(storageKey('order-reference'), null);
+    discardAttempt();
     setPreviousReference(null);
     setPlacedOrder(null);
     setCustomerName('');
     setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes('');
-    setRequestedTime(getDefaultRequestedTime());
-    setSubmitError(null);
+    setRequestedTime('');
+    form.reset();
     setStep('browse');
   };
 
@@ -190,7 +349,7 @@ export const Order: React.FC = () => {
         <span className="font-script text-2xl text-primary">coming soon</span>
         <h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4">Online ordering</h1>
         <p className="text-ink/60 text-lg max-w-md mb-8">
-          Not switched on yet. For now, book a table or send us a WhatsApp.
+          {copy.order.disabled}
         </p>
         <Link
           to="/menu"
@@ -202,13 +361,9 @@ export const Order: React.FC = () => {
     );
   }
 
-  if (previousReference) return <div className="pt-32 pb-24 px-5 max-w-xl mx-auto min-h-screen">
-    <h1 className="font-display text-3xl font-bold">Check your last request</h1>
-    <p className="mt-4 break-words">Reference: {previousReference}</p>
-    <p className="mt-3">{copy.order.priorReferenceBody}</p>
-    <a className="inline-block my-5 underline" href={`https://wa.me/${config.venue.whatsapp}?text=${encodeURIComponent(`Please check existing order ${previousReference}. This is not a new order.`)}`}>Check with Jimmy's on WhatsApp</a>
-    <button className="block min-h-11 border border-ink/25 rounded-xl px-4" onClick={() => { if (window.confirm('Have you checked the previous request with Jimmy’s? Starting again may create a second order.')) { writeSession(storageKey('order-reference'), null); setPreviousReference(null); } }}>I have checked. Start another order</button>
-  </div>;
+  if (previousReference) {
+    return <UnconfirmedRequest noun="order" reference={previousReference} onStartAgain={startNewOrder} className="min-h-screen pb-24 pt-32" />;
+  }
 
   return (
     <div className="pt-28 min-h-screen pb-28 lg:pb-16">
@@ -372,7 +527,8 @@ export const Order: React.FC = () => {
           <motion.form
             key="checkout"
             noValidate
-            onSubmit={(event) => { event.preventDefault(); void handlePlaceOrder(); }}
+            aria-busy={isSubmitting}
+            onSubmit={(event) => { event.preventDefault(); handlePlaceOrder(); }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -380,128 +536,135 @@ export const Order: React.FC = () => {
             className="max-w-2xl mx-auto px-4 md:px-8"
           >
             <button type="button"
-              disabled={isSubmitting || uncertain}
+              disabled={locked}
               onClick={() => setStep('browse')}
-              className="inline-flex items-center gap-1.5 text-ink/55 hover:text-ink font-medium text-sm mb-6"
+              className="inline-flex min-h-11 items-center gap-1.5 text-ink/65 hover:text-ink font-medium text-sm mb-4 disabled:opacity-50"
             >
-              <ArrowLeft size={16} /> Back to menu
+              <ArrowLeft size={16} aria-hidden="true" /> Back to menu
             </button>
 
             <span className="block font-script text-2xl text-primary">almost there</span>
-            <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">Checkout</h1>
+            <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">{copy.order.checkoutHeading}</h1>
 
-            <fieldset disabled={isSubmitting || uncertain} className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] mb-6">
-              <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-name">Your name</label>
-              <input
-                type="text"
-                id="order-name" autoComplete="name" maxLength={100}
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="e.g. Riaan"
-                required
-                className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
-              />
+            <ErrorSummary ref={form.summaryRef} items={form.submitted ? summaryItems : []} />
 
-              <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-phone">Phone number</label>
-              <input
-                type="tel"
-                id="order-phone" autoComplete="tel" maxLength={30}
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="082 123 4567"
-                required
-                className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
-              />
+            <fieldset disabled={locked} className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] my-6 space-y-5">
+              <legend className="sr-only">Your details</legend>
+              <FormField id={FIELD_IDS.name} label="Your name" required error={form.visible.name}>
+                {(control) => <input {...control} type="text" autoComplete="name" maxLength={100} value={customerName} onChange={(e) => setCustomerName(e.target.value)} onBlur={() => form.blur('name')} className="form-input" />}
+              </FormField>
+              <FormField id={FIELD_IDS.phone} label="Phone number" required error={form.visible.phone} hint="In case the kitchen needs to reach you about this order.">
+                {(control) => <input {...control} type="tel" inputMode="tel" autoComplete="tel" maxLength={30} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} onBlur={() => form.blur('phone')} placeholder="082 123 4567" className="form-input" />}
+              </FormField>
+              <FormField id={FIELD_IDS.email} label="Email address" required error={form.visible.email} hint="Your order confirmation is sent here.">
+                {(control) => <input {...control} type="email" inputMode="email" autoComplete="email" maxLength={254} value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} onBlur={() => form.blur('email')} placeholder="you@email.com" className="form-input" />}
+              </FormField>
 
-              <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-email">Email address</label>
-              <input
-                type="email"
-                id="order-email" autoComplete="email" maxLength={254}
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="you@email.com"
-                required
-                className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
-              />
+              {fulfilmentModes.length > 1 && (
+                <div>
+                  <p id="order-type-label" className="block font-display font-bold text-ink text-sm mb-2">How would you like it?</p>
+                  <OrderTypeToggle value={orderType} onChange={setOrderType} labelledBy="order-type-label" />
+                </div>
+              )}
+              <p className="text-sm text-ink/75">{orderType === 'collection' ? ordering.collectionNote : orderType === 'delivery' ? ordering.deliveryNote : ordering.tableNote}</p>
 
-              <label className="block font-display font-bold text-ink text-sm mb-2">How would you like it?</label>
-              <OrderTypeToggle value={orderType} onChange={setOrderType} />
-              <p className="mt-3 text-sm text-ink/75">{orderType === 'collection' ? ordering.collectionNote : orderType === 'delivery' ? ordering.deliveryNote : ordering.tableNote}</p>
-              <p className="mt-3 text-sm text-ink/75">Requested for today, {today}, in South African time. {hours ? `Open ${hours.open} to ${hours.close === '24:00' ? 'midnight' : hours.close}.` : "Closed today. Contact Jimmy's for Coffee & Cars dates."}</p>
-
-              <div className="mt-4">
-                <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-time">What time would you like it ready?</label>
-                <input
-                  type="time"
-                  min={hours?.open}
-                  max={latestTime(hours?.close)}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField id={FIELD_IDS.date} label="Day" required error={form.visible.date}>
+                  {(control) => (
+                    <select {...control} value={requestedDate} onChange={(e) => { setRequestedDate(e.target.value); setRequestedTime(''); }} onBlur={() => form.blur('date')} className="form-input">
+                      {availableDates.length === 0 && <option value="">No open days</option>}
+                      {availableDates.map((date) => <option key={date} value={date}>{dayLabel(date)}</option>)}
+                    </select>
+                  )}
+                </FormField>
+                <FormField
+                  id={FIELD_IDS.time}
+                  label="Ready by"
                   required
-                  id="order-time"
-                value={requestedTime}
-                  onChange={(e) => setRequestedTime(e.target.value)}
-                  className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
-                />
+                  error={form.visible.time}
+                  hint={selectedHours ? `Open ${selectedHours.open} to ${selectedHours.close === '24:00' ? 'midnight' : selectedHours.close}, ${config.venue.timeLabel}` : undefined}
+                >
+                  {(control) => <input {...control} type="time" disabled={!selectedHours} min={selectedHours?.open} max={latestTime(selectedHours?.close)} value={requestedTime} onChange={(e) => setRequestedTime(e.target.value)} onBlur={() => form.blur('time')} className="form-input" />}
+                </FormField>
               </div>
 
               {orderType === 'table' && (
-                <div className="mt-4">
-                  <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-table">Table number</label>
-                  <input
-                    type="text"
-                    id="order-table"
-                value={tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    placeholder="e.g. 7"
-                    className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
+                <FormField id={FIELD_IDS.table} label="Table number" required error={form.visible.table}>
+                  {(control) => <input {...control} type="text" inputMode="numeric" maxLength={10} value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} onBlur={() => form.blur('table')} placeholder="e.g. 7" className="form-input" />}
+                </FormField>
               )}
               {orderType === 'delivery' && (
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="block font-display font-bold text-ink text-sm mb-2" htmlFor="order-address">Delivery address</label>
-                    <input id="order-address" type="text" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required autoComplete="street-address" maxLength={250} placeholder="Street number and suburb" className="booking-input" />
-                  </div>
-                  <div>
-                    <label className="block font-display font-bold text-ink text-sm mb-2">Delivery notes <span className="font-body font-normal text-ink/45">(optional)</span></label>
-                    <input value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="w-full bg-paper/60 border border-ink/10 rounded-xl px-4 py-3 text-ink placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                  </div>
-                </div>
+                <>
+                  <FormField id={FIELD_IDS.address} label="Delivery address" required error={form.visible.address}>
+                    {(control) => <input {...control} type="text" autoComplete="street-address" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="Street number and suburb" className="form-input" />}
+                  </FormField>
+                  <FormField label="Delivery notes" required={false}>
+                    {(control) => <input {...control} type="text" maxLength={250} value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="form-input" />}
+                  </FormField>
+                </>
               )}
             </fieldset>
-            <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] mb-6">
-              <h2 className="font-display text-lg font-extrabold text-primary mb-4">Your order</h2>
-              {count === 0 && <p>Your cart is empty. Go back to the menu to add an item.</p>}
-              <div className="space-y-3">
+
+            <section aria-labelledby="order-summary-heading" className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04] mb-6">
+              <h2 id="order-summary-heading" className="font-display text-lg font-extrabold text-primary mb-4">Your order</h2>
+              {count === 0 && (
+                <div id={FIELD_IDS.cart} tabIndex={-1} className="rounded-xl bg-paper/70 px-4 py-5 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                  <p className="font-semibold text-ink">Your cart is empty.</p>
+                  <button type="button" onClick={() => setStep('browse')} className="mt-2 min-h-11 font-display font-bold text-primary underline underline-offset-2">Choose something from the menu</button>
+                </div>
+              )}
+              <ul className="space-y-2">
                 {lines.map((line) => (
-                  <div key={line.name} className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center shrink-0"><button type="button" disabled={isSubmitting || uncertain} aria-label={`Remove one ${line.name}`} onClick={() => remove(line.name)} className="min-w-11 min-h-11">−</button>{line.qty}<button type="button" disabled={isSubmitting || uncertain || line.qty >= 99} aria-label={`Add one more ${line.name}`} onClick={() => add(line.name, line.price)} className="min-w-11 min-h-11">+</button></span>
+                  <li key={line.name} className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center shrink-0 rounded-full bg-paper/80">
+                      <button type="button" disabled={locked} aria-label={`Remove one ${line.name}`} onClick={() => remove(line.name)} className="min-w-11 min-h-11 font-bold disabled:opacity-40">−</button>
+                      <span className="w-5 text-center font-display font-bold" aria-label={`${line.qty} of ${line.name}`}>{line.qty}</span>
+                      <button type="button" disabled={locked || line.qty >= 99} aria-label={`Add one more ${line.name}`} onClick={() => add(line.name, line.price)} className="min-w-11 min-h-11 font-bold disabled:opacity-40">+</button>
+                    </span>
                     <h3 className="font-display font-bold text-ink leading-snug">{line.name}</h3>
-                    <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" />
+                    <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" aria-hidden="true" />
                     <span className="font-display font-bold text-ink whitespace-nowrap">{formatCartMoney(line.qty * line.price)}</span>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
               <div className="flex items-baseline justify-between mt-6 pt-4 border-t border-ink/10">
                 <span className="font-display font-bold text-ink text-lg">Total</span>
                 <span className="font-display font-extrabold text-primary text-2xl">{formatCartMoney(total)}</span>
               </div>
-            </div>
+            </section>
 
-            <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. Your requested time is subject to confirmation.</p>
-            <button
-              type="submit"
-              disabled={isSubmitting || uncertain || count === 0}
-              className="w-full inline-flex items-center justify-center gap-2.5 bg-primary text-surface py-4 rounded-full font-display font-bold text-base transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none shadow-lg shadow-primary/20"
-            >
-              {isSubmitting ? 'Placing order…' : 'Place order'}
-            </button>
-            {submitError && <a className="block mt-3 text-center underline" href={`https://wa.me/${config.venue.whatsapp}`}>Contact Jimmy's on WhatsApp</a>}
-            {submitError && (
-              <p ref={errorRef} tabIndex={-1} role="alert" className="text-center text-primary text-sm mt-3">{submitError}</p>
+            <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. Your requested time is subject to confirmation, and you pay when you collect.</p>
+
+            {!online && !failure && (
+              <p role="status" className="mb-4 flex items-center gap-2 rounded-xl bg-accent/15 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/50">
+                <WifiOff size={16} aria-hidden="true" /> You are offline. Reconnect before placing your order.
+              </p>
             )}
-            {(!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) && (
-              <p className="text-center text-ink/45 text-sm mt-3">Name, phone and email are required to place the order.</p>
+
+            {failure && (
+              <div className="mb-4">
+                <SubmissionNotice
+                  ref={noticeRef}
+                  kind={failure.kind}
+                  offline={failure.offline}
+                  message={failure.message}
+                  reference={sentPayload.current?.orderNo ?? attemptRef.current}
+                  noun="order"
+                  retrying={isSubmitting}
+                  onRetry={retry}
+                  onDiscard={discardAttempt}
+                />
+              </div>
+            )}
+
+            {failure?.kind !== 'uncertain' && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full min-h-14 inline-flex items-center justify-center gap-2.5 bg-primary text-surface rounded-full font-display font-bold text-base transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-primary/20"
+              >
+                {isSubmitting ? 'Placing order…' : `Place order · ${formatCartMoney(total)}`}
+              </button>
             )}
           </motion.form>
         )}
@@ -513,49 +676,55 @@ export const Order: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
+            onAnimationComplete={() => confirmedHeadingRef.current?.focus({ preventScroll: true })}
             className="max-w-xl mx-auto px-4 md:px-8 text-center"
           >
-            <PartyPopper className="mx-auto text-primary mb-3" size={32} />
+            <PartyPopper className="mx-auto text-primary mb-3" size={32} aria-hidden="true" />
             <span className="font-script text-2xl text-primary">order placed</span>
-            <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-2">
+            <h1 ref={confirmedHeadingRef} tabIndex={-1} className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-2 break-all focus:outline-none">
               #{placedOrder.orderNo}
             </h1>
             <p className="text-ink/60 text-lg mb-8">
               {placedOrder.orderType === 'table' ? ordering.tableNote : placedOrder.orderType === 'delivery' ? ordering.deliveryNote : ordering.collectionNote}
             </p>
 
-            <Starburst label="requested" value={placedOrder.requestedTime} className="w-28 h-28 mx-auto mb-8" />
+            <Starburst label={dayLabel(placedOrder.requestedDate).toLowerCase()} value={placedOrder.requestedTime} className="w-28 h-28 mx-auto mb-8" />
 
             <div className="bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]">
               <p className="font-display font-bold text-ink">{copy.order.confirmedHeading}</p>
-              <p className="text-ink/60 text-sm mt-2">Requested for {placedOrder.requestedTime}</p>
-              <p className="text-ink/45 text-xs mt-1">Your request is saved. Please wait for Jimmy's to confirm acceptance and timing. This is not a payment receipt.</p>
+              <p className="text-ink/60 text-sm mt-2">Requested for {dayLabel(placedOrder.requestedDate)}, {placedOrder.requestedTime}</p>
+              <p className="text-ink/60 text-xs mt-1">Your request is saved. Please wait for {config.venue.name} to confirm acceptance and timing. This is not a payment receipt.</p>
             </div>
 
-            <button
-              onClick={async () => {
-                setReceiptError(null);
-                try {
-                  const { generateOrderReceipt } = await import('../lib/generateOrderReceipt');
-                  await generateOrderReceipt({ orderNo: placedOrder.orderNo, requestedTime: placedOrder.requestedTime, name: customerName, email: customerEmail, phone: customerPhone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total });
-                } catch {
-                  setReceiptError('Could not generate the receipt. Please try again.');
-                }
-              }}
-              className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
-            ><Download size={16} /> Download receipt</button>
-            {receiptError && <p role="alert" className="text-primary/80 text-sm mt-3">{receiptError}</p>}
-
-            <a
-              href={buildOrderWhatsAppUrl({ orderNo: placedOrder.orderNo, requestedTime: placedOrder.requestedTime, deliveryAddress: placedOrder.address, lines: placedOrder.lines, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, total: placedOrder.total, name: customerName })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 inline-flex items-center gap-2 bg-surface border border-ink/10 px-5 py-3 rounded-full font-display font-bold text-ink hover:bg-paper"
-            ><MessageCircle size={16} /> Ask about this order</a>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to={`/track?ref=${encodeURIComponent(placedOrder.orderNo)}`}
+                className="inline-flex min-h-12 items-center gap-2 bg-primary text-surface px-5 rounded-full font-display font-bold"
+              ><Search size={16} aria-hidden="true" /> Track this order</Link>
+              <button
+                onClick={async () => {
+                  setReceiptError(null);
+                  try {
+                    const { generateOrderReceipt } = await import('../lib/generateOrderReceipt');
+                    await generateOrderReceipt({ orderNo: placedOrder.orderNo, requestedTime: `${dayLabel(placedOrder.requestedDate)} ${placedOrder.requestedTime}`, name: placedOrder.name, email: placedOrder.email, phone: placedOrder.phone, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, deliveryAddress: placedOrder.address, lines: placedOrder.lines, total: placedOrder.total });
+                  } catch {
+                    setReceiptError('Could not generate the receipt. Please try again.');
+                  }
+                }}
+                className="inline-flex min-h-12 items-center gap-2 bg-surface border border-ink/10 px-5 rounded-full font-display font-bold text-ink hover:bg-paper"
+              ><Download size={16} aria-hidden="true" /> Download receipt</button>
+              <a
+                href={buildOrderWhatsAppUrl({ orderNo: placedOrder.orderNo, requestedTime: `${dayLabel(placedOrder.requestedDate)} ${placedOrder.requestedTime}`, deliveryAddress: placedOrder.address, lines: placedOrder.lines, orderType: placedOrder.orderType, tableNumber: placedOrder.tableNumber, total: placedOrder.total, name: placedOrder.name })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center gap-2 bg-surface border border-ink/10 px-5 rounded-full font-display font-bold text-ink hover:bg-paper"
+              ><MessageCircle size={16} aria-hidden="true" /> Ask about this order</a>
+            </div>
+            {receiptError && <p role="alert" className="text-ink text-sm mt-3">{receiptError}</p>}
 
             <button
               onClick={startNewOrder}
-              className="mt-8 inline-flex items-center gap-2 text-primary font-display font-bold hover:underline"
+              className="mt-8 inline-flex min-h-11 items-center gap-2 text-primary font-display font-bold hover:underline"
             >
               Start a new order
             </button>
@@ -566,20 +735,20 @@ export const Order: React.FC = () => {
   );
 };
 
-const OrderTypeToggle: React.FC<{ value: OrderType; onChange: (v: OrderType) => void }> = ({ value, onChange }) => (
+const OrderTypeToggle: React.FC<{ value: OrderType; onChange: (v: OrderType) => void; labelledBy?: string }> = ({ value, onChange, labelledBy }) => (
   // z-0 (not just `relative`) matters here: it gives this wrapper its own
   // stacking context so the pill's -z-10 resolves against *this* box's
   // background rather than escaping to the page root and rendering behind
   // unrelated content further down the page.
-  <div className="relative z-0 bg-paper/60 rounded-full p-1 flex">
-    {(['collection', 'delivery', 'table'] as OrderType[]).map((type) => (
+  <div role="group" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : 'Order type'} className="relative z-0 bg-paper/60 rounded-full p-1 flex">
+    {fulfilmentModes.map((type) => (
       <button
         key={type}
         type="button"
         aria-pressed={value === type}
         onClick={() => onChange(type)}
-        className={`relative flex-1 py-2.5 rounded-full font-display font-bold text-sm transition-colors ${
-          value === type ? 'text-surface' : 'text-ink/55 hover:text-ink'
+        className={`relative flex-1 min-h-11 rounded-full font-display font-bold text-sm transition-colors ${
+          value === type ? 'text-surface' : 'text-ink/65 hover:text-ink'
         }`}
       >
         {value === type && (
@@ -589,7 +758,7 @@ const OrderTypeToggle: React.FC<{ value: OrderType; onChange: (v: OrderType) => 
             className="absolute inset-0 bg-primary rounded-full -z-10"
           />
         )}
-        {type === 'collection' ? 'Collection' : type === 'delivery' ? 'Delivery' : 'Table order'}
+        {fulfilmentLabel[type]}
       </button>
     ))}
   </div>
@@ -625,7 +794,7 @@ const CartPanel: React.FC<{
         </div>
 
         <div className="mb-5">
-          <OrderTypeToggle value={orderType} onChange={onOrderTypeChange} />
+          {fulfilmentModes.length > 1 && <OrderTypeToggle value={orderType} onChange={onOrderTypeChange} />}
           {orderType === 'table' && (
             <input
               type="text"

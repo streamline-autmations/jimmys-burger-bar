@@ -3,7 +3,8 @@ import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
 import { controlClass } from './adminUtils';
 import React, { useRef, useCallback, useMemo, useState } from 'react';
-import { CalendarDays, Clock3, Mail, Phone, Users } from 'lucide-react';
+import { CalendarDays, Clock3, History, Mail, Phone, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { data as db, type ListView } from '../../core/data';
 import {
   actionableCardClass,
@@ -37,7 +38,7 @@ export const AdminBookings: React.FC = () => {
   const load = useCallback(async () => {
     return db.listBookings({ view, limit });
   }, [view, limit]);
-  const { data: bookings, setData: setBookings, loading, error, updatedAt, refresh: fetchBookings } = useAdminResource<Booking[]>(load, []);
+  const { data: bookings, setData: setBookings, loading, error, updatedAt, refresh: fetchBookings } = useAdminResource<Booking[]>(load, [], { paused: savingId !== null });
 
 
   const filteredBookings = useMemo(
@@ -75,7 +76,8 @@ export const AdminBookings: React.FC = () => {
     <AdminStatusControl
       value={booking.status as BookingStatus}
       options={BOOKING_STATUSES}
-      saving={savingId !== null || loading || !!error}
+      disabled={savingId !== null || (loading && !updatedAt)}
+      saving={savingId === booking.id}
       error={updateErrors[booking.id]}
       describedAs={`Update status for ${booking.name}`}
       onChange={(next) => void updateStatus(booking, next)}
@@ -189,18 +191,27 @@ export const AdminBookings: React.FC = () => {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a
                     href={`tel:${booking.phone}`}
-                    className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-bold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-bold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Phone size={14} aria-hidden="true" />
                     Call
                   </a>
                   <a
                     href={`mailto:${booking.email}`}
-                    className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-ink/15 px-3.5 text-sm font-bold text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-ink/15 px-3.5 text-sm font-bold text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Mail size={14} aria-hidden="true" />
                     Email
                   </a>
+                  {booking.customer_id && (
+                    <Link
+                      to={`/admin/customers/${booking.customer_id}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-ink/15 px-3.5 text-sm font-bold text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    >
+                      <History size={14} aria-hidden="true" />
+                      Guest history
+                    </Link>
+                  )}
                 </div>
 
                 <div className="mt-3 border-t border-ink/10 pt-3">{statusControl(booking)}</div>
@@ -240,6 +251,15 @@ export const AdminBookings: React.FC = () => {
                       <a className="block text-xs text-ink/65 hover:text-primary" href={`tel:${booking.phone}`}>
                         {booking.phone}
                       </a>
+                      {booking.customer_id && (
+                        <Link
+                          to={`/admin/customers/${booking.customer_id}`}
+                          className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        >
+                          <History size={14} aria-hidden="true" />
+                          Guest history
+                        </Link>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-4">
                       <p className="font-medium">{formatBookingDate(booking.booking_date)}</p>

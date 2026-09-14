@@ -11,6 +11,11 @@ async (page) => {
   const orders = ['new','accepted','preparing','ready','completed','cancelled'].map((status, index) => ({ ...base, id: `00000000-0000-4000-8000-00000000000${index}`, order_no: `DEMO-00${index+1}`, customer_name: `Fictional Guest ${index+1}`, order_type: 'collection', table_number: null, delivery_address: null, delivery_notes: null, requested_time: iso, status, total: 200, order_items: [{ id: `item-${index}`, name: 'Smash Burger', qty: 2, unit_price: 100 }] }));
   const bookings = ['pending','confirmed','cancelled'].map((status,index) => ({...base, id: `10000000-0000-4000-8000-00000000000${index}`, name:`Fictional Booking Guest ${index+1}`, booking_date:today, booking_time:'18:00:00', guests:4, seating_preference:'No preference', notes:'Fictional request for interface testing.',status }));
   const customers = [{...base,id:'20000000-0000-4000-8000-000000000001',name:'Fictional Guest',last_interaction_at:iso,interaction_count:2}];
+  for (const row of [...orders, ...bookings]) row.customer_id = customers[0].id;
+  // Phase 3 submit scenarios, set with window.__submitState:
+  //   'ok' (default) | 'uncertain-once' (first write 503s, retry succeeds) | 'rejected' | 'throttled'
+  //   | 'uncertain-then-rejected' (first write 503s, the retry is refused)
+  let failedOnce = false;
   await page.context().route('**/*', async route => {
     const request=route.request(); const raw=request.url(); const parts=raw.split('/'); const url={hostname:parts[2].split(':')[0],pathname:'/'+parts.slice(3).join('/').split('?')[0],searchParams:new Map((raw.split('?')[1]||'').split('&').filter(Boolean).map(pair=>pair.split('=').map(decodeURIComponent)))};
     if (['127.0.0.1','localhost'].includes(url.hostname)) return route.continue();
@@ -19,6 +24,17 @@ async (page) => {
     if (state==='loading') await page.waitForTimeout(2500);
     if (state==='error') return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Simulated offline state'})});
     const table=url.pathname.split('/').pop();
+    const submitState = await page.evaluate(() => window.__submitState || 'ok').catch(()=>'ok');
+    const isWrite = request.method()==='POST' && ['create_order','bookings'].includes(table);
+    if (isWrite && submitState==='uncertain-once' && !failedOnce) { failedOnce = true; return route.fulfill({status:503,contentType:'text/html',body:'<html>Bad gateway</html>'}); }
+    if (isWrite && submitState==='uncertain-then-rejected') { if (!failedOnce) { failedOnce = true; return route.fulfill({status:503,contentType:'text/html',body:'<html>Bad gateway</html>'}); } return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'42501',message:'permission denied'})}); }
+    if (isWrite && submitState==='rejected') return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'P0001',message:'order total does not match its items'})});
+    if (isWrite && submitState==='throttled') return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'P0001',message:'too many booking requests from this contact. Please phone the restaurant.'})});
+    if (request.method()==='POST' && table==='lookup_request') {
+      const body = JSON.parse(request.postData()); const order = orders.find(o => o.order_no.toUpperCase() === String(body.p_reference).trim().toUpperCase());
+      const match = order && String(body.p_contact).trim().toLowerCase() === order.email;
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(match ? {kind:'order',reference:order.order_no,status:order.status,order_type:order.order_type,requested_time:order.requested_time,total:order.total,created_at:order.created_at,updated_at:order.updated_at,items:order.order_items.map(i=>({name:i.name,qty:i.qty}))} : null)});
+    }
     if (request.method()==='POST' && table==='create_order') return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'30000000-0000-4000-8000-000000000001',order_no:JSON.parse(request.postData()).p_order_no,created_at:iso}])});
     if (request.method()==='POST' && table==='bookings') return route.fulfill({status:201,body:''});
     if (request.method()==='PATCH') {

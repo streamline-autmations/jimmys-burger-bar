@@ -38,6 +38,10 @@ export interface RestaurantCopy {
     disabled: string;
     softDrinksLabel: string;
     softDrinksNote: string;
+    /** The server refused the order. Nothing was saved. */
+    rejected: string;
+    /** Refused by the anti-spam limit. */
+    throttled: string;
   };
   booking: {
     heading: string;
@@ -45,6 +49,20 @@ export interface RestaurantCopy {
     pendingNote: string;
     uncertain: string;
     disabled: string;
+    rejected: string;
+    throttled: string;
+  };
+  /** Customer-side status lookup. */
+  track: {
+    eyebrow: string;
+    heading: string;
+    intro: string;
+    notFound: string;
+  };
+  /** Shown when a page crashes, instead of a blank screen. */
+  crash: {
+    heading: string;
+    body: string;
   };
   documents: {
     /** Prefix for downloaded files, e.g. "jimmys" gives jimmys-order-JB-123.pdf. */
@@ -78,6 +96,8 @@ export const defaultCopy: RestaurantCopy = {
     disabled: 'Online ordering is not available right now.',
     softDrinksLabel: 'Non-alcoholic drinks',
     softDrinksNote: 'Cold, zero-proof and ready to add',
+    rejected: 'We could not place this order, and nothing was saved. Check your order and details, then try again.',
+    throttled: 'Online ordering is busy right now, and nothing was saved. Please phone the restaurant to order.',
   },
   booking: {
     heading: 'Book a table',
@@ -85,6 +105,18 @@ export const defaultCopy: RestaurantCopy = {
     pendingNote: 'This is a request, not a confirmed booking, until the restaurant contacts you.',
     uncertain: 'We could not verify receipt. Contact the restaurant before sending another request to avoid a duplicate.',
     disabled: 'Bookings are not available right now.',
+    rejected: 'We could not send this request, and nothing was saved. Check your details, then try again.',
+    throttled: 'We have had several requests from these details in the last hour, so this one was not sent. Please phone the restaurant.',
+  },
+  track: {
+    eyebrow: 'where is it?',
+    heading: 'Check your request',
+    intro: 'Enter the reference from your confirmation and the email or phone number you used.',
+    notFound: 'We could not find a request matching those details. Check the reference, and use the same email or phone number you gave with the request.',
+  },
+  crash: {
+    heading: 'Something went wrong on our side',
+    body: 'This page stopped working. Reloading usually fixes it. If you were placing an order or booking, check its status before sending it again.',
   },
   documents: {
     filePrefix: 'order',

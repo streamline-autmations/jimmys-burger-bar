@@ -41,6 +41,7 @@ export const AdminStatusBadge: React.FC<{ status: string }> = ({ status }) => (
 export const AdminStatusControl = <T extends string>({
   value,
   options,
+  disabled,
   saving,
   error,
   describedAs,
@@ -48,6 +49,7 @@ export const AdminStatusControl = <T extends string>({
 }: {
   value: T;
   options: readonly T[];
+  disabled: boolean;
   saving: boolean;
   error?: string;
   describedAs: string;
@@ -57,7 +59,7 @@ export const AdminStatusControl = <T extends string>({
   const labels: Record<string, string> = { accepted: 'Accept order', preparing: 'Start preparing', ready: 'Mark ready', completed: 'Complete order', confirmed: 'Confirm booking', cancelled: 'Cancel request' };
   return <div role="group" aria-label={describedAs}>
     <div className="flex flex-wrap gap-2">
-      {actions.map((next) => <button key={next} type="button" disabled={saving} className={`min-h-11 rounded-xl px-3 text-sm font-bold disabled:opacity-50 ${next === 'cancelled' ? 'border border-ink/25 bg-surface text-ink' : 'bg-primary text-surface'}`} onClick={() => {
+      {actions.map((next) => <button key={next} type="button" disabled={disabled} className={`min-h-11 rounded-xl px-3 text-sm font-bold disabled:opacity-50 ${next === 'cancelled' ? 'border border-ink/25 bg-surface text-ink' : 'bg-primary text-surface'}`} onClick={() => {
         if ((next === 'cancelled' || next === 'completed') && !window.confirm(`${labels[next]}? ${describedAs}. This closes the record and cannot be undone here.`)) return;
         onChange(next as T);
       }}>{labels[next]}</button>)}

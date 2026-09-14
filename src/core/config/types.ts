@@ -112,6 +112,8 @@ export interface OrderingConfig {
   tableNote: string;
   deliveryNote: string;
   closedDayNote: string;
+  /** How many days ahead an order can be requested for. 0 means today only. */
+  maxDaysAhead: number;
   nonAlcoholicDrinks: MenuItem[];
 }
 

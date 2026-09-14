@@ -3,7 +3,8 @@ import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
 import { controlClass } from './adminUtils';
 import React, { useRef, useCallback, useMemo, useState } from 'react';
-import { Bike, Clock3, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { Bike, Clock3, History, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { formatCartMoney } from '../../lib/cartStore';
 import { toMinor } from '../../core/domain/money';
 import { data as db, type ListView } from '../../core/data';
@@ -67,7 +68,7 @@ export const AdminOrders: React.FC = () => {
   const load = useCallback(async () => {
     return db.listOrders({ view, limit });
   }, [view, limit]);
-  const { data: orders, setData: setOrders, loading, error, updatedAt, refresh: fetchOrders } = useAdminResource<OrderWithItems[]>(load, []);
+  const { data: orders, setData: setOrders, loading, error, updatedAt, refresh: fetchOrders } = useAdminResource<OrderWithItems[]>(load, [], { paused: savingId !== null });
 
 
   const openCount = useMemo(() => orders.filter((order) => isActionable(order.status)).length, [orders]);
@@ -97,7 +98,8 @@ export const AdminOrders: React.FC = () => {
     <AdminStatusControl
       value={order.status as OrderStatus}
       options={ORDER_STATUSES}
-      saving={savingId !== null || loading || !!error}
+      disabled={savingId !== null || (loading && !updatedAt)}
+      saving={savingId === order.id}
       error={updateErrors[order.id]}
       describedAs={`Update status for order ${order.order_no}`}
       onChange={(next) => void updateStatus(order, next)}
@@ -182,14 +184,25 @@ export const AdminOrders: React.FC = () => {
                   <ItemList items={order.order_items} />
                 </div>
 
-                <a
-                  href={`tel:${order.phone}`}
-                  className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-bold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                >
-                  <Phone size={14} aria-hidden="true" />
-                  Call customer
-                </a>
-                <a className="ml-3 inline-flex min-h-11 items-center underline text-sm" href={`mailto:${order.email}`}>Email customer</a>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <a
+                    href={`tel:${order.phone}`}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-bold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <Phone size={14} aria-hidden="true" />
+                    Call customer
+                  </a>
+                  <a className="inline-flex min-h-11 items-center rounded px-2 text-sm underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" href={`mailto:${order.email}`}>Email customer</a>
+                  {order.customer_id && (
+                    <Link
+                      to={`/admin/customers/${order.customer_id}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded px-2 text-sm font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    >
+                      <History size={15} aria-hidden="true" />
+                      Guest history
+                    </Link>
+                  )}
+                </div>
 
                 <div className="mt-3 border-t border-ink/10 pt-3">{statusControl(order)}</div>
               </li>

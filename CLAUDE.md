@@ -269,6 +269,37 @@ as the strips begin to lift (it had been on screen for ~1s after landing).
   client's pick between the two before calling this settled.
 - Home page is ~490 lines; the featured-tile component is defined at the top of the file.
 
+## Customer submissions: the retry contract (Phase 3, 2026-09-14)
+
+Orders and bookings are submitted under a reference generated in the browser
+(`orderNo` / booking `id`) that survives a failed send. Every failure is classified in
+`src/core/data/submission.ts`:
+
+- `rejected` / `throttled`: the server answered and nothing was saved. The form stays editable.
+- `uncertain` (timeout, dropped connection, gateway error): it may have saved. The form
+  locks and "Try again" re-sends the SAME payload under the SAME reference. The server
+  treats the repeat as a no-op (`create_order` returns the existing order for the same
+  reference and email; a booking retry collides on `bookings_pkey`, which the adapter treats
+  as saved).
+- Once an attempt has been uncertain it stays uncertain until it succeeds. A refused retry
+  proves only that the retry saved nothing. Do not "simplify" this back to a plain rejection:
+  that would issue a fresh reference and could create a duplicate order (caught in review).
+- The confirmation, receipt and WhatsApp text are built from what was SENT, not from live
+  form state.
+- Clock-dependent validation is re-run at submit (`form.attempt(validate(now))`).
+
+The session checkpoint (`<slug>-order-reference`, `<slug>-booking-attempt`) is cleared only
+when it still holds this attempt's reference.
+
+Migration `supabase/migrations/20260914120000_phase3_*.sql` (applied live 2026-09-14) adds
+`customer_id`, `lookup_request` (used by `/track`), `normalise_phone` and create_order
+idempotency, and fixed a live bug: a returning guest's known phone with a new email
+violated `customers_phone_key` and rolled back the whole order.
+
+**Testing live SQL safely:** run the scenario inside a `do $$ ... $$` block as
+`set local role anon` and finish with `raise exception 'RESULT ...'`. The exception rolls
+back every row and every queued `net.http_post`, so nothing persists and no email is sent.
+
 ## Verify before calling anything done
 
 `npm run check` (tsc) → `npm run build` → then a real browser pass with Playwright MCP at

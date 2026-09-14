@@ -165,6 +165,9 @@ export const jimmys = defineRestaurant({
     // Shown when a customer picks a day the restaurant is closed. Tenant copy,
     // because "contact us about Coffee & Cars" means nothing to another venue.
     closedDayNote: "Choose an open day. For Coffee & Cars Sundays, contact Jimmy's to check the event date.",
+    // Product default pending Christiaan's confirmation: collection orders for
+    // up to a week ahead. Set to 0 to restrict ordering to today.
+    maxDaysAhead: 7,
     collectionNote: "Collection requested at 57 Loch Street. Please wait for Jimmy's to confirm the time.",
     tableNote: "Table service requested. Please check with staff before ordering.",
     deliveryNote: "Delivery requested. Jimmy's must confirm availability, timing and any delivery charge.",
@@ -210,6 +213,7 @@ export const jimmys = defineRestaurant({
       {
         name: "Breakfast",
         note: "Served until 12",
+        availableUntil: "12:00",
         items: [
           { name: "Breakfast Bun", description: "Bun with bacon, egg and cheese, with chips", price: 60 },
           { name: "Breakfast Burger", description: "Beef burger with egg, bacon and chips", price: 95, popular: true },

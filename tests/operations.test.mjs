@@ -210,3 +210,75 @@ test('drinks detail is flattened onto description so the board has one shape', (
   const castle = drinks.flatMap((c) => c.items).find((i) => i.name === 'Castle Lager');
   assert.equal(castle.description, 'The local');
 });
+
+// ---------------------------------------------------------------------------
+// Phase 3: per-field validation, orderable days, and what a failed submission
+// means for the customer.
+// ---------------------------------------------------------------------------
+
+const submission = load('src/core/data/submission.ts');
+const timeout = load('src/core/data/timeout.ts');
+
+test('contact errors are reported against the field they belong to', () => {
+  assert.deepEqual(hours.contactFieldErrors('Fictional guest', '+27 11 000 0000', 'guest@example.com'), {});
+  const empty = hours.contactFieldErrors(' ', '', '');
+  assert.deepEqual(Object.keys(empty).sort(), ['email', 'name', 'phone']);
+  const bad = hours.contactFieldErrors('Fictional guest', '12', 'guest@');
+  assert.deepEqual(Object.keys(bad).sort(), ['email', 'phone']);
+  assert.notEqual(empty.phone, bad.phone, 'missing and malformed read differently');
+});
+
+test('a closed day is reported on the date, a bad time on the time', () => {
+  // 2026-09-07 is a Monday (09:00-20:00); 2026-09-06 a Sunday (closed).
+  assert.deepEqual(Object.keys(hours.slotFieldErrors('2026-09-06', '11:00', now)), ['date']);
+  assert.deepEqual(Object.keys(hours.slotFieldErrors('2026-09-07', '21:00', now)), ['time']);
+  assert.deepEqual(Object.keys(hours.slotFieldErrors('2026-09-07', '', now)), ['time']);
+  assert.deepEqual(Object.keys(hours.slotFieldErrors('', '', now)), ['date']);
+  assert.deepEqual(hours.slotFieldErrors('2026-09-07', '11:00', now), {});
+});
+
+test('orderable days skip closed days and a day whose last slot has passed', () => {
+  // Monday 08:00 SAST: today is open and bookable.
+  const morning = hours.openDates(7, new Date('2026-09-07T06:00:00Z'));
+  assert.equal(morning[0], '2026-09-07');
+  assert.ok(!morning.includes('2026-09-13'), 'Sunday is closed');
+  assert.equal(morning.length, 7, 'eight calendar days minus one Sunday');
+
+  // Monday 20:30 SAST: Monday closed at 20:00, so the first option is Tuesday.
+  const evening = hours.openDates(7, new Date('2026-09-07T18:30:00Z'));
+  assert.equal(evening[0], '2026-09-08');
+
+  // Today only, after close: nothing to order for.
+  assert.deepEqual(hours.openDates(0, new Date('2026-09-07T18:30:00Z')), []);
+  assert.equal(hours.addDays('2026-12-31', 1), '2027-01-01');
+});
+
+test('a refused submission is definite; a lost response is uncertain', () => {
+  const kind = (error, constraint) => {
+    const result = submission.classifySubmission(error, constraint);
+    return result === 'saved' ? 'saved' : result.kind;
+  };
+  assert.equal(kind(new timeout.TimeoutError(15000)), 'uncertain');
+  assert.equal(kind({ code: '', message: 'TypeError: Failed to fetch' }), 'uncertain');
+  assert.equal(kind({ code: '', message: 'Bad gateway' }), 'uncertain');
+  assert.equal(kind({ code: 'P0001', message: 'order total does not match its items' }), 'rejected');
+  assert.equal(kind({ code: 'P0001', message: 'too many booking requests from this contact. Please phone the restaurant.' }), 'throttled');
+  assert.equal(kind({ code: '23514', message: 'violates check constraint' }), 'rejected');
+  assert.equal(kind({ code: '42501', message: 'permission denied' }), 'rejected');
+});
+
+test('only a collision on the request\'s own key proves it was saved', () => {
+  const pk = { code: '23505', message: 'duplicate key value violates unique constraint "bookings_pkey"' };
+  assert.equal(submission.classifySubmission(pk, 'bookings_pkey'), 'saved');
+  // Before the Phase 3 migration a returning guest's phone collided in customers
+  // and rolled the whole order back with the same SQLSTATE. That is NOT saved.
+  const phone = { code: '23505', message: 'duplicate key value violates unique constraint "customers_phone_key"' };
+  assert.equal(submission.classifySubmission(phone, 'orders_order_no_key').kind, 'rejected');
+});
+
+test('every orderable category cutoff is a valid 24h time', () => {
+  for (const category of config.menu.categories) {
+    if (category.availableUntil) assert.match(category.availableUntil, /^([01]\d|2[0-3]):[0-5]\d$/, category.name);
+  }
+  assert.ok(Number.isInteger(config.ordering.maxDaysAhead));
+});

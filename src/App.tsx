@@ -7,11 +7,13 @@ import { Home } from './pages/Home';
 const FoodDrinks = lazy(() => import('./pages/FoodDrinks').then((module) => ({ default: module.FoodDrinks })));
 const Visit = lazy(() => import('./pages/Visit').then((module) => ({ default: module.Visit })));
 const Order = lazy(() => import('./pages/Order').then((module) => ({ default: module.Order })));
+const Track = lazy(() => import('./pages/Track').then((module) => ({ default: module.Track })));
 const AdminApp = lazy(() => import('./pages/admin/AdminApp').then((module) => ({ default: module.AdminApp })));
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
 import { BrandIntro } from './components/BrandIntro';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { closeIntroGate, openIntroGate } from './lib/introGate';
 import { config } from './config';
 import { copy } from './core/tenant';
@@ -135,6 +137,9 @@ const AnimatedRoutes: React.FC = () => {
         className="flex-grow flex flex-col"
       >
         <main className="flex-grow">
+          {/* Reset on navigation, so a crash on one page does not follow the
+              visitor to the next. */}
+          <ErrorBoundary resetKey={location.pathname}>
           <Suspense fallback={<div role="status" className="min-h-screen px-6 pt-32 text-ink">Loading page…</div>}>
           <Routes location={location}>
             <Route path="/" element={<Home />} />
@@ -144,10 +149,12 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/gallery" element={<Navigate to="/visit#gallery" replace />} />
             <Route path="/visit" element={<Visit />} />
             <Route path="/order" element={<Order />} />
+            <Route path="/track" element={<Track />} />
             <Route path="/book" element={<Navigate to="/visit#book" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </ErrorBoundary>
         </main>
 
         {/* The curtain plays for every visitor, like the first-load intro. Under
@@ -267,7 +274,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/admin/*" element={<Suspense fallback={<div role="status" className="p-8 text-ink">Loading staff console…</div>}><AdminApp /></Suspense>} />
+        <Route path="/admin/*" element={<ErrorBoundary variant="console"><Suspense fallback={<div role="status" className="p-8 text-ink">Loading staff console…</div>}><AdminApp /></Suspense></ErrorBoundary>} />
         <Route path="/*" element={<PublicApp />} />
       </Routes>
     </Router>

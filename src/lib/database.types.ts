@@ -19,6 +19,7 @@ export type Database = {
           booking_date: string
           booking_time: string
           created_at: string
+          customer_id: string | null
           email: string
           guests: number
           id: string
@@ -34,6 +35,7 @@ export type Database = {
           booking_date: string
           booking_time: string
           created_at?: string
+          customer_id?: string | null
           email: string
           guests: number
           id?: string
@@ -49,6 +51,7 @@ export type Database = {
           booking_date?: string
           booking_time?: string
           created_at?: string
+          customer_id?: string | null
           email?: string
           guests?: number
           id?: string
@@ -130,6 +133,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_id: string | null
           customer_name: string
           delivery_address: string | null
           delivery_notes: string | null
@@ -147,6 +151,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           customer_name: string
           delivery_address?: string | null
           delivery_notes?: string | null
@@ -164,6 +169,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
           delivery_address?: string | null
           delivery_notes?: string | null
@@ -207,6 +213,13 @@ export type Database = {
           order_no: string
         }[]
       }
+      lookup_request: {
+        Args: {
+          p_contact: string
+          p_reference: string
+        }
+        Returns: Json
+      }
       upsert_customer: {
         Args: {
           p_email: string
@@ -214,7 +227,7 @@ export type Database = {
           p_name: string
           p_phone: string
         }
-        Returns: undefined
+        Returns: string
       }
     }
     Enums: {

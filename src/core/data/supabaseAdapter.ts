@@ -1,9 +1,10 @@
 import { supabase } from '../../lib/supabase';
 import { restaurantDate, restaurantDayBounds } from '../tenant';
 import { withTimeout } from './timeout';
+import { classifySubmission } from './submission';
 import type {
-  Booking, Customer, DashboardSnapshot, DataAdapter, ListOptions,
-  NewBooking, NewOrder, OrderWithItems,
+  Booking, Customer, CustomerHistory, DashboardSnapshot, DataAdapter, ListOptions,
+  LookupResult, NewBooking, NewOrder, OrderWithItems,
 } from './types';
 
 /** Raised when a compare-and-set moved no rows: someone else changed it first. */
@@ -16,49 +17,73 @@ export class ConflictError extends Error {
 
 export const supabaseAdapter: DataAdapter = {
   async createOrder(order: NewOrder) {
-    const { data, error } = await withTimeout(
-      Promise.resolve(
-        supabase.rpc('create_order', {
-          p_order_no: order.orderNo,
-          p_customer_name: order.customerName,
-          p_email: order.email,
-          p_phone: order.phone,
-          p_order_type: order.orderType,
-          p_table_number: order.tableNumber,
-          p_delivery_address: order.deliveryAddress,
-          p_delivery_notes: order.deliveryNotes,
-          p_requested_time: order.requestedTime,
-          p_total: order.total,
-          p_marketing_consent: order.marketingConsent,
-          p_items: order.items,
-        }),
-      ),
-    );
-    if (error || !data?.[0]) throw error ?? new Error('create_order returned no row');
-    return data[0];
+    let result;
+    try {
+      result = await withTimeout(
+        Promise.resolve(
+          supabase.rpc('create_order', {
+            p_order_no: order.orderNo,
+            p_customer_name: order.customerName,
+            p_email: order.email,
+            p_phone: order.phone,
+            p_order_type: order.orderType,
+            p_table_number: order.tableNumber,
+            p_delivery_address: order.deliveryAddress,
+            p_delivery_notes: order.deliveryNotes,
+            p_requested_time: order.requestedTime,
+            p_total: order.total,
+            p_marketing_consent: order.marketingConsent,
+            p_items: order.items,
+          }),
+        ),
+      );
+    } catch (error) {
+      result = { data: null, error };
+    }
+
+    const { data, error } = result;
+    if (!error && data?.[0]) return data[0];
+
+    // create_order answers a same-reference retry with the existing order, so
+    // a collision on the reference only surfaces in a concurrent race. Either
+    // way it proves the order is saved.
+    const outcome = classifySubmission(error ?? new Error('create_order returned no row'), 'orders_order_no_key');
+    if (outcome === 'saved') {
+      return { id: '', order_no: order.orderNo, created_at: new Date().toISOString() };
+    }
+    throw outcome;
   },
 
   async createBooking(booking: NewBooking) {
     // No .select() here on purpose: the anon insert-only policy makes a
     // RETURNING clause trigger an implicit SELECT check, which fails. The id is
-    // generated client-side instead and doubles as the customer's reference.
-    const { error } = await withTimeout(
-      Promise.resolve(
-        supabase.from('bookings').insert({
-          id: booking.id,
-          name: booking.name,
-          email: booking.email,
-          phone: booking.phone,
-          guests: booking.guests,
-          booking_date: booking.bookingDate,
-          booking_time: booking.bookingTime,
-          seating_preference: booking.seatingPreference,
-          notes: booking.notes,
-          marketing_consent: booking.marketingConsent,
-        }),
-      ),
-    );
-    if (error) throw error;
+    // generated client-side instead and doubles as the customer's reference,
+    // which also makes a retry safe: a second insert collides on the key.
+    let error: unknown;
+    try {
+      ({ error } = await withTimeout(
+        Promise.resolve(
+          supabase.from('bookings').insert({
+            id: booking.id,
+            name: booking.name,
+            email: booking.email,
+            phone: booking.phone,
+            guests: booking.guests,
+            booking_date: booking.bookingDate,
+            booking_time: booking.bookingTime,
+            seating_preference: booking.seatingPreference,
+            notes: booking.notes,
+            marketing_consent: booking.marketingConsent,
+          }),
+        ),
+      ));
+    } catch (thrown) {
+      error = thrown;
+    }
+    if (!error) return;
+
+    const outcome = classifySubmission(error, 'bookings_pkey');
+    if (outcome !== 'saved') throw outcome;
   },
 
   async listOrders({ view, limit }: ListOptions): Promise<OrderWithItems[]> {
@@ -122,6 +147,39 @@ export const supabaseAdapter: DataAdapter = {
     );
     if (error) throw error;
     return data ?? [];
+  },
+
+  async loadCustomerHistory(customerId: string): Promise<CustomerHistory | null> {
+    const [customer, orders, bookings] = await withTimeout(Promise.all([
+      supabase.from('customers').select('*').eq('id', customerId).maybeSingle(),
+      supabase.from('orders').select('*, order_items(*)')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false }).order('id').limit(100),
+      supabase.from('bookings').select('*')
+        .eq('customer_id', customerId)
+        .order('booking_date', { ascending: false })
+        .order('booking_time', { ascending: false }).order('id').limit(100),
+    ]));
+
+    const firstError = [customer.error, orders.error, bookings.error].find(Boolean);
+    if (firstError) throw firstError;
+    if (!customer.data) return null;
+
+    return {
+      customer: customer.data,
+      orders: (orders.data ?? []) as OrderWithItems[],
+      bookings: bookings.data ?? [],
+    };
+  },
+
+  async lookupRequest(reference: string, contact: string): Promise<LookupResult | null> {
+    const { data, error } = await withTimeout(
+      Promise.resolve(
+        supabase.rpc('lookup_request', { p_reference: reference.trim(), p_contact: contact.trim() }),
+      ),
+    );
+    if (error) throw error;
+    return (data as LookupResult | null) ?? null;
   },
 
   async loadDashboard(): Promise<DashboardSnapshot> {

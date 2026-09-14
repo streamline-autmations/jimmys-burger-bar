@@ -28,6 +28,16 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
   if (!config.venue?.hours?.length) problems.push('venue.hours must list at least one day');
   if (!config.menu?.categories?.length) problems.push('menu.categories must not be empty');
   if (!config.ordering?.fulfilment?.length) problems.push('ordering.fulfilment must enable at least one mode');
+  if (!Number.isInteger(config.ordering?.maxDaysAhead) || config.ordering.maxDaysAhead < 0) {
+    problems.push('ordering.maxDaysAhead must be a whole number of days, 0 or more');
+  }
+  if (!Number.isInteger(config.booking?.maxDaysAhead) || config.booking.maxDaysAhead < 0) {
+    problems.push('booking.maxDaysAhead must be a whole number of days, 0 or more');
+  }
+  if (!config.booking?.seatingOptions?.length) problems.push('booking.seatingOptions must list at least one option');
+  if (!(config.booking?.minGuests >= 1 && config.booking.maxGuests >= config.booking.minGuests)) {
+    problems.push('booking.minGuests must be at least 1 and no more than booking.maxGuests');
+  }
 
   // Every trading day needs both ends of its window, or it silently reads as closed.
   for (const row of config.venue?.hours ?? []) {

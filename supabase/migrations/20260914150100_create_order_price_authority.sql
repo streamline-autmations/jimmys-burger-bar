@@ -1,4 +1,5 @@
--- Applied live 2026-09-14 as migration "create_order_price_authority", after the seed.
+-- Applied live 2026-09-14 as migration "create_order_price_authority", after the seed,
+-- then tightened to exact price and total matching ("create_order_exact_prices").
 -- Server-side menu price list, step 3 of 3. Apply only after the menu seed.
 --
 -- create_order stops trusting client prices. Before this, it only checked that
@@ -67,7 +68,8 @@ begin
       raise log 'create_order rejected [%]: "%" is not on the menu', p_order_no, v_item->>'name';
       raise exception 'menu item unavailable: %', v_item->>'name';
     end if;
-    if v_price is null or abs(v_price - v_menu.price) > 0.005 then
+    -- Exact: a tolerance let 99.995 pass for a R100 dish.
+    if v_price is null or v_price <> v_menu.price then
       raise log 'create_order rejected [%]: "%" sent at % but menu price is %', p_order_no, v_menu.name, v_price, v_menu.price;
       raise exception 'menu price changed: %', v_menu.name;
     end if;
@@ -82,13 +84,13 @@ begin
     v_lines := v_lines || jsonb_build_object('name', v_menu.name, 'qty', v_qty, 'unit_price', v_menu.price::float8);
   end loop;
 
-  if abs(v_computed - coalesce(p_total, -1)) > 0.01 then
+  if p_total is null or p_total <> v_computed then
     raise log 'create_order rejected [%]: claimed total % but lines sum to %', p_order_no, p_total, v_computed;
     raise exception 'order total does not match its items';
   end if;
 
-  if p_total <= 0 or p_total > 50000 then
-    raise log 'create_order rejected [%]: total % out of range', p_order_no, p_total;
+  if v_computed <= 0 or v_computed > 50000 then
+    raise log 'create_order rejected [%]: total % out of range', p_order_no, v_computed;
     raise exception 'invalid order total';
   end if;
 
@@ -97,7 +99,8 @@ begin
     delivery_address, delivery_notes, requested_time, total, marketing_consent
   ) values (
     p_order_no, p_customer_name, p_email, p_phone, p_order_type, p_table_number,
-    p_delivery_address, p_delivery_notes, p_requested_time, p_total, p_marketing_consent
+    -- The server's own sum, never the client's figure.
+    p_delivery_address, p_delivery_notes, p_requested_time, v_computed, p_marketing_consent
   ) returning public.orders.id, public.orders.created_at into v_order_id, v_created_at;
 
   -- Stored at the menu's price, not the client's.
@@ -119,7 +122,7 @@ begin
         'order_no', p_order_no, 'customer_name', p_customer_name, 'email', p_email,
         'phone', p_phone, 'order_type', p_order_type, 'table_number', p_table_number,
         'delivery_address', p_delivery_address, 'delivery_notes', p_delivery_notes,
-        'requested_time', p_requested_time, 'total', p_total, 'items', v_lines),
+        'requested_time', p_requested_time, 'total', v_computed::float8, 'items', v_lines),
       headers := '{"Content-Type": "application/json"}'::jsonb
     ) into v_req;
     insert into public.notification_log (kind, reference, url, request_id)

@@ -42,6 +42,12 @@ export interface RestaurantCopy {
     rejected: string;
     /** Refused by the anti-spam limit. */
     throttled: string;
+    /** A price or item changed since the page was loaded. */
+    menuChanged: string;
+    /** An item is not served at the requested time. */
+    notServed: string;
+    /** The requested time passed while the customer was checking out. */
+    timePassed: string;
   };
   booking: {
     heading: string;
@@ -98,6 +104,9 @@ export const defaultCopy: RestaurantCopy = {
     softDrinksNote: 'Cold, zero-proof and ready to add',
     rejected: 'We could not place this order, and nothing was saved. Check your order and details, then try again.',
     throttled: 'Online ordering is busy right now, and nothing was saved. Please phone the restaurant to order.',
+    menuChanged: 'Something on the menu has changed since you opened this page, so nothing was saved. Refresh to see the current menu and prices, then place your order again.',
+    notServed: 'Something in your order is not served at the time you chose, so nothing was saved. Choose an earlier time or remove that item.',
+    timePassed: 'The time you chose has already passed, so nothing was saved. Choose a later time and try again.',
   },
   booking: {
     heading: 'Book a table',

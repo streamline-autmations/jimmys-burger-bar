@@ -1,5 +1,5 @@
 import { readSession, writeSession } from '../lib/sessionDraft';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Link } from 'react-router-dom';
@@ -19,13 +19,14 @@ import {
 } from '../lib/cartStore';
 import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
 import { contactFieldErrors, latestTime, openDates, restaurantDate, restaurantInstant, slotFieldErrors, tradingHours } from '../lib/tradingHours';
-import { data as db, SubmissionError, type NewOrder, type SubmissionFailure } from '../core/data';
+import { data as db, SubmissionError, type NewOrder, type RefusalReason, type SubmissionFailure } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 import { FormField } from '../components/forms/FormField';
 import { ErrorSummary } from '../components/forms/ErrorSummary';
 import { SubmissionNotice, UnconfirmedRequest } from '../components/forms/SubmissionNotice';
 import { useFormErrors } from '../lib/useFormErrors';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
+import { orderableCategories } from '../core/menu/orderable';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'address';
@@ -59,9 +60,16 @@ const dayLabel = (date: string): string => {
   return dayLabelFormatter.format(restaurantInstant(date, '12:00'));
 };
 
+/** The same list the server price list is generated from (npm run menu:sql). */
+const ORDER_CATEGORIES = orderableCategories(config.menu.categories, {
+  label: copy.order.softDrinksLabel,
+  note: copy.order.softDrinksNote,
+  items: config.ordering.nonAlcoholicDrinks,
+});
+
 /** Categories with an end time, e.g. breakfast until 12, keyed by item name. */
 const itemCutoffs = new Map(
-  config.menu.categories.flatMap((category) =>
+  ORDER_CATEGORIES.flatMap((category) =>
     category.availableUntil ? category.items.map((item) => [item.name, { until: category.availableUntil!, category: category.name }] as const) : [],
   ),
 );
@@ -85,7 +93,7 @@ export const Order: React.FC = () => {
   const [requestedDate, setRequestedDate] = useState(() => availableDates[0] ?? '');
   const [requestedTime, setRequestedTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [failure, setFailure] = useState<{ kind: SubmissionFailure; offline: boolean; message: string } | null>(null);
+  const [failure, setFailure] = useState<{ kind: SubmissionFailure; offline: boolean; message: string; reason?: RefusalReason } | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const categoryRailRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -174,10 +182,7 @@ export const Order: React.FC = () => {
     setFailure((current) => (current && current.kind !== 'uncertain' ? null : current));
   }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, deliveryAddress, tableNumber, count]);
 
-  const orderCategories = useMemo(
-    () => [...menu.categories, { name: copy.order.softDrinksLabel, note: copy.order.softDrinksNote, items: ordering.nonAlcoholicDrinks }],
-    [menu.categories, ordering.nonAlcoholicDrinks],
-  );
+  const orderCategories = ORDER_CATEGORIES;
 
   // Order.tsx runs its own browse -> checkout -> confirmed flow without a
   // route change, so App.tsx's route-level ScrollToTop never fires here.
@@ -281,9 +286,13 @@ export const Order: React.FC = () => {
       setFailure({
         kind: stillUncertain ? 'uncertain' : failed.kind,
         offline: failed.offline,
+        reason: stillUncertain ? undefined : failed.reason,
         message: failed.kind !== 'uncertain' && stillUncertain
           ? `Trying again did not go through either. Your first attempt may still have reached ${config.venue.name}, so check its status before ordering again.`
           : failed.kind === 'throttled' ? copy.order.throttled
+          : failed.reason === 'menu' ? copy.order.menuChanged
+          : failed.reason === 'served' ? copy.order.notServed
+          : failed.reason === 'time' ? copy.order.timePassed
           : failed.kind === 'rejected' ? copy.order.rejected
           : failed.offline ? 'The connection dropped while sending, so we could not confirm your order arrived.'
           : 'The connection timed out before we heard back, so we cannot tell whether your order arrived.',
@@ -653,6 +662,7 @@ export const Order: React.FC = () => {
                   retrying={isSubmitting}
                   onRetry={retry}
                   onDiscard={discardAttempt}
+                  onReload={failure.reason === 'menu' ? () => window.location.reload() : undefined}
                 />
               </div>
             )}

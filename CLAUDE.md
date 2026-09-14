@@ -300,6 +300,26 @@ violated `customers_phone_key` and rolled back the whole order.
 `set local role anon` and finish with `raise exception 'RESULT ...'`. The exception rolls
 back every row and every queued `net.http_post`, so nothing persists and no email is sent.
 
+## Menu prices are enforced by the database (2026-09-14)
+
+`create_order` prices every order from `public.menu_items`, not from the browser. It refuses
+unknown or unavailable items, a unit price that differs from the menu, and items past their
+category cut-off (`availableUntil`, e.g. breakfast until 12:00, in the `timezone` app
+setting). Before this, anyone calling the public RPC directly could order a real dish at
+R0.01.
+
+`src/config.ts` is still the single source of truth. `menu_items` is GENERATED from it:
+
+1. Change prices or items in the tenant config.
+2. `npm run menu:sql` regenerates `supabase/seed/menu.<slug>.sql`. `npm test` fails while the
+   committed seed is stale.
+3. **Apply the seed to the database and deploy the site back to back.** Between the two,
+   orders containing a changed item are refused with "the menu has changed, refresh", so
+   keep the gap to minutes and avoid doing it mid-service.
+
+Items are matched by NAME, so orderable names must be unique (enforced by the generator
+and a test). Renaming a dish in config retires the old name on the next seed.
+
 ## Verify before calling anything done
 
 `npm run check` (tsc) → `npm run build` → then a real browser pass with Playwright MCP at

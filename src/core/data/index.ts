@@ -10,5 +10,5 @@ export const data: DataAdapter = supabaseAdapter;
 
 export * from './types';
 export { ConflictError } from './supabaseAdapter';
-export { SubmissionError, classifySubmission, type SubmissionFailure } from './submission';
+export { SubmissionError, classifySubmission, type SubmissionFailure, type RefusalReason } from './submission';
 export { withTimeout, TimeoutError, isTimeout, isOffline, DEFAULT_TIMEOUT_MS } from './timeout';

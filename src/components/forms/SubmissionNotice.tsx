@@ -29,7 +29,9 @@ export const SubmissionNotice = forwardRef<HTMLDivElement, {
   onRetry: () => void;
   /** Uncertain only: abandon this attempt and edit the form, accepting the duplicate risk. */
   onDiscard?: () => void;
-}>(({ kind, offline, message, reference, noun, retrying, onRetry, onDiscard }, ref) => {
+  /** Offer a page reload, e.g. when the menu changed under an open page. */
+  onReload?: () => void;
+}>(({ kind, offline, message, reference, noun, retrying, onRetry, onDiscard, onReload }, ref) => {
   const uncertain = kind === 'uncertain';
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
@@ -54,6 +56,16 @@ export const SubmissionNotice = forwardRef<HTMLDivElement, {
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {onReload && (
+          <button
+            type="button"
+            onClick={onReload}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 font-display text-sm font-bold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+          >
+            <RotateCw size={16} aria-hidden="true" />
+            Refresh the menu
+          </button>
+        )}
         {uncertain && (
           <button
             type="button"

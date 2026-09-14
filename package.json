@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
-    "test": "node tests/operations.test.mjs"
+    "test": "node tests/operations.test.mjs",
+    "menu:sql": "node scripts/menu-sql.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

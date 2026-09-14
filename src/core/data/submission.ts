@@ -20,12 +20,21 @@ import { isOffline, isTimeout } from './timeout';
  */
 export type SubmissionFailure = 'rejected' | 'throttled' | 'uncertain';
 
+/**
+ * Why a refusal happened, when the customer can do something specific about it.
+ * `menu`: an item's price or availability changed since the page loaded.
+ * `served`: an item is not served at the requested time (e.g. breakfast after 12).
+ * `time`: the requested time has already passed.
+ */
+export type RefusalReason = 'menu' | 'served' | 'time';
+
 export class SubmissionError extends Error {
   constructor(
     public readonly kind: SubmissionFailure,
     /** True when the device reported no connection at the time. */
     public readonly offline = false,
     cause?: unknown,
+    public readonly reason?: RefusalReason,
   ) {
     super(kind);
     this.name = 'SubmissionError';
@@ -67,7 +76,12 @@ export function classifySubmission(error: unknown, savedConstraint?: string): Su
     if (text.includes('too many') || text.includes('temporarily unavailable')) {
       return new SubmissionError('throttled', false, error);
     }
-    return new SubmissionError('rejected', false, error);
+    const reason: RefusalReason | undefined =
+      text.includes('not served at that time') ? 'served'
+      : text.includes('menu item unavailable') || text.includes('menu price changed') ? 'menu'
+      : text.includes('requested time is in the past') ? 'time'
+      : undefined;
+    return new SubmissionError('rejected', false, error, reason);
   }
 
   // Postgres data or permission errors (class 22, 23, 42) and PostgREST's own

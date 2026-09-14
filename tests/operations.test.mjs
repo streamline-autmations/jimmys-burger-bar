@@ -1,28 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs';
-import path from 'node:path';
-import vm from 'node:vm';
-import { createRequire } from 'node:module';
-import ts from 'typescript';
+import { load } from '../scripts/lib/load-ts.mjs';
 
-// Use the project's existing TypeScript compiler, without adding a test framework.
-const cache = new Map();
-function load(file) {
-  file = path.resolve(file);
-  if (cache.has(file)) return cache.get(file).exports;
-  const module = { exports: {} };
-  cache.set(file, module);
-  const nativeRequire = createRequire(file);
-  const require = (name) => name.startsWith('.') ? load(path.resolve(path.dirname(file), `${name}.ts`)) : nativeRequire(name);
-  // Vite injects import.meta.env at build time; CommonJS has no import.meta,
-  // so the tenant resolver would crash the loader. Substituting an empty env
-  // makes it fall back to the default tenant, which is what tests want.
-  const source = fs.readFileSync(file, 'utf8').replace(/import\.meta\.env/g, '({})');
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-  vm.runInThisContext(`(function(require,module,exports){${code}\n})`, { filename: file })(require, module, module.exports);
-  return module.exports;
-}
 const hours = load('src/lib/tradingHours.ts');
 const cart = load('src/lib/cartStore.ts');
 const ops = load('src/pages/admin/operations.ts');
@@ -281,4 +261,56 @@ test('every orderable category cutoff is a valid 24h time', () => {
     if (category.availableUntil) assert.match(category.availableUntil, /^([01]\d|2[0-3]):[0-5]\d$/, category.name);
   }
   assert.ok(Number.isInteger(config.ordering.maxDaysAhead));
+});
+
+// ---------------------------------------------------------------------------
+// Server-side menu price list. The database prices every order from
+// public.menu_items, generated from this config. If they drift, orders for the
+// changed dishes are refused, so drift must fail here first.
+// ---------------------------------------------------------------------------
+
+const orderable = load('src/core/menu/orderable.ts');
+const { resolveCopy } = load('src/core/config/copy.ts');
+
+const orderableFromConfig = () => {
+  const copyForTenant = resolveCopy(config.copy);
+  return orderable.orderableItems(orderable.orderableCategories(config.menu.categories, {
+    label: copyForTenant.order.softDrinksLabel,
+    note: copyForTenant.order.softDrinksNote,
+    items: config.ordering.nonAlcoholicDrinks,
+  }));
+};
+
+test('the committed menu seed matches the config (run npm run menu:sql if this fails)', () => {
+  const expected = orderable.menuItemsSql(orderableFromConfig(), config.slug);
+  const committed = fs.readFileSync(`supabase/seed/menu.${config.slug}.sql`, 'utf8');
+  assert.equal(committed, expected, 'menu seed is stale: regenerate it AND apply it to the database');
+});
+
+test('orderable item names are unique, because the server prices by name', () => {
+  const names = orderableFromConfig().map((item) => item.name);
+  assert.equal(new Set(names).size, names.length);
+  assert.throws(() => orderable.menuItemsSql([
+    { name: 'Dup', category: 'A', price: 1, availableUntil: null },
+    { name: 'Dup', category: 'B', price: 2, availableUntil: null },
+  ], 'test'), /Duplicate/);
+});
+
+test('seed prices round exactly as the cart does', () => {
+  const [item] = orderable.orderableItems([{ name: 'Odd', items: [{ name: 'Odd', price: 25.505 }] }]);
+  assert.equal(item.price, money.fromMinor(money.toMinor(25.505)));
+});
+
+test('menu seed escapes quotes and keeps decimal prices exact', () => {
+  const sql = orderable.menuItemsSql([{ name: "Jimmy's Breakfast", category: 'Breakfast', price: 25.5, availableUntil: '12:00' }], 'test');
+  assert.match(sql, /'Jimmy''s Breakfast', 'Breakfast', 25\.50, '12:00'/);
+});
+
+test('server refusals carry a reason the customer can act on', () => {
+  const reason = (message) => submission.classifySubmission({ code: 'P0001', message }).reason;
+  assert.equal(reason('menu price changed: Smash Burger'), 'menu');
+  assert.equal(reason('menu item unavailable: Free Lobster'), 'menu');
+  assert.equal(reason('menu item not served at that time: Breakfast Bun'), 'served');
+  assert.equal(reason('requested time is in the past'), 'time');
+  assert.equal(reason('order total does not match its items'), undefined);
 });

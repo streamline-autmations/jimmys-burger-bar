@@ -14,7 +14,7 @@ async (page) => {
   for (const row of [...orders, ...bookings]) row.customer_id = customers[0].id;
   // Phase 3 submit scenarios, set with window.__submitState:
   //   'ok' (default) | 'uncertain-once' (first write 503s, retry succeeds) | 'rejected' | 'throttled'
-  //   | 'uncertain-then-rejected' (first write 503s, the retry is refused)
+  //   | 'uncertain-then-rejected' (first write 503s, the retry is refused) | 'menu-changed'
   let failedOnce = false;
   await page.context().route('**/*', async route => {
     const request=route.request(); const raw=request.url(); const parts=raw.split('/'); const url={hostname:parts[2].split(':')[0],pathname:'/'+parts.slice(3).join('/').split('?')[0],searchParams:new Map((raw.split('?')[1]||'').split('&').filter(Boolean).map(pair=>pair.split('=').map(decodeURIComponent)))};
@@ -28,6 +28,7 @@ async (page) => {
     const isWrite = request.method()==='POST' && ['create_order','bookings'].includes(table);
     if (isWrite && submitState==='uncertain-once' && !failedOnce) { failedOnce = true; return route.fulfill({status:503,contentType:'text/html',body:'<html>Bad gateway</html>'}); }
     if (isWrite && submitState==='uncertain-then-rejected') { if (!failedOnce) { failedOnce = true; return route.fulfill({status:503,contentType:'text/html',body:'<html>Bad gateway</html>'}); } return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'42501',message:'permission denied'})}); }
+    if (isWrite && submitState==='menu-changed') return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'P0001',message:'menu price changed: Smash Burger'})});
     if (isWrite && submitState==='rejected') return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'P0001',message:'order total does not match its items'})});
     if (isWrite && submitState==='throttled') return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'P0001',message:'too many booking requests from this contact. Please phone the restaurant.'})});
     if (request.method()==='POST' && table==='lookup_request') {

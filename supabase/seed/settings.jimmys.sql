@@ -16,5 +16,5 @@ on conflict (key) do update set
   updated_at = now();
 
 -- One review job per project, whatever it was named before (20:00 Africa/Johannesburg is 0 18 * * * UTC).
-select cron.unschedule(jobid) from cron.job where command = 'select public.send_review_requests()';
+select cron.unschedule(jobid) from cron.job where command ~* 'send_review_requests';
 select cron.schedule('restaurant-direct-review-requests', '0 18 * * *', 'select public.send_review_requests()');

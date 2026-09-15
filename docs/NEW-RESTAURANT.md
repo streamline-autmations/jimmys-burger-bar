@@ -73,9 +73,8 @@ Two things to know:
 1. **Create the project** in the Streamline Supabase organisation. Region: closest to the
    restaurant (Africa: `eu-west-2` or `eu-central-1`). Put the project ref in
    `supabase/tenants/<slug>.json`.
-2. **Build the database.** SQL editor → paste and run
-   `supabase/migrations/20260915000000_restaurant_direct_baseline.sql`, then any newer files
-   in `supabase/migrations/`, in name order.
+2. **Build the database.** SQL editor → paste and run every file in `supabase/migrations/`,
+   in name order: the baseline first, then each newer file.
 3. **Confirm it matches.** Run `supabase/snapshot/compare.sql`. It must return **zero rows**.
 4. **Authentication settings:**
    - Sign In / Providers → Email → **turn off "Allow new users to sign up"**. RLS trusts
@@ -121,8 +120,10 @@ Notifications go through the shared n8n instance. Payloads and pitfalls are in
    | `VITE_SUPABASE_URL` | Project Settings → API → Project URL |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | Project Settings → API → the **publishable / anon** key. Never the service role key. |
 
-   Vite bakes these in at build time. A missing variable does not fail the build; it ships
-   a site that cannot take orders.
+   Vite bakes these into the JavaScript every visitor downloads. `scripts/check-build.mjs`
+   fails the Vercel build if `VITE_TENANT` is missing, if the URL is not exactly this
+   restaurant's `https://<ref>.supabase.co`, or if the key is a secret or service role key
+   rather than the publishable one.
 4. Once live, add the client's domain.
 
 **Every restaurant builds from the same repo.** A push to `master` redeploys all of them,
@@ -157,7 +158,12 @@ project, run `npm run db:fingerprint`, commit, and check each project with `comp
 - **Review emails use UTC dates.** The nightly job picks "today's" completed orders by UTC
   date, and compares booking times in UTC. For South Africa (UTC+2) the effect is small. A
   restaurant far from UTC needs a migration to make it zone-aware first.
-- **Booking spam limits are fixed:** 3 requests per contact per hour, 30 per hour overall.
+- **Spam limits are fixed in the database:** bookings allow 3 requests per contact per hour
+  and 30 per hour overall; orders allow 5 per contact per hour and 60 per hour overall. A
+  restaurant that genuinely takes more needs a migration raising them.
+- **The public can only send what the forms send.** Booking requests are limited to the form's
+  columns and bounds (1 to 100 guests, today to a year ahead); orders are bounded by field
+  length inside `create_order`.
 - **One build per restaurant.** Tenancy is decided at build time (`VITE_TENANT`), so each
   restaurant is its own Vercel project.
 - **No menu editor.** Menu and price changes go through the repo (above), by design for V1.

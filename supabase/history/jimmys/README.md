@@ -42,6 +42,12 @@ Applied to the live project, in order:
 Only the last four were written into the repo at the time; the earlier ones exist
 only in the project's own migration history.
 
+## Not yet applied to Jimmy's
+
+| File | Status |
+|---|---|
+| `supabase/migrations/20260915130000_harden_public_writes.sql` | Written and tested 2026-09-15. **Christiaan chose not to apply it to Jimmy's for now.** Until it is, `compare.sql` against Jimmy's reports the differences it introduces. New restaurants get it as part of their setup. |
+
 ## Changing the database from now on
 
 1. Add a new timestamped file to `supabase/migrations/`.

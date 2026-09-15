@@ -13,6 +13,9 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
   const need = (value: unknown, path: string) => {
     if (value === undefined || value === null || value === '') problems.push(`${path} is required`);
   };
+  const needString = (value: unknown, path: string) => {
+    if (typeof value !== 'string' || !value.trim()) problems.push(`${path} must be a non-empty string`);
+  };
 
   need(config.slug, 'slug');
   need(config.locale, 'locale');
@@ -25,14 +28,26 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
   need(config.assets?.logo, 'assets.logo');
   need(config.seo?.title, 'seo.title');
 
+  for (const [path, media] of [
+    ['venue.hero', config.venue?.hero],
+    ['venue.ambience', config.venue?.ambience],
+  ] as const) {
+    if (media?.type === 'video') needString(media.video, `${path}.video`);
+    else if (media?.type === 'image') needString(media.image, `${path}.image`);
+    else problems.push(`${path}.type must be "video" or "image"`);
+  }
+
   if (!config.venue?.hours?.length) problems.push('venue.hours must list at least one day');
   if (!config.menu?.categories?.length) problems.push('menu.categories must not be empty');
   if (!config.sections?.length) problems.push('sections must list at least one home page section');
   need(config.venue?.locality, 'venue.locality');
   need(config.pages?.visit?.heroImage?.src, 'pages.visit.heroImage.src');
-  need(config.pages?.menu?.food?.image?.src, 'pages.menu.food.image.src');
-  if (!config.pages?.menu?.drinks?.video && !config.pages?.menu?.drinks?.image) {
-    problems.push('pages.menu.drinks needs a video or an image');
+  needString(config.pages?.menu?.food?.image?.src, 'pages.menu.food.image.src');
+  const drinksMedia = config.pages?.menu?.drinks;
+  const hasDrinksVideo = typeof drinksMedia?.video === 'string' && Boolean(drinksMedia.video.trim());
+  const hasDrinksImage = typeof drinksMedia?.image?.src === 'string' && Boolean(drinksMedia.image.src.trim());
+  if (!hasDrinksVideo && !hasDrinksImage) {
+    problems.push('pages.menu.drinks needs a non-empty video or image.src');
   }
   if (!config.ordering?.fulfilment?.length) problems.push('ordering.fulfilment must enable at least one mode');
   if (!Number.isInteger(config.ordering?.maxDaysAhead) || config.ordering.maxDaysAhead < 0) {

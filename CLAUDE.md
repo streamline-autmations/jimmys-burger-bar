@@ -364,6 +364,12 @@ The runbook is `docs/NEW-RESTAURANT.md`. The pieces:
   component names a restaurant.
 - The `hero` section is Jimmy's burger build and needs the five burger layer images; a
   restaurant without that artwork needs a different hero section.
+- **`20260915130000_harden_public_writes.sql` is NOT applied to Jimmy's live project**
+  (Christiaan chose to leave it for now, 2026-09-15; do not apply without asking again). It closes: anon forging confirmed/back-dated bookings via
+  table-wide INSERT, unlimited `create_order` calls, and open default privileges for future
+  objects. Gotchas it records: a SECURITY DEFINER trigger's `current_user` is always the owner
+  (use SECURITY INVOKER for role checks), and PUBLIC's default EXECUTE on functions can only
+  be revoked with a database-wide `alter default privileges` (no `in schema`).
 
 ## Verify before calling anything done
 

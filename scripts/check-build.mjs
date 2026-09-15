@@ -59,15 +59,60 @@ if (process.env.VERCEL && !demo) {
   const slug = tenant ?? 'jimmys';
   const infraFile = `supabase/tenants/${slug}.json`;
   const supabaseUrl = process.env.VITE_SUPABASE_URL ?? '';
+  let ref = '';
   if (!fs.existsSync(infraFile)) {
     problems.push(`${infraFile} does not exist for VITE_TENANT="${slug}"`);
   } else {
-    const ref = JSON.parse(fs.readFileSync(infraFile, 'utf8')).supabaseProjectRef;
+    ref = JSON.parse(fs.readFileSync(infraFile, 'utf8')).supabaseProjectRef ?? '';
     if (!supabaseUrl) problems.push('VITE_SUPABASE_URL is not set: the site would build but could not take orders.');
     else if (!ref || /PLACEHOLDER/.test(ref)) problems.push(`${infraFile} has no supabaseProjectRef yet`);
-    else if (!supabaseUrl.includes(ref)) problems.push(`VITE_SUPABASE_URL does not belong to ${slug}'s Supabase project (${ref}). Orders would go to another restaurant's database.`);
+    else {
+      let url;
+      try {
+        url = new URL(supabaseUrl);
+      } catch {
+        // The shared error below explains the required tenant URL shape.
+      }
+      if (!url
+        || url.protocol !== 'https:'
+        || url.hostname !== `${ref}.supabase.co`
+        || url.port
+        || url.username
+        || url.password
+        || !['', '/'].includes(url.pathname)
+        || url.search
+        || url.hash) {
+        problems.push(`VITE_SUPABASE_URL does not belong to ${slug}'s Supabase project (${ref}). It must be exactly https://${ref}.supabase.co so orders cannot go to another restaurant's database.`);
+      }
+    }
   }
-  if (!process.env.VITE_SUPABASE_PUBLISHABLE_KEY) problems.push('VITE_SUPABASE_PUBLISHABLE_KEY is not set.');
+
+  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '';
+  if (!publishableKey) {
+    problems.push('VITE_SUPABASE_PUBLISHABLE_KEY is not set.');
+  } else if (publishableKey.startsWith('sb_secret_')) {
+    problems.push('VITE_SUPABASE_PUBLISHABLE_KEY is a secret key. VITE_* values ship to browsers; use an sb_publishable_ key or the project anon JWT.');
+  } else if (!publishableKey.startsWith('sb_publishable_')) {
+    const parts = publishableKey.split('.');
+    if (parts.length !== 3 || parts.some((part) => !/^[A-Za-z0-9_-]+$/.test(part))) {
+      problems.push('VITE_SUPABASE_PUBLISHABLE_KEY has an unrecognised shape. Use an sb_publishable_ key or the project anon JWT.');
+    } else {
+      let payload;
+      let decoded = false;
+      try {
+        payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        decoded = true;
+      } catch {
+        problems.push('VITE_SUPABASE_PUBLISHABLE_KEY looks like a JWT but its payload cannot be decoded. Use the project anon JWT.');
+      }
+      if (decoded && payload?.role !== 'anon') {
+        problems.push(`VITE_SUPABASE_PUBLISHABLE_KEY JWT role is "${payload?.role ?? 'missing'}", not "anon". VITE_* values ship to browsers.`);
+      }
+      if (decoded && payload && typeof payload === 'object' && Object.hasOwn(payload, 'ref') && payload.ref !== ref) {
+        problems.push(`VITE_SUPABASE_PUBLISHABLE_KEY belongs to Supabase project ${payload.ref}, not ${slug}'s project (${ref}).`);
+      }
+    }
+  }
 }
 
 if (demo) {

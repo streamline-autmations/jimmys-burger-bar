@@ -8,6 +8,7 @@
 // src/config.ts. Every value that needs the client's real details is marked
 // PLACEHOLDER; `npm run check-tenant -- <slug>` fails until none remain.
 import fs from 'node:fs';
+import ts from 'typescript';
 
 const [slug, name] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 
@@ -22,7 +23,6 @@ if (slug.startsWith('_') || slug.endsWith('-demo')) fail(`"${slug}" is reserved.
 
 const dir = `src/tenants/${slug}`;
 const infraFile = `supabase/tenants/${slug}.json`;
-if (fs.existsSync(dir) || fs.existsSync(infraFile)) fail(`${dir} or ${infraFile} already exists.`);
 
 // Check everything that could stop the scaffold before writing anything, so a
 // failure never leaves a half-made restaurant behind.
@@ -34,6 +34,32 @@ if (!registry.includes(importMarker) || !registry.includes(registerMarker)) {
 }
 
 const identifier = slug.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase());
+const reservedIdentifiers = new Set([
+  'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'enum',
+  'export', 'extends', 'false', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'new', 'null',
+  'return', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield',
+  'let', 'static', 'implements', 'interface', 'package', 'private', 'protected', 'public', 'await', 'async', 'of',
+  'type', 'declare', 'namespace', 'module', 'abstract', 'config', 'tenants', 'requested', 'resolved',
+]);
+if (reservedIdentifiers.has(identifier)) fail(`"${slug}" becomes the reserved identifier "${identifier}". Choose another slug.`);
+if (!/^[A-Za-z_$][\w$]*$/.test(identifier)) fail(`"${slug}" does not produce a valid JavaScript identifier. Avoid consecutive hyphens.`);
+
+const importedIdentifiers = new Set();
+const registrySource = ts.createSourceFile('src/config.ts', registry, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+for (const statement of registrySource.statements) {
+  if (!ts.isImportDeclaration(statement) || !statement.importClause) continue;
+  if (statement.importClause.name) importedIdentifiers.add(statement.importClause.name.text);
+  const bindings = statement.importClause.namedBindings;
+  if (bindings && ts.isNamespaceImport(bindings)) importedIdentifiers.add(bindings.name.text);
+  if (bindings && ts.isNamedImports(bindings)) {
+    for (const element of bindings.elements) importedIdentifiers.add(element.name.text);
+  }
+}
+if (importedIdentifiers.has(identifier)) {
+  fail(`"${slug}" becomes identifier "${identifier}", which is already imported by src/config.ts. Choose another slug.`);
+}
+if (fs.existsSync(dir) || fs.existsSync(infraFile)) fail(`${dir} or ${infraFile} already exists.`);
+
 const escapeSingle = (value) => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
 // Function replacers, so a "$" in a restaurant name is inserted literally

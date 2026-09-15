@@ -6,6 +6,7 @@ import { test, before } from 'node:test';
 import fs from 'node:fs';
 import { createDatabase, fingerprint, asRole } from './db/harness.mjs';
 import { dailyCronUtc, validateTenant, settingsSql } from '../scripts/lib/tenant-settings.mjs';
+import { buildCompareSql, currentFingerprint } from '../scripts/db-fingerprint.mjs';
 
 const STAFF_ID = '5a000000-0000-4000-8000-000000000001';
 const STRANGER_ID = '5a000000-0000-4000-8000-000000000002';
@@ -25,9 +26,12 @@ const tomorrowAt = (hhmm) => {
     .format(new Date(Date.now() + 86400000));
   return new Date(`${date}T${hhmm}:00+02:00`).toISOString();
 };
+let contactSeq = 0;
 const order = (overrides = {}) => ({
   ref: `JB-TEST${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-  name: 'Test Example', email: 'test@example.com', phone: '082 000 0001',
+  name: 'Test Example',
+  // A fresh contact per order, so the per-contact rate limit only trips where a test means it to.
+  email: `test${(contactSeq += 1)}@example.com`, phone: `082 100 ${String(contactSeq).padStart(4, '0')}`,
   type: 'collection', time: tomorrowAt('18:00'), total: 200,
   items: [{ name: 'Smash Burger', qty: 2, unit_price: 100 }],
   ...overrides,
@@ -41,13 +45,26 @@ const createOrder = (o) => db.query(
 // The baseline matches the committed snapshot of Jimmy's live project.
 // ---------------------------------------------------------------------------
 
-test('baseline matches the committed fingerprint (run npm run db:fingerprint after changing a migration)', async () => {
-  const fresh = await createDatabase();
-  const actual = await fingerprint(fresh);
+test('migrations match the committed snapshot (run npm run db:fingerprint after changing a migration)', async () => {
+  const actual = await currentFingerprint();
   const committed = JSON.parse(fs.readFileSync('supabase/snapshot/baseline.fingerprint.json', 'utf8'));
   assert.deepEqual(actual, committed);
-  const compare = fs.readFileSync('supabase/snapshot/compare.sql', 'utf8');
-  for (const row of committed) assert.ok(compare.includes(row.fingerprint), `compare.sql is stale: missing ${row.kind} ${row.name}`);
+  assert.equal(fs.readFileSync('supabase/snapshot/compare.sql', 'utf8'), buildCompareSql(committed), 'compare.sql is stale');
+});
+
+test('the fingerprint notices drift that keeps definitions identical', async () => {
+  const drifted = await createDatabase();
+  const before = await fingerprint(drifted);
+  await drifted.exec(`
+    alter table public.bookings disable trigger bookings_throttle;
+    alter table public.customers force row level security;
+    grant select (email) on table public.customers to anon;
+  `);
+  const after = await fingerprint(drifted);
+  const changed = after.filter((row, index) => row.fingerprint !== before[index].fingerprint).map((row) => `${row.kind} ${row.name}`);
+  assert.ok(changed.includes('trigger bookings.bookings_throttle'), 'disabled trigger');
+  assert.ok(changed.includes('table customers'), 'forced RLS');
+  assert.ok(changed.includes('column_grant customers anon'), 'column grant');
 });
 
 test('generated seed files apply cleanly, twice', async () => {
@@ -80,7 +97,7 @@ test('the public can request a booking and nothing else directly', async () => {
 
 test('the public cannot call internal functions', async () => {
   await asRole(db, 'anon', async () => {
-    for (const call of [`public.setting('timezone')`, `public.upsert_customer('a', 'a@example.com', '1', false)`, `public.send_review_requests()`, `public.normalise_phone('1')`]) {
+    for (const call of [`public.setting('timezone')`, `public.upsert_customer('a', 'a@example.com', '1', false)`, `public.send_review_requests()`, `public.normalise_phone('1')`, `public.set_updated_at()`, `public.sanitise_booking_insert()`]) {
       await db.exec('savepoint probe');
       await assert.rejects(db.query(`select ${call}`), /permission denied/, call);
       await db.exec('rollback to savepoint probe');
@@ -212,10 +229,79 @@ test('review schedules convert to UTC and flag daylight-saving zones', () => {
 
 test('tenant infrastructure files are validated before any SQL is written', () => {
   const config = { slug: 'newplace', timezone: 'Africa/Johannesburg' };
-  const good = { slug: 'newplace', phoneCountryCode: '27', webhooks: { order: 'https://n8n.example.com/a', booking: null, review: null }, reviewRequests: { localTime: null } };
+  const good = { slug: 'newplace', supabaseProjectRef: 'abcdefghijklmnopqrst', phoneCountryCode: '27', webhooks: { order: 'https://n8n.example.com/a', booking: null, review: null }, reviewRequests: { localTime: null } };
   assert.deepEqual(validateTenant(good, config), []);
   assert.match(settingsSql(good, config), /delete from public\.app_settings where key in \('webhook\.booking', 'webhook\.review'\)/);
   assert.match(settingsSql(good, config), /Review requests are switched off/);
   const bad = { ...good, phoneCountryCode: '+27', webhooks: { order: 'http://PLACEHOLDER', booking: null, review: null }, reviewRequests: { localTime: '20:00' } };
   assert.equal(validateTenant(bad, config).length, 3);
+});
+
+// ---------------------------------------------------------------------------
+// Hardening (migration 20260915130000): what the public can write, and how often.
+// ---------------------------------------------------------------------------
+
+test('the public cannot forge a confirmed or back-dated booking', async () => {
+  await asRole(db, 'anon', async () => {
+    await db.exec('savepoint probe');
+    await assert.rejects(db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, status)
+      values ('Forge Example', 'forge@example.com', '082 300 0001', 2, current_date + 2, '19:00', 'confirmed')`), /permission denied/, 'status');
+    await db.exec('rollback to savepoint probe');
+    await assert.rejects(db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, created_at)
+      values ('Forge Example', 'forge@example.com', '082 300 0001', 2, current_date + 2, '19:00', now() - interval '1 day')`), /permission denied/, 'created_at');
+    await db.exec('rollback to savepoint probe');
+  });
+});
+
+test('booking requests outside what the form allows are refused', async () => {
+  const bad = [
+    `9999, current_date + 2`,
+    `2, current_date - 5`,
+    `2, current_date + 400`,
+  ];
+  await asRole(db, 'anon', async () => {
+    for (const values of bad) {
+      await db.exec('savepoint probe');
+      await assert.rejects(db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time)
+        values ('Bounds Example', 'bounds@example.com', '082 300 0002', ${values}, '19:00')`), /invalid booking request/, values);
+      await db.exec('rollback to savepoint probe');
+    }
+  });
+  const staffInsert = await asRole(db, 'postgres', async () => (await one(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, status)
+    values ('Import Example', 'import@example.com', '082 300 0003', 2, current_date + 2, '19:00', 'confirmed') returning status`)).status);
+  assert.equal(staffInsert, 'confirmed', 'the project owner can still import confirmed bookings');
+});
+
+test('orders are rate limited per contact, and a retry is never throttled', async () => {
+  const contact = { email: 'rush@example.com', phone: '082 400 0001' };
+  const placed = [];
+  for (let i = 0; i < 5; i += 1) placed.push(order(contact));
+  for (const o of placed) await createOrder(o);
+  // Outside a transaction a failed call rolls itself back.
+  await assert.rejects(createOrder(order(contact)), /too many orders from this contact/);
+  const retry = (await createOrder(placed[0])).rows[0];
+  assert.ok(retry.id, 'retrying an order that already landed still returns it');
+});
+
+test('future objects in public start closed to the public', async () => {
+  const fresh = await createDatabase();
+  await fresh.exec(`create table public.later_table (id int); create function public.later_fn() returns int language sql as 'select 1';`);
+  const grants = (await fresh.query(`select has_table_privilege('anon', 'public.later_table', 'SELECT') t,
+    has_function_privilege('anon', 'public.later_fn()', 'EXECUTE') f`)).rows[0];
+  assert.deepEqual(grants, { t: false, f: false });
+});
+
+test('the health check passes its security rows on a correctly built project', async () => {
+  const rows = (await db.query(fs.readFileSync('supabase/verify.sql', 'utf8'))).rows;
+  const byName = Object.fromEntries(rows.map((row) => [row.check_name, row]));
+  for (const name of [
+    'timezone setting is a real zone', 'phone country code setting', 'menu loaded', 'at least one staff member',
+    'row level security on every table', 'the public has no table-wide privileges',
+    'the public can only insert booking form columns', 'the public can only call create_order and lookup_request',
+    'future tables and functions start closed', 'no duplicate or inactive review jobs',
+  ]) {
+    assert.ok(byName[name], `missing check: ${name}`);
+    assert.equal(byName[name].ok, true, `${name}: ${byName[name].detail}`);
+  }
+  assert.equal(byName['pg_cron extension installed'].ok, false, 'PGlite has no pg_cron, and the check says so instead of erroring');
 });

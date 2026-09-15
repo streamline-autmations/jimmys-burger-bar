@@ -36,11 +36,10 @@ async function loadTenant(slug: string, entry = `src/tenants/${slug}/config.ts`)
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export function tenantHtml({ entry }: { entry?: string } = {}): Plugin {
+export function tenantHtml({ slug, entry }: { slug: string; entry?: string }): Plugin {
   return {
     name: 'restaurant-direct:tenant-html',
     async transformIndexHtml(html) {
-      const slug = process.env.VITE_TENANT ?? 'jimmys';
       const config = await loadTenant(slug, entry) as never as {
         seo: { title: string; description: string; themeColor: string };
         assets: { favicon: string; ogImage: string; siteUrl: string };

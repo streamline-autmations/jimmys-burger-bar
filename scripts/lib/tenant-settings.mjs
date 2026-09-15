@@ -19,18 +19,31 @@ export function zoneOffsetMinutes(instant, timeZone) {
  */
 export function dailyCronUtc(localTime, timeZone, year = new Date().getUTCFullYear()) {
   const [hours, minutes] = localTime.split(':').map(Number);
-  const offsets = [zoneOffsetMinutes(new Date(Date.UTC(year, 0, 15, 12)), timeZone), zoneOffsetMinutes(new Date(Date.UTC(year, 6, 15, 12)), timeZone)];
-  const offset = Math.min(...offsets);
+  const offsets = Array.from({ length: 12 }, (_, month) =>
+    zoneOffsetMinutes(new Date(Date.UTC(year, month, 15, 12)), timeZone));
+  const counts = new Map();
+  for (const sample of offsets) counts.set(sample, (counts.get(sample) ?? 0) + 1);
+  const offset = [...counts].reduce((mostCommon, candidate) =>
+    candidate[1] > mostCommon[1] ? candidate : mostCommon)[0];
   const utc = (((hours * 60 + minutes - offset) % 1440) + 1440) % 1440;
   return {
     expression: `${utc % 60} ${Math.floor(utc / 60)} * * *`,
-    observesDst: offsets[0] !== offsets[1],
+    observesDst: counts.size > 1,
   };
 }
 
 export function validateTenant(infra, config) {
   const problems = [];
   if (infra.slug !== config.slug) problems.push(`supabase/tenants/${infra.slug}.json slug does not match the site config slug "${config.slug}"`);
+  if (!/^[a-z]{20}$/.test(infra.supabaseProjectRef ?? '')) {
+    problems.push('supabaseProjectRef must be exactly 20 lowercase letters from the Supabase project URL (not a placeholder)');
+  }
+  try {
+    if (typeof config.timezone !== 'string' || !config.timezone.trim()) throw new RangeError();
+    new Intl.DateTimeFormat('en-US', { timeZone: config.timezone });
+  } catch {
+    problems.push(`timezone "${config.timezone ?? ''}" must be a valid IANA time zone`);
+  }
   if (!/^[0-9]{1,3}$/.test(infra.phoneCountryCode ?? '')) problems.push('phoneCountryCode must be 1 to 3 digits, e.g. "27"');
   for (const kind of ['order', 'booking', 'review']) {
     const url = infra.webhooks?.[kind];
@@ -80,7 +93,7 @@ ${unset.length ? `
 delete from public.app_settings where key in (${unset.map(sqlText).join(', ')});
 ` : ''}
 -- One review job per project, whatever it was named before${review ? ` (${infra.reviewRequests.localTime} ${config.timezone} is ${review.expression} UTC)` : ''}.
-select cron.unschedule(jobid) from cron.job where command = 'select public.send_review_requests()';
+select cron.unschedule(jobid) from cron.job where command ~* 'send_review_requests';
 ${cron}
 `;
 }

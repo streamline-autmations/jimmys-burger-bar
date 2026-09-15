@@ -2,7 +2,7 @@
 // and by the test suite for every registered tenant.
 import fs from 'node:fs';
 import path from 'node:path';
-import { load } from './load-ts.mjs';
+import { load, loadWithEnv } from './load-ts.mjs';
 import { settingsSql, validateTenant } from './tenant-settings.mjs';
 
 const ASSET = /^\/[^\s?#]+\.(png|jpe?g|webp|svg|mp4|webm|gif|avif|ico)$/i;
@@ -70,14 +70,29 @@ export function checkTenant(slug) {
     if (hits.length) problems.push(`${file} still has placeholders on line${hits.length > 1 ? 's' : ''} ${hits.slice(0, 12).join(', ')}${hits.length > 12 ? '…' : ''}`);
   }
 
-  // 3. Registered, so VITE_TENANT=<slug> actually builds it.
-  if (!fs.readFileSync('src/config.ts', 'utf8').includes(`./tenants/${slug}/config`)) {
-    problems.push(`${slug} is not registered in src/config.ts`);
+  // 3. Registered in the runtime map, so VITE_TENANT=<slug> actually resolves.
+  try {
+    const registered = loadWithEnv('src/config.ts', { VITE_TENANT: slug }).config;
+    if (registered?.slug !== slug) problems.push(`${slug} is not registered in src/config.ts`);
+  } catch (error) {
+    problems.push(`${slug} is not registered in src/config.ts: ${error.message}`);
   }
 
   if (!config) return { problems, warnings };
 
   if (config.slug !== slug) problems.push(`config slug "${config.slug}" does not match the folder "${slug}"`);
+
+  const { resolveCopy } = load('src/core/config/copy.ts');
+  const { orderableCategories, orderableItems, menuItemsSql } = load('src/core/menu/orderable.ts');
+  const copy = resolveCopy(config.copy);
+  const menuItems = orderableItems(orderableCategories(config.menu.categories, {
+    label: copy.order.softDrinksLabel,
+    note: copy.order.softDrinksNote,
+    items: config.ordering.nonAlcoholicDrinks,
+  }));
+  if (config.features.ordering && !menuItems.length) {
+    problems.push('ordering is enabled but the config has no orderable priced menu items');
+  }
 
   // 4. Every photo, video and icon the site will request exists.
   const publicDir = publicDirFor(slug);
@@ -98,14 +113,9 @@ export function checkTenant(slug) {
       if (infra.webhooks?.[kind] === null) warnings.push(`${kind} notifications are switched off (webhooks.${kind} is null)`);
     }
     if (!problems.length) {
-      const { resolveCopy } = load('src/core/config/copy.ts');
-      const { orderableCategories, orderableItems, menuItemsSql } = load('src/core/menu/orderable.ts');
-      const copy = resolveCopy(config.copy);
       const expected = {
         [`supabase/seed/settings.${slug}.sql`]: settingsSql(infra, config),
-        [`supabase/seed/menu.${slug}.sql`]: menuItemsSql(orderableItems(orderableCategories(config.menu.categories, {
-          label: copy.order.softDrinksLabel, note: copy.order.softDrinksNote, items: config.ordering.nonAlcoholicDrinks,
-        })), slug),
+        [`supabase/seed/menu.${slug}.sql`]: menuItemsSql(menuItems, slug),
       };
       for (const [file, sql] of Object.entries(expected)) {
         if (!fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== sql) {

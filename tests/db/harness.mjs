@@ -20,6 +20,14 @@ const SUPABASE_STUBS = `
   create role authenticated nologin;
   create role service_role nologin;
 
+  -- Hosted Supabase's default privileges: every new table, sequence and
+  -- function in public is granted to anon and authenticated. Without these the
+  -- baseline's revokes would be tested against a database that never granted
+  -- anything, and pass for the wrong reason.
+  alter default privileges for role postgres in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges for role postgres in schema public grant all on sequences to anon, authenticated, service_role;
+  alter default privileges for role postgres in schema public grant all on functions to anon, authenticated, service_role;
+
   create schema auth;
   create table auth.users (id uuid primary key, email text);
   create function auth.uid() returns uuid language sql stable
@@ -40,7 +48,9 @@ const SUPABASE_STUBS = `
     end $$;
 
   create schema cron;
-  create table cron.job (jobid bigserial primary key, jobname text unique, schedule text not null, command text not null);
+  create table cron.job (jobid bigserial primary key, jobname text unique, schedule text not null, command text not null,
+                         database text not null default current_database(), username text not null default current_user,
+                         active boolean not null default true);
   create function cron.schedule(job_name text, schedule text, command text) returns bigint language plpgsql as $$
     declare v_id bigint;
     begin

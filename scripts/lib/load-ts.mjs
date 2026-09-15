@@ -8,18 +8,28 @@ import ts from 'typescript';
 
 const cache = new Map();
 
-export function load(file) {
+function loadModule(file, moduleCache, env) {
   file = path.resolve(file);
-  if (cache.has(file)) return cache.get(file).exports;
+  if (moduleCache.has(file)) return moduleCache.get(file).exports;
   const module = { exports: {} };
-  cache.set(file, module);
+  moduleCache.set(file, module);
   const nativeRequire = createRequire(file);
-  const require = (name) => name.startsWith('.') ? load(path.resolve(path.dirname(file), `${name}.ts`)) : nativeRequire(name);
+  const require = (name) => name.startsWith('.')
+    ? loadModule(path.resolve(path.dirname(file), `${name}.ts`), moduleCache, env)
+    : nativeRequire(name);
   // Vite injects import.meta.env at build time; CommonJS has no import.meta,
-  // so the tenant resolver would crash the loader. Substituting an empty env
-  // makes it fall back to the default tenant.
-  const source = fs.readFileSync(file, 'utf8').replace(/import\.meta\.env/g, '({})');
+  // so replace it with the environment supplied by the caller.
+  const source = fs.readFileSync(file, 'utf8').replace(/import\.meta\.env/g, `(${JSON.stringify(env)})`);
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   vm.runInThisContext(`(function(require,module,exports){${code}\n})`, { filename: file })(require, module, module.exports);
   return module.exports;
+}
+
+export function load(file) {
+  return loadModule(file, cache, {});
+}
+
+/** Load a TypeScript module and all of its local imports with a fresh cache. */
+export function loadWithEnv(file, env) {
+  return loadModule(file, new Map(), env);
 }

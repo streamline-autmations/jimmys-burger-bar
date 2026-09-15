@@ -37,7 +37,7 @@ rows as (
      from pg_constraint con where con.conrelid = t.oid),
     (select string_agg(pg_get_indexdef(i.indexrelid), ',' order by pg_get_indexdef(i.indexrelid))
      from pg_index i where i.indrelid = t.oid),
-    (select relrowsecurity::text from pg_class where oid = t.oid)
+    (select relrowsecurity::text || ' force=' || relforcerowsecurity::text from pg_class where oid = t.oid)
   )) as fingerprint
   from our_tables t
 
@@ -45,7 +45,8 @@ rows as (
   select 'function', f.name, md5(pg_get_functiondef(f.oid)) from our_functions f
 
   union all
-  select 'trigger', c.relname::text || '.' || tg.tgname::text, md5(pg_get_triggerdef(tg.oid))
+  -- tgenabled too: a disabled trigger keeps an identical definition.
+  select 'trigger', c.relname::text || '.' || tg.tgname::text, md5(pg_get_triggerdef(tg.oid) || ' enabled=' || tg.tgenabled::text)
   from pg_trigger tg
   join pg_class c on c.oid = tg.tgrelid
   join pg_namespace n on n.oid = c.relnamespace
@@ -66,6 +67,20 @@ rows as (
     case when has_table_privilege(r.rolname, t.oid, 'TRUNCATE') then 'truncate' end,
     case when has_table_privilege(r.rolname, t.oid, 'REFERENCES') then 'references' end,
     case when has_table_privilege(r.rolname, t.oid, 'TRIGGER') then 'trigger' end))
+  from our_tables t
+  cross join (values ('anon'), ('authenticated')) as r(rolname)
+
+  union all
+  -- Column-level grants are invisible to has_table_privilege.
+  select 'column_grant', t.relname || ' ' || r.rolname, md5(coalesce((
+    select string_agg(a.attname || ':' || concat_ws(',',
+      case when has_column_privilege(r.rolname, t.oid, a.attnum, 'SELECT') then 'select' end,
+      case when has_column_privilege(r.rolname, t.oid, a.attnum, 'INSERT') then 'insert' end,
+      case when has_column_privilege(r.rolname, t.oid, a.attnum, 'UPDATE') then 'update' end,
+      case when has_column_privilege(r.rolname, t.oid, a.attnum, 'REFERENCES') then 'references' end), ';' order by a.attnum)
+    from pg_attribute a
+    where a.attrelid = t.oid and a.attnum > 0 and not a.attisdropped
+  ), ''))
   from our_tables t
   cross join (values ('anon'), ('authenticated')) as r(rolname)
 

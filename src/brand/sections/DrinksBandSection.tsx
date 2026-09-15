@@ -19,7 +19,7 @@ export const DrinksBandSection: React.FC<{ content: DrinksBandContent }> = ({ co
   return (
     <section ref={ref} className="relative py-28 md:py-40 overflow-hidden bg-ink">
       <motion.div style={{ y }} className="absolute inset-x-0 -inset-y-12 z-0">
-        {ambience.type === 'video' ? (
+        {ambience.video ? (
           <video src={ambience.video} autoPlay muted loop playsInline className="w-full h-full object-cover opacity-45" />
         ) : (
           <img src={ambience.image} alt="" className="w-full h-full object-cover opacity-45" />

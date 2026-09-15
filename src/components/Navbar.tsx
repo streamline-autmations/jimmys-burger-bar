@@ -111,7 +111,7 @@ export const Navbar: React.FC = () => {
                 transition={{ duration: 0.4, ease: STAMP_EASE, delay: 0.05 }}
                 className="min-h-[100dvh] max-w-5xl mx-auto px-7 pt-28 pb-10 sm:px-12 flex flex-col"
               >
-                <div className="flex items-center justify-between border-b border-surface/20 pb-6 mb-7"><span className="font-script text-3xl text-secondary">Jimmy's</span><span className="text-xs font-bold tracking-[0.18em] uppercase text-surface/65">Meyerton</span></div>
+                <div className="flex items-center justify-between border-b border-surface/20 pb-6 mb-7"><span className="font-script text-3xl text-secondary">{config.venue.name}</span><span className="text-xs font-bold tracking-[0.18em] uppercase text-surface/65">{config.venue.locality}</span></div>
                 <div className="flex-1 flex flex-col justify-center gap-1.5">
                 {config.nav.links.map((link, i) => (
                   <motion.div

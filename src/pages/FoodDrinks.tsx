@@ -11,17 +11,10 @@ import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Board = 'food' | 'drinks';
 
+// Eyebrows are product copy; what each board says and shows is the restaurant's.
 const boardMeta = {
-  food: {
-    eyebrow: 'From the kitchen',
-    description: 'Breakfast, 180g burgers, plates for the table and the full kitchen board.',
-    caption: 'Fresh off the grill.',
-  },
-  drinks: {
-    eyebrow: 'From the bar',
-    description: 'Cold local favourites, buckets, cocktails, wine and proper coffee.',
-    caption: 'Straight from the bar.',
-  },
+  food: { eyebrow: 'From the kitchen', ...config.pages.menu.food },
+  drinks: { eyebrow: 'From the bar', ...config.pages.menu.drinks },
 } satisfies Record<Board, { eyebrow: string; description: string; caption: string }>;
 
 const boardPanelVariants = {
@@ -147,7 +140,7 @@ export const FoodDrinks: React.FC = () => {
           className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-8 lg:gap-14 items-end pb-10 md:pb-14"
         >
           <div className="relative">
-            <span className="font-script text-2xl text-primary">the whole Jimmy&apos;s board</span>
+            <span className="font-script text-2xl text-primary">{config.pages.menu.script}</span>
             <RevealHeading
               as="h1"
               text="Food & drinks"
@@ -184,15 +177,15 @@ export const FoodDrinks: React.FC = () => {
                 exit="exit"
                 className="absolute inset-0"
               >
-                {board === 'food' ? (
+                {board === 'food' || !boardMeta.drinks.video ? (
                   <img
-                    src="/images/campaign/gourmet-burger.webp"
-                    alt="Jimmy's gourmet burger"
+                    src={board === 'food' ? boardMeta.food.image.src : boardMeta.drinks.image?.src}
+                    alt={board === 'food' ? boardMeta.food.image.alt : boardMeta.drinks.image?.alt ?? ''}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (
                   <video
-                    src="/videos/drinks-pour-loop.mp4"
+                    src={boardMeta.drinks.video}
                     autoPlay
                     muted
                     loop

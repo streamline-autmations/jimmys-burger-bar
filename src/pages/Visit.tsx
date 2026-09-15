@@ -9,15 +9,6 @@ import { fadeInUp, riseChild, staggerContainer } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
 import { CheckerDivider, WaveDivider } from '../components/SectionDivider';
 
-const visitGallery = [
-  { src: '/images/gallery/burger-duo.jpg', caption: 'Burgers for the table' },
-  { src: '/images/gallery/heritage-day-team.jpg', caption: 'The Jimmy’s crew' },
-  { src: '/images/campaign/coffee-cars.webp', caption: 'Coffee & Cars Sundays' },
-  { src: '/images/gallery/greek-meze.jpg', caption: 'Plates made for sharing' },
-  { src: '/images/gallery/fireplace-corner.jpg', caption: 'The corner regulars know' },
-  { src: '/images/gallery/corona-sunset.jpg', caption: 'One more before sunset' },
-];
-
 const galleryLayout = [
   'col-span-12 md:col-span-7 aspect-[4/3] md:-rotate-[0.7deg]',
   'col-span-12 md:col-span-5 aspect-[4/3] md:translate-y-8 md:rotate-[0.8deg]',
@@ -29,6 +20,8 @@ const galleryLayout = [
 
 export const Visit: React.FC = () => {
   const { venue } = config;
+  const page = config.pages.visit;
+  const gallery = page.gallery.slice(0, galleryLayout.length);
   const directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(venue.address)}`;
 
   return (
@@ -37,14 +30,14 @@ export const Visit: React.FC = () => {
       <section className="bg-ink text-surface overflow-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] min-h-[680px] lg:min-h-[760px]">
           <motion.div {...fadeInUp} className="relative z-10 px-5 py-16 md:px-10 lg:px-12 lg:py-24 flex flex-col justify-center">
-            <span className="font-script text-2xl text-accent">your night out, sorted</span>
+            <span className="font-script text-2xl text-accent">{page.script}</span>
             <RevealHeading
               as="h1"
-              text="Meet you at Jimmy’s."
+              text={page.heading}
               className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[0.9] mt-3"
             />
             <p className="text-surface/75 text-lg leading-relaxed max-w-md mt-7">
-              Come hungry, find your table and stay awhile. The food, the bar and the people are all right here on Loch Street.
+              {page.intro}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-9">
               <a href={directionsHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 bg-accent text-ink px-6 py-3.5 rounded-full font-display font-bold transition-transform hover:scale-[1.03] active:scale-[0.98]">
@@ -58,15 +51,15 @@ export const Visit: React.FC = () => {
 
           <motion.div {...fadeInUp} className="relative min-h-[500px] lg:min-h-full overflow-hidden bg-ink">
             <img
-              src="/images/gallery/heritage-day-team.jpg"
-              alt="The Jimmy's Burger Bar team outside the restaurant"
+              src={page.heroImage.src}
+              alt={page.heroImage.alt}
               className="absolute inset-0 w-full h-full object-cover object-top"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent lg:bg-gradient-to-r lg:from-ink/35 lg:via-transparent lg:to-transparent" />
             <div className="absolute left-5 right-5 bottom-5 md:left-8 md:right-auto md:bottom-8 md:w-[360px] bg-accent text-ink rounded-2xl p-6 shadow-2xl border border-ink/10">
               <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-ink/55">The address to remember</span>
-              <p className="font-display text-2xl font-extrabold leading-tight mt-2">57 Loch Street</p>
-              <p className="font-script text-lg mt-1">Meyerton, Gauteng</p>
+              <p className="font-display text-2xl font-extrabold leading-tight mt-2">{page.address.line1}</p>
+              <p className="font-script text-lg mt-1">{page.address.line2}</p>
             </div>
           </motion.div>
         </div>
@@ -84,7 +77,7 @@ export const Visit: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.28fr_0.72fr] gap-6 lg:gap-8 items-stretch">
             <motion.div {...fadeInUp} className="min-h-[420px] lg:min-h-[590px] overflow-hidden rounded-2xl border border-ink/10 bg-surface jimmy-media-frame">
-              <iframe src={venue.googleMapsEmbed} width="100%" height="100%" style={{ border: 0, minHeight: 'inherit' }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map to Jimmy's Burger Bar" />
+              <iframe src={venue.googleMapsEmbed} width="100%" height="100%" style={{ border: 0, minHeight: 'inherit' }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={`Map to ${`${venue.name} ${venue.nameSuffix}`.trim()}`} />
             </motion.div>
 
             <motion.aside {...fadeInUp} className="relative bg-ink text-surface rounded-2xl p-7 md:p-10 flex flex-col justify-between overflow-hidden">
@@ -123,10 +116,10 @@ export const Visit: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <motion.div {...fadeInUp} className="max-w-2xl mb-10 md:mb-14">
             <span className="font-script text-2xl text-accent">the food, the crowd, the place</span>
-            <RevealHeading text="This is Jimmy’s." className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.94] mt-2" />
+            <RevealHeading text={page.galleryHeading} className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.94] mt-2" />
           </motion.div>
           <motion.div variants={staggerContainer} initial="initial" whileInView="whileInView" viewport={{ once: true, amount: 0.1 }} className="grid grid-cols-12 gap-3 md:gap-5 md:pb-8">
-            {visitGallery.map((photo, index) => (
+            {gallery.map((photo, index) => (
               <motion.figure
                 key={photo.src}
                 variants={riseChild}

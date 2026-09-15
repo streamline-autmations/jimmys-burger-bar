@@ -1,6 +1,7 @@
 import type { CurrencyConfig } from '../domain/money';
 import type { Closure, DayHours } from '../domain/hours';
 import type { CopyOverrides } from './copy';
+import type { SectionSpec } from '../../brand/sections/types';
 
 /**
  * Everything that differs between restaurants.
@@ -69,6 +70,8 @@ export interface ThemeConfig {
 export interface VenueConfig {
   name: string;
   nameSuffix: string;
+  /** Town or suburb, shown beside the name, e.g. "Meyerton". */
+  locality: string;
   tagline: string;
   taglineAccent?: string;
   description: string;
@@ -132,6 +135,34 @@ export interface MotionConfig {
   routeHold: number;
 }
 
+export interface PhotoRef {
+  /** Path under the tenant's public folder, e.g. "/images/team.jpg". */
+  src: string;
+  alt: string;
+}
+
+/**
+ * Restaurant-specific words and pictures on the fixed pages. Generic product
+ * copy stays in the components; only what belongs to one restaurant is here.
+ */
+export interface PagesConfig {
+  visit: {
+    script: string;
+    heading: string;
+    intro: string;
+    heroImage: PhotoRef;
+    address: { line1: string; line2: string };
+    galleryHeading: string;
+    /** Up to six. The collage layout is designed for exactly six. */
+    gallery: { src: string; caption: string }[];
+  };
+  menu: {
+    script: string;
+    food: { description: string; caption: string; image: PhotoRef };
+    drinks: { description: string; caption: string; video?: string; image?: PhotoRef };
+  };
+}
+
 export interface RestaurantConfig {
   slug: string;
   locale: string;
@@ -154,6 +185,9 @@ export interface RestaurantConfig {
   menu: { categories: MenuCategory[]; featured: MenuItem[] };
   drinks: { intro: string; categories: MenuCategory[] };
   testimonials: Testimonial[];
+  pages: PagesConfig;
+  /** The home page, top to bottom. See src/brand/sections. */
+  sections: SectionSpec[];
   socials: { facebook: string; instagram: string };
   /** Overrides the product's generic English copy. Only what differs. */
   copy?: CopyOverrides;

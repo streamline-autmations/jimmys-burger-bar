@@ -117,7 +117,7 @@ export const HeroSection: React.FC<{ content: HeroContent }> = ({ content }) => 
         </motion.div>
         <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[310px] sm:max-w-[480px] md:max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0">
           <motion.div style={{ y: burgerY, scale: burgerScale }}>
-            <BurgerAssembly trackRef={scrollFx ? sectionRef : undefined} />
+            <BurgerAssembly trackRef={scrollFx ? sectionRef : undefined} ticket={content.ticket} alt={content.imageAlt} />
           </motion.div>
         </motion.div>
       </div>

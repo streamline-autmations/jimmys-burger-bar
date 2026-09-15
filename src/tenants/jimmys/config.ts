@@ -7,6 +7,7 @@
 
 import { ZAR } from "../../core/domain/money";
 import { defineRestaurant } from "../../core/config/define";
+import { jimmysSections } from "./sections";
 
 export const jimmys = defineRestaurant({
   slug: "jimmys",
@@ -81,6 +82,7 @@ export const jimmys = defineRestaurant({
   venue: {
     name: "Jimmy's",
     nameSuffix: "Burger Bar",
+    locality: "Meyerton",
     tagline: "Meyerton's go-to spot for juicy burgers and ice-cold beers.",
     taglineAccent: "ice-cold beers.",
     description: "180g patties smashed to order, big breakfasts, flame-grilled steaks and a bar that never runs dry. Right on Loch Street, done right every time.",
@@ -448,6 +450,41 @@ export const jimmys = defineRestaurant({
       filePrefix: "jimmys",
     },
   },
+
+  // Words and photographs on the fixed pages that belong to Jimmy's alone.
+  pages: {
+    visit: {
+      script: "your night out, sorted",
+      heading: "Meet you at Jimmy’s.",
+      intro: "Come hungry, find your table and stay awhile. The food, the bar and the people are all right here on Loch Street.",
+      heroImage: { src: "/images/gallery/heritage-day-team.jpg", alt: "The Jimmy's Burger Bar team outside the restaurant" },
+      address: { line1: "57 Loch Street", line2: "Meyerton, Gauteng" },
+      galleryHeading: "This is Jimmy’s.",
+      gallery: [
+        { src: "/images/gallery/burger-duo.jpg", caption: "Burgers for the table" },
+        { src: "/images/gallery/heritage-day-team.jpg", caption: "The Jimmy’s crew" },
+        { src: "/images/campaign/coffee-cars.webp", caption: "Coffee & Cars Sundays" },
+        { src: "/images/gallery/greek-meze.jpg", caption: "Plates made for sharing" },
+        { src: "/images/gallery/fireplace-corner.jpg", caption: "The corner regulars know" },
+        { src: "/images/gallery/corona-sunset.jpg", caption: "One more before sunset" },
+      ],
+    },
+    menu: {
+      script: "the whole Jimmy's board",
+      food: {
+        description: "Breakfast, 180g burgers, plates for the table and the full kitchen board.",
+        caption: "Fresh off the grill.",
+        image: { src: "/images/campaign/gourmet-burger.webp", alt: "Jimmy's gourmet burger" },
+      },
+      drinks: {
+        description: "Cold local favourites, buckets, cocktails, wine and proper coffee.",
+        caption: "Straight from the bar.",
+        video: "/videos/drinks-pour-loop.mp4",
+      },
+    },
+  },
+
+  sections: jimmysSections,
 
   socials: {
     facebook: "https://www.facebook.com/p/Jimmys-Burger-Bar-61560295359926/",

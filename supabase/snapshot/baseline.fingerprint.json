@@ -1,0 +1,437 @@
+[
+  {
+    "kind": "function",
+    "name": "bookings_upsert_customer()",
+    "fingerprint": "e52ac4d5c2bb9d4624757a420bc4f0fb"
+  },
+  {
+    "kind": "function",
+    "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb)",
+    "fingerprint": "6a27156c41733fad4f70a1fde7cb65fe"
+  },
+  {
+    "kind": "function",
+    "name": "enforce_booking_status_transition()",
+    "fingerprint": "815fe4b71941d2cf1603b9abd4adb69f"
+  },
+  {
+    "kind": "function",
+    "name": "enforce_order_status_transition()",
+    "fingerprint": "d3373bcf1e38226138d1a32f3a079869"
+  },
+  {
+    "kind": "function",
+    "name": "is_staff()",
+    "fingerprint": "317765192237ae8c8e190cbd7a1f3f84"
+  },
+  {
+    "kind": "function",
+    "name": "lookup_request(p_reference text, p_contact text)",
+    "fingerprint": "1e99e9f6977dfea442112126b19e3161"
+  },
+  {
+    "kind": "function",
+    "name": "normalise_phone(p_phone text)",
+    "fingerprint": "d7b6e4368f985baea90ad9036186a915"
+  },
+  {
+    "kind": "function",
+    "name": "notify_booking_webhook()",
+    "fingerprint": "085ae719f76d07db3536999fb9b91267"
+  },
+  {
+    "kind": "function",
+    "name": "orders_upsert_customer()",
+    "fingerprint": "ee484d885ce2e38c7b046b04707c58b1"
+  },
+  {
+    "kind": "function",
+    "name": "send_review_requests()",
+    "fingerprint": "7bfa133060d19eb21b6811e9333f5b63"
+  },
+  {
+    "kind": "function",
+    "name": "set_completed_at()",
+    "fingerprint": "2dca1692b45d6e9ee606598392247346"
+  },
+  {
+    "kind": "function",
+    "name": "set_updated_at()",
+    "fingerprint": "63f977f8e2e3db6a119fcbe248bf3314"
+  },
+  {
+    "kind": "function",
+    "name": "setting(p_key text)",
+    "fingerprint": "314d595931a9b4a27372629c42a228ef"
+  },
+  {
+    "kind": "function",
+    "name": "throttle_booking_inserts()",
+    "fingerprint": "a00d958df435f8c392f4fc41dc64f39f"
+  },
+  {
+    "kind": "function",
+    "name": "upsert_customer(p_name text, p_email text, p_phone text, p_marketing_consent boolean)",
+    "fingerprint": "288c30c8fc57995bd2f174def7b54a39"
+  },
+  {
+    "kind": "function_exec",
+    "name": "bookings_upsert_customer() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "bookings_upsert_customer() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "enforce_booking_status_transition() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "enforce_booking_status_transition() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "enforce_order_status_transition() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "enforce_order_status_transition() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "is_staff() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "is_staff() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "lookup_request(p_reference text, p_contact text) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "lookup_request(p_reference text, p_contact text) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "normalise_phone(p_phone text) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "normalise_phone(p_phone text) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "notify_booking_webhook() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "notify_booking_webhook() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "orders_upsert_customer() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "orders_upsert_customer() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "send_review_requests() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "send_review_requests() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_completed_at() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_completed_at() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_updated_at() anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_updated_at() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "setting(p_key text) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "setting(p_key text) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "throttle_booking_inserts() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "throttle_booking_inserts() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "upsert_customer(p_name text, p_email text, p_phone text, p_marketing_consent boolean) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "upsert_customer(p_name text, p_email text, p_phone text, p_marketing_consent boolean) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "policy",
+    "name": "bookings.public can insert bookings",
+    "fingerprint": "2602f7a561f072b920f07ec917d42b1c"
+  },
+  {
+    "kind": "policy",
+    "name": "bookings.staff can read bookings",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
+    "name": "bookings.staff can update bookings",
+    "fingerprint": "a3510387d785799ffe700d98c38d21ee"
+  },
+  {
+    "kind": "policy",
+    "name": "customers.staff can read customers",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
+    "name": "notification_log.staff can read notification_log",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
+    "name": "order_items.staff can read order_items",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
+    "name": "orders.staff can read orders",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
+    "name": "orders.staff can update orders",
+    "fingerprint": "a3510387d785799ffe700d98c38d21ee"
+  },
+  {
+    "kind": "policy",
+    "name": "staff.staff can read staff",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "table",
+    "name": "app_settings",
+    "fingerprint": "fbfc466c6ecb0af68bdc8c66ab946931"
+  },
+  {
+    "kind": "table",
+    "name": "bookings",
+    "fingerprint": "180c2babc70504a3bbb011af7ef97d9a"
+  },
+  {
+    "kind": "table",
+    "name": "customers",
+    "fingerprint": "1c7e8f347e7624070a4e1fc79284126c"
+  },
+  {
+    "kind": "table",
+    "name": "menu_items",
+    "fingerprint": "5b50734798b340b7394302697c15cc8d"
+  },
+  {
+    "kind": "table",
+    "name": "notification_log",
+    "fingerprint": "d04ff95301162177fc65c5920a2c9a0a"
+  },
+  {
+    "kind": "table",
+    "name": "order_items",
+    "fingerprint": "7719f017abe1400781d13677078ada93"
+  },
+  {
+    "kind": "table",
+    "name": "orders",
+    "fingerprint": "c16843b9b4a3fce3d6d1e1192b7e9a4d"
+  },
+  {
+    "kind": "table",
+    "name": "staff",
+    "fingerprint": "e45c9fe6a7adde50cb796b61f1ddded9"
+  },
+  {
+    "kind": "table_grant",
+    "name": "app_settings anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "app_settings authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "bookings anon",
+    "fingerprint": "e0df5f3dfd2650ae5be9993434e2b2c0"
+  },
+  {
+    "kind": "table_grant",
+    "name": "bookings authenticated",
+    "fingerprint": "4649341c949f5788e8074f3145221634"
+  },
+  {
+    "kind": "table_grant",
+    "name": "customers anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "customers authenticated",
+    "fingerprint": "85fe4c43704bc5b95d3da94654df1466"
+  },
+  {
+    "kind": "table_grant",
+    "name": "menu_items anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "menu_items authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "notification_log anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "notification_log authenticated",
+    "fingerprint": "99938282f04071859941e18f16efcf42"
+  },
+  {
+    "kind": "table_grant",
+    "name": "order_items anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "order_items authenticated",
+    "fingerprint": "4649341c949f5788e8074f3145221634"
+  },
+  {
+    "kind": "table_grant",
+    "name": "orders anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "orders authenticated",
+    "fingerprint": "4649341c949f5788e8074f3145221634"
+  },
+  {
+    "kind": "table_grant",
+    "name": "staff anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "staff authenticated",
+    "fingerprint": "99938282f04071859941e18f16efcf42"
+  },
+  {
+    "kind": "trigger",
+    "name": "bookings.bookings_enforce_status",
+    "fingerprint": "44fe2a4089a0ca2efa0bac3b490d1edd"
+  },
+  {
+    "kind": "trigger",
+    "name": "bookings.bookings_notify_webhook",
+    "fingerprint": "2eec16e574f586d2a08417246b1f7f6c"
+  },
+  {
+    "kind": "trigger",
+    "name": "bookings.bookings_set_customer",
+    "fingerprint": "b65a128bb5af392a21ab91dc875b2716"
+  },
+  {
+    "kind": "trigger",
+    "name": "bookings.bookings_set_updated_at",
+    "fingerprint": "de44fc0684853516497a8b7b5e3dbb8a"
+  },
+  {
+    "kind": "trigger",
+    "name": "bookings.bookings_throttle",
+    "fingerprint": "36f8392f38202473055521a054c4afd1"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_enforce_status",
+    "fingerprint": "5449bf721cfe7e05b15fae8495a7f01e"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_set_completed_at",
+    "fingerprint": "6359a6638ad0429601d7d2f5012dc3f9"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_set_customer",
+    "fingerprint": "2dfb6318477fa4a32987f78fdb43e719"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_set_updated_at",
+    "fingerprint": "b8d42c9e1eca5539c98563bb4628b440"
+  }
+]

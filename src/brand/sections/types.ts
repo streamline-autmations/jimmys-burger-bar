@@ -24,6 +24,10 @@ export interface HeroContent {
   headlineAccent: string;
   primaryCta: SectionCta;
   secondaryCta: SectionCta;
+  /** The small ticket beside the assembled burger. */
+  ticket: { label: string; value: string };
+  /** Alt text for the burger image. */
+  imageAlt: string;
 }
 
 export interface SpecialsContent {

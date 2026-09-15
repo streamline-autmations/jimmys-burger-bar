@@ -1,0 +1,15 @@
+{
+  "$schema": "./tenant.schema.json",
+  "slug": "jimmys",
+  "supabaseProjectRef": "iqxxmvitbuxlpncpjzkx",
+  "vercelProject": "jimmys-burger-bar",
+  "phoneCountryCode": "27",
+  "webhooks": {
+    "order": "https://dockerfile-1n82.onrender.com/webhook/jimmys-order",
+    "booking": "https://dockerfile-1n82.onrender.com/webhook/jimmys-booking",
+    "review": "https://dockerfile-1n82.onrender.com/webhook/jimmys-review-request"
+  },
+  "reviewRequests": {
+    "localTime": "20:00"
+  }
+}

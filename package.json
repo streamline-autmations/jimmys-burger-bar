@@ -9,10 +9,14 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
-    "test": "node tests/operations.test.mjs",
-    "menu:sql": "node scripts/menu-sql.mjs",
+    "test": "node --test tests/operations.test.mjs tests/database.test.mjs tests/tenants.test.mjs",
     "build:demo": "tsc -b && VITE_DEMO=1 vite build && VITE_DEMO=1 node scripts/check-build.mjs",
-    "preview:demo": "vite preview --outDir dist-demo"
+    "preview:demo": "vite preview --outDir dist-demo",
+    "tenant:sql": "node scripts/tenant-sql.mjs",
+    "menu:sql": "node scripts/tenant-sql.mjs",
+    "db:fingerprint": "node scripts/db-fingerprint.mjs",
+    "new-tenant": "node scripts/new-tenant.mjs",
+    "check-tenant": "node scripts/check-tenant.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
@@ -29,6 +33,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
     "@eslint/js": "^9.25.0",
     "@types/node": "^22.15.30",
     "@types/react": "^18.3.12",

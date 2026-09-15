@@ -18,6 +18,8 @@ export const jimmysSections: SectionSpec[] = [
       headlineAccent: 'Done right.',
       primaryCta: { label: 'Order Online', to: '/order' },
       secondaryCta: { label: 'View the Menu', to: '/menu' },
+      ticket: { label: 'Fresh off the flat-top', value: "180g smash · Jimmy's sauce" },
+      imageAlt: "Jimmy's smash burger",
     },
   },
   { type: 'marquee' },

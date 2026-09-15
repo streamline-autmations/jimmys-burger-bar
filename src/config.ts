@@ -6,10 +6,12 @@
 // moves from build time to request time.
 
 import { jimmys } from './tenants/jimmys/config';
+// new-tenant:import (scripts/new-tenant.mjs adds imports above this line)
 import type { RestaurantConfig } from './core/config/types';
 
 const tenants: Record<string, RestaurantConfig> = {
   jimmys,
+  // new-tenant:register (scripts/new-tenant.mjs adds entries above this line)
 };
 
 const requested = import.meta.env.VITE_TENANT ?? 'jimmys';

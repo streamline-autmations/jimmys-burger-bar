@@ -45,6 +45,31 @@ if (vercelProject && !DEMO_PROJECTS.has(vercelProject) && demo) {
   problems.push('a demo build is running in a restaurant\'s Vercel project. Demo builds belong only to restaurant-direct-demo.');
 }
 
+// Every restaurant builds from this one repo. On Vercel, a restaurant project
+// must say which restaurant it is, and must point at that restaurant's own
+// database: forgetting VITE_TENANT silently publishes Jimmy's site, and a
+// copied Supabase URL sends the new restaurant's orders to Jimmy's kitchen.
+// Jimmy's project predates VITE_TENANT and is the one exemption.
+const LEGACY_DEFAULT_PROJECT = 'prj_e8szqEfeKBPjuUrC34p6ULSKbSbV';
+if (process.env.VERCEL && !demo) {
+  const tenant = process.env.VITE_TENANT;
+  if (!tenant && vercelProject !== LEGACY_DEFAULT_PROJECT) {
+    problems.push('VITE_TENANT is not set for this Vercel project. Set it to the restaurant\'s slug (Settings → Environment Variables).');
+  }
+  const slug = tenant ?? 'jimmys';
+  const infraFile = `supabase/tenants/${slug}.json`;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL ?? '';
+  if (!fs.existsSync(infraFile)) {
+    problems.push(`${infraFile} does not exist for VITE_TENANT="${slug}"`);
+  } else {
+    const ref = JSON.parse(fs.readFileSync(infraFile, 'utf8')).supabaseProjectRef;
+    if (!supabaseUrl) problems.push('VITE_SUPABASE_URL is not set: the site would build but could not take orders.');
+    else if (!ref || /PLACEHOLDER/.test(ref)) problems.push(`${infraFile} has no supabaseProjectRef yet`);
+    else if (!supabaseUrl.includes(ref)) problems.push(`VITE_SUPABASE_URL does not belong to ${slug}'s Supabase project (${ref}). Orders would go to another restaurant's database.`);
+  }
+  if (!process.env.VITE_SUPABASE_PUBLISHABLE_KEY) problems.push('VITE_SUPABASE_PUBLISHABLE_KEY is not set.');
+}
+
 if (demo) {
   for (const marker of ['data-rd-demo', 'rd-demo-records-v1']) {
     if (!find(marker).length) problems.push(`demo build is missing "${marker}": the demo modules were not swapped in`);

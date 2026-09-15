@@ -339,6 +339,32 @@ R0.01.
 Items are matched by NAME, so orderable names must be unique (enforced by the generator
 and a test). Renaming a dish in config retires the old name on the next seed.
 
+## Provisioning a new restaurant (Phase 5, 2026-09-15)
+
+The runbook is `docs/NEW-RESTAURANT.md`. The pieces:
+
+- **Database:** `supabase/migrations/20260915000000_restaurant_direct_baseline.sql` builds a
+  complete project. It was proven identical to Jimmy's live project on 2026-09-15
+  (`supabase/snapshot/compare.sql` returned zero rows across 87 objects). Jimmy's own
+  incremental history is archived in `supabase/history/jimmys/`; never re-apply it.
+- **Database tests:** `tests/database.test.mjs` runs the migrations in PGlite (in-process
+  Postgres, Supabase stubbed in `tests/db/harness.mjs`) and exercises RLS, grants, pricing,
+  retries, throttling and review emails as the real roles.
+- **Changing the database:** new timestamped migration → apply to every restaurant project →
+  `npm run db:fingerprint` → commit. The fingerprint test fails until the snapshot is updated.
+- **Per-restaurant server settings:** `supabase/tenants/<slug>.json` (webhooks, phone country
+  code, review email time). `npm run tenant:sql -- <slug>` generates
+  `supabase/seed/settings.<slug>.sql` and `menu.<slug>.sql`. Health check: `supabase/verify.sql`.
+- **Per-restaurant site:** `npm run new-tenant -- <slug> "Name"` scaffolds
+  `src/tenants/<slug>/` from `src/tenants/_template/` and registers it in `src/config.ts`.
+  Photos go in `src/tenants/<slug>/public/` (Jimmy's still uses top-level `public/`).
+  `npm run check-tenant -- <slug>` blocks launch on placeholders, missing files, stale seeds.
+- **Config owns all restaurant words and photos,** including `pages` (Visit, Food & Drinks),
+  `sections` (home page) and `venue.locality`. `tests/tenants.test.mjs` fails if a shared
+  component names a restaurant.
+- The `hero` section is Jimmy's burger build and needs the five burger layer images; a
+  restaurant without that artwork needs a different hero section.
+
 ## Verify before calling anything done
 
 `npm run check` (tsc) → `npm run build` → then a real browser pass with Playwright MCP at

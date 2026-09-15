@@ -1,0 +1,15 @@
+{
+  "$schema": "./tenant.schema.json",
+  "slug": "__SLUG__",
+  "supabaseProjectRef": "PLACEHOLDER",
+  "vercelProject": "__SLUG__",
+  "phoneCountryCode": "27",
+  "webhooks": {
+    "order": null,
+    "booking": null,
+    "review": null
+  },
+  "reviewRequests": {
+    "localTime": null
+  }
+}

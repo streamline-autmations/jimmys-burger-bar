@@ -27,6 +27,13 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
 
   if (!config.venue?.hours?.length) problems.push('venue.hours must list at least one day');
   if (!config.menu?.categories?.length) problems.push('menu.categories must not be empty');
+  if (!config.sections?.length) problems.push('sections must list at least one home page section');
+  need(config.venue?.locality, 'venue.locality');
+  need(config.pages?.visit?.heroImage?.src, 'pages.visit.heroImage.src');
+  need(config.pages?.menu?.food?.image?.src, 'pages.menu.food.image.src');
+  if (!config.pages?.menu?.drinks?.video && !config.pages?.menu?.drinks?.image) {
+    problems.push('pages.menu.drinks needs a video or an image');
+  }
   if (!config.ordering?.fulfilment?.length) problems.push('ordering.fulfilment must enable at least one mode');
   if (!Number.isInteger(config.ordering?.maxDaysAhead) || config.ordering.maxDaysAhead < 0) {
     problems.push('ordering.maxDaysAhead must be a whole number of days, 0 or more');

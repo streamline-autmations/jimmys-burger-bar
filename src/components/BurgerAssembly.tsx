@@ -34,7 +34,9 @@ const preloadAndDecode = (src: string): Promise<void> =>
 export const BurgerAssembly: React.FC<{
   /** Desktop: follow the cursor across this whole element rather than only the stage. */
   trackRef?: React.RefObject<HTMLElement>;
-}> = ({ trackRef }) => {
+  ticket: { label: string; value: string };
+  alt: string;
+}> = ({ trackRef, ticket, alt }) => {
   // The build is the page's one-time load-in, so it follows the surrounding
   // MotionConfig, which opts the hero in for every visitor (see sections/index).
   // The cursor tilt and the idle steam loops are continuous motion, so they
@@ -142,7 +144,7 @@ export const BurgerAssembly: React.FC<{
           }
           transition={{ duration: 0.72, times: [0, 0.24, 0.58, 1], ease: [0.22, 1, 0.36, 1] }}
         >
-          {!layersReady && !fallbackFailed && <motion.img initial={{ opacity: 0, scale: 0.9, rotate: -3 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} src={fallbackSrc} alt="Jimmy's smash burger" onError={() => setFallbackFailed(true)} className="absolute inset-0 z-10 w-full h-full object-contain drop-shadow-[0_32px_24px_rgba(0,0,0,0.45)]" />}
+          {!layersReady && !fallbackFailed && <motion.img initial={{ opacity: 0, scale: 0.9, rotate: -3 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} src={fallbackSrc} alt={alt} onError={() => setFallbackFailed(true)} className="absolute inset-0 z-10 w-full h-full object-contain drop-shadow-[0_32px_24px_rgba(0,0,0,0.45)]" />}
           {layersReady && layers.map((layer) => <motion.img key={layer.id} src={layer.src} alt={layer.alt} initial={reduceMotion ? { opacity: 1 } : { opacity: 0, ...layer.initial }} animate={canAnimate ? { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 } : (reduceMotion ? { opacity: 1 } : { opacity: 0, ...layer.initial })} transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 92, damping: 15, mass: 0.82, delay: layer.delay * pace }} className="absolute inset-0 z-10 w-full h-full object-contain drop-shadow-[0_32px_24px_rgba(0,0,0,0.45)]" />)}
           {layersReady && (
             <motion.img
@@ -201,8 +203,8 @@ export const BurgerAssembly: React.FC<{
         transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : 0.42 }}
         className="burger-fresh-ticket"
       >
-        <span>Fresh off the flat-top</span>
-        <strong>180g smash · Jimmy&apos;s sauce</strong>
+        <span>{ticket.label}</span>
+        <strong>{ticket.value}</strong>
       </motion.div>
       {fallbackFailed && !layersReady && <div className="absolute inset-[18%] z-10 rounded-full border border-surface/20 flex items-center justify-center text-center px-10 text-surface/60 text-sm">Burger layers loading soon</div>}
     </div>

@@ -4,6 +4,7 @@ import { copy } from '../core/tenant';
 import { EASE, STAMP_EASE } from '../lib/motion';
 import { openIntroGate } from '../lib/introGate';
 import { useIsDesktop } from '../lib/useDesktop';
+import { config } from '../config';
 
 // ---------------------------------------------------------------------------
 // FIRST-LOAD BRAND INTRO — "the poster goes up"
@@ -238,7 +239,7 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         transition={{ duration: 0.3, ease: EASE }}
       >
         <motion.img
-          src="/images/logo.png"
+          src={config.assets.logo}
           alt=""
           width={224}
           height={224}
@@ -300,7 +301,7 @@ export const BrandIntro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         <div className="relative">
           <motion.img
             ref={logoRef}
-            src="/images/logo.png"
+            src={config.assets.logo}
             alt=""
             width={224}
             height={224}

@@ -31,6 +31,20 @@ const find = (needle) => contents.filter(([, text]) => text.includes(needle)).ma
 const DEMO_MARKERS = ['data-rd-demo', 'rd-demo-records-v1', 'rd-demo-signed-out', 'JB-DEMO-', 'Presenter controls'];
 const problems = [];
 
+// Which Vercel project is building, if any. The demo project must only ever
+// publish the demo, and a restaurant's project must never publish it: a demo
+// project once went live with the default build command and served a plain
+// copy of Jimmy's site on a second public URL.
+const DEMO_PROJECTS = new Set(['prj_BpuBFUISZC0rmLqzUf6rrqUv9Tbp']);
+const vercelProject = process.env.VERCEL_PROJECT_ID ?? '';
+console.log(`check-build: VERCEL=${process.env.VERCEL ?? 'unset'} VERCEL_PROJECT_ID=${vercelProject || 'unset'}`);
+if (vercelProject && DEMO_PROJECTS.has(vercelProject) && !demo) {
+  problems.push('this Vercel project is the sales demo, but the build is not a demo build. Set the Build Command to "npm run build:demo" and the Output Directory to "dist-demo".');
+}
+if (vercelProject && !DEMO_PROJECTS.has(vercelProject) && demo) {
+  problems.push('a demo build is running in a restaurant\'s Vercel project. Demo builds belong only to restaurant-direct-demo.');
+}
+
 if (demo) {
   for (const marker of ['data-rd-demo', 'rd-demo-records-v1']) {
     if (!find(marker).length) problems.push(`demo build is missing "${marker}": the demo modules were not swapped in`);

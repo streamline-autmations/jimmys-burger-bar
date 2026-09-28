@@ -70,6 +70,7 @@ Concretely:
 | Hero video is AI-generated | `public/videos/hero-burger-cinematic.mp4` (active), `hero-burger-loop.mp4` (old, kept for rollback) | **Covered by the 2026-07-22 override.** Both derived from Jimmy's real hero shot via image-to-video (v2: Seedance 2.0, push-in/ease-out loop + steam). Poster `images/hero-burger-poster.jpg` is the video's first frame (AI-derived, same asset). Replace with real footage when available. |
 | Trading hours unconfirmed | `config.ts` → `venue.hours` | **Resolved 2026-07-22.** Real hours from Christiaan: Mon–Tue 09:00–20:00, Wed–Thu 09:00–21:00, Fri–Sat 09:00–00:00, Sun closed. Note: Coffee & Cars still runs one Sunday a month — they open for the event. |
 | Email is invented | `config.ts` → `venue.email` | **Resolved 2026-07-22.** Real inbox: `jimmysburgerbar1@gmail.com`. |
+| Steak menu photos are AI-generated | `public/images/menu/steaks/*.webp` (rump, jalapeño, fillet, extra sauce), wired in `tenants/jimmys/config.ts` → Steaks; 1254px PNG originals in `Images/ai-menu/steaks/` | **Covered by the 2026-07-22 override.** Generated in ChatGPT by Christiaan 2026-09-28, styled on Jimmy's real blue-plate photos, chips + onion rings as Jimmy's serves them. The Instagram dump has no real steak photos. 200g/300g sizes share one image per cut. Replace with real photos when shot. |
 
 ---
 

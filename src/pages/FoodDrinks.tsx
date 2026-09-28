@@ -7,6 +7,7 @@ import { formatMoney } from '../core/tenant';
 import { buildBoard } from '../core/menu/board';
 import { fadeInUp } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
+import { MenuThumb } from '../components/MenuThumb';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 
 type Board = 'food' | 'drinks';
@@ -333,25 +334,28 @@ export const FoodDrinks: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {category.items.map((item) => (
-                  <div key={item.name} className="group">
-                    <div className="flex items-baseline gap-3">
-                      <h3 className="font-display font-bold leading-snug">
-                        {item.name}
-                      </h3>
-                      <div className="flex-1 border-b border-dotted border-ink/20 min-w-5 -translate-y-1" />
-                      <span className="font-display font-bold whitespace-nowrap">
-                        {formatMoney(item.price)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-sm leading-relaxed text-ink/55">
-                        {item.description}
-                      </p>
-                      {(item.popular || item.tag) && (
-                        <span className="shrink-0 text-[9px] uppercase tracking-wide font-bold bg-accent text-ink px-2 py-0.5 rounded-full">
-                          {item.tag || 'Favourite'}
+                  <div key={item.name} className="group flex items-start gap-4">
+                    <MenuThumb src={item.image} alt={item.name} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-3">
+                        <h3 className="font-display font-bold leading-snug">
+                          {item.name}
+                        </h3>
+                        <div className="flex-1 border-b border-dotted border-ink/20 min-w-5 -translate-y-1" />
+                        <span className="font-display font-bold whitespace-nowrap">
+                          {formatMoney(item.price)}
                         </span>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm leading-relaxed text-ink/55">
+                          {item.description}
+                        </p>
+                        {(item.popular || item.tag) && (
+                          <span className="shrink-0 text-[9px] uppercase tracking-wide font-bold bg-accent text-ink px-2 py-0.5 rounded-full">
+                            {item.tag || 'Favourite'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

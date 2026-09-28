@@ -31,7 +31,11 @@ export interface MenuItem {
   /** Free-text detail used by the drinks board in place of a description. */
   detail?: string;
   tag?: string;
-  /** Photo, for tiles that show the dish. Must be a real photograph of it. */
+  /**
+   * Photo of the dish: featured tiles, and a thumbnail beside the item on the
+   * menu board and the order page. A real photograph of it, unless the tenant
+   * has approved and logged a generated one.
+   */
   image?: string;
 }
 

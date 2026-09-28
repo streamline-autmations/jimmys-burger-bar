@@ -27,6 +27,7 @@ import { SubmissionNotice, UnconfirmedRequest } from '../components/forms/Submis
 import { useFormErrors } from '../lib/useFormErrors';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { orderableCategories } from '../core/menu/orderable';
+import { MenuThumb } from '../components/MenuThumb';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'address';
@@ -446,47 +447,51 @@ export const Order: React.FC = () => {
                         const price = menuPrice(item.price);
                         const qty = lines.find((l) => l.name === item.name)?.qty ?? 0;
                         return (
-                          <div key={item.name} className="flex flex-wrap items-center gap-3">
-                            <div className="flex-1 min-w-[150px]">
-                              <div className="flex items-baseline gap-3">
-                                <h3 className="font-display font-bold text-ink leading-snug">{item.name}</h3>
-                                <span className="font-display font-bold text-ink whitespace-nowrap">{formatMoney(menuPrice(item.price))}</span>
-                              </div>
-                              <p className="text-sm text-ink/55 leading-relaxed pr-4">{item.description}</p>
-                            </div>
-
-                            <div className="shrink-0">
-                              {qty === 0 ? (
-                                <motion.button
-                                  whileTap={{ scale: 0.9 }}
-                                  aria-label={`Add ${item.name}`}
-                                  disabled={price <= 0}
-                                  onClick={() => add(item.name, price)}
-                                  className="flex items-center gap-1.5 bg-ink/5 hover:bg-primary hover:text-surface text-ink px-3.5 py-2 rounded-full font-display font-bold text-sm transition-colors"
-                                >
-                                  <Plus size={14} /> Add
-                                </motion.button>
-                              ) : (
-                                <div className="flex items-center gap-2.5 bg-primary/10 rounded-full px-1.5 py-1.5">
-                                  <motion.button
-                                    whileTap={{ scale: 0.85 }}
-                                    onClick={() => remove(item.name)}
-                                    aria-label={`Remove one ${item.name}`}
-                                    className="w-11 h-11 flex items-center justify-center rounded-full bg-surface text-primary shadow-sm"
-                                  >
-                                    <Minus size={14} />
-                                  </motion.button>
-                                  <span className="font-display font-bold text-ink w-4 text-center text-sm">{qty}</span>
-                                  <motion.button
-                                    whileTap={{ scale: 0.85 }}
-                                    onClick={() => add(item.name, price)}
-                                    aria-label={`Add one more ${item.name}`}
-                                    className="w-11 h-11 flex items-center justify-center rounded-full bg-primary text-surface shadow-sm"
-                                  >
-                                    <Plus size={14} />
-                                  </motion.button>
+                          <div key={item.name} className="group flex items-center gap-3">
+                            <MenuThumb src={item.image} alt={item.name} />
+                            {/* The Add control wraps under the words on a phone, never under the photo. */}
+                            <div className="flex-1 min-w-0 flex flex-wrap items-center gap-3">
+                              <div className="flex-1 min-w-[150px]">
+                                <div className="flex items-baseline gap-3">
+                                  <h3 className="font-display font-bold text-ink leading-snug">{item.name}</h3>
+                                  <span className="font-display font-bold text-ink whitespace-nowrap">{formatMoney(menuPrice(item.price))}</span>
                                 </div>
-                              )}
+                                <p className="text-sm text-ink/55 leading-relaxed pr-4">{item.description}</p>
+                              </div>
+
+                              <div className="shrink-0">
+                                {qty === 0 ? (
+                                  <motion.button
+                                    whileTap={{ scale: 0.9 }}
+                                    aria-label={`Add ${item.name}`}
+                                    disabled={price <= 0}
+                                    onClick={() => add(item.name, price)}
+                                    className="flex items-center gap-1.5 bg-ink/5 hover:bg-primary hover:text-surface text-ink px-3.5 py-2 rounded-full font-display font-bold text-sm transition-colors"
+                                  >
+                                    <Plus size={14} /> Add
+                                  </motion.button>
+                                ) : (
+                                  <div className="flex items-center gap-2.5 bg-primary/10 rounded-full px-1.5 py-1.5">
+                                    <motion.button
+                                      whileTap={{ scale: 0.85 }}
+                                      onClick={() => remove(item.name)}
+                                      aria-label={`Remove one ${item.name}`}
+                                      className="w-11 h-11 flex items-center justify-center rounded-full bg-surface text-primary shadow-sm"
+                                    >
+                                      <Minus size={14} />
+                                    </motion.button>
+                                    <span className="font-display font-bold text-ink w-4 text-center text-sm">{qty}</span>
+                                    <motion.button
+                                      whileTap={{ scale: 0.85 }}
+                                      onClick={() => add(item.name, price)}
+                                      aria-label={`Add one more ${item.name}`}
+                                      className="w-11 h-11 flex items-center justify-center rounded-full bg-primary text-surface shadow-sm"
+                                    >
+                                      <Plus size={14} />
+                                    </motion.button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );

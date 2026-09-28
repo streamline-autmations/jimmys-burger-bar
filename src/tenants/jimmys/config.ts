@@ -260,14 +260,16 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Steaks",
+        // Steak photos are AI-generated (ChatGPT, 2026-09-28) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips and onion rings or salad",
         items: [
-          { name: "200g Rump Steak", description: "Pepper or mushroom sauce", price: 110, popular: true },
-          { name: "300g Rump Steak", description: "Pepper or mushroom sauce", price: 140 },
-          { name: "200g Jalapeño Steak", description: "Pepper or mushroom sauce", price: 130 },
-          { name: "300g Jalapeño Steak", description: "Pepper or mushroom sauce", price: 160 },
-          { name: "250g Fillet Steak", description: "Pepper or mushroom sauce", price: 140 },
-          { name: "Extra Sauce", description: "Cheese, pepper or mushroom", price: 25 },
+          { name: "200g Rump Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 110, popular: true, image: "/images/menu/steaks/rump-steak.webp" },
+          { name: "300g Rump Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 140, image: "/images/menu/steaks/rump-steak.webp" },
+          { name: "200g Jalapeño Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 130, image: "/images/menu/steaks/jalapeno-steak.webp" },
+          { name: "300g Jalapeño Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 160, image: "/images/menu/steaks/jalapeno-steak.webp" },
+          { name: "250g Fillet Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 140, image: "/images/menu/steaks/fillet-steak.webp" },
+          { name: "Extra Sauce", description: "Cheese, pepper or mushroom", price: 25, image: "/images/menu/steaks/extra-sauce.webp" },
         ]
       },
       {

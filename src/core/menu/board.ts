@@ -21,6 +21,7 @@ export interface BoardItem {
   price: number;
   popular?: boolean;
   tag?: string;
+  image?: string;
 }
 
 export interface BoardCategory {
@@ -39,6 +40,7 @@ export function buildBoard(categories: MenuCategory[]): BoardCategory[] {
       price: menuPrice(item.price),
       popular: item.popular,
       tag: item.tag,
+      image: item.image,
     })),
   }));
 }

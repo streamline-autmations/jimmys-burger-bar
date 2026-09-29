@@ -81,6 +81,12 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
     problems.push('venue.whatsapp must be digits only, with no plus sign or spaces');
   }
 
+  const rate = config.reporting?.appCommissionRate;
+  if (rate !== undefined && !(typeof rate === 'number' && rate > 0 && rate < 1)) {
+    // 25 instead of 0.25 would report commission at 25 times the order value.
+    problems.push('reporting.appCommissionRate must be a fraction between 0 and 1, e.g. 0.25');
+  }
+
   if (problems.length) {
     throw new Error(
       `Restaurant config "${config.slug ?? 'unknown'}" is not valid:\n  - ${problems.join('\n  - ')}`,

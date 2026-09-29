@@ -9,21 +9,24 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  CalendarDays, ChefHat, ChevronUp, Home, LayoutDashboard, RotateCcw, Search,
+  BarChart3, CalendarDays, ChefHat, ChevronUp, Home, LayoutDashboard, RotateCcw, Search,
   ShoppingBag, Sparkles, Users, X,
 } from 'lucide-react';
 import { config } from './config';
 import { restaurantDate } from '../core/tenant';
 import { latestTime, openDates, tradingHours } from '../lib/tradingHours';
 import { resetRecords } from './store';
+import { useCartStore } from '../lib/cartStore';
+import { EmailPreviews } from './EmailPreviews';
+import { WeekInNumbers } from './WeekInNumbers';
 
 const STRIP_HEIGHT = 40;
 
 /** The presenter's stand-in customer. Unmistakably fictional, like every seeded guest. */
 const PRESENTER_GUEST = {
-  name: 'Thabo Example',
+  name: 'Thabo Nkosi',
   phone: '+27 00 000 0099',
-  email: 'thabo.example@example.com',
+  email: 'thabo.nkosi@example.com',
 };
 
 const JUMPS = [
@@ -78,18 +81,45 @@ function slotFor(date: string, preferred: string): string {
   return earliest <= last ? earliest : '';
 }
 
+/** The earliest serving cut-off among what is in the cart, e.g. breakfast until 12:00. */
+function cartCutoff(): { until: string; category: string } | null {
+  const inCart = new Set(Object.keys(useCartStore.getState().lines));
+  let earliest: { until: string; category: string } | null = null;
+  for (const category of config.menu.categories) {
+    if (!category.availableUntil || !category.items.some((item) => inCart.has(item.name))) continue;
+    if (!earliest || category.availableUntil < earliest.until) earliest = { until: category.availableUntil, category: category.name };
+  }
+  return earliest;
+}
+
 async function fillVisibleForm(): Promise<string> {
   if (document.getElementById('order-name')) {
     setField('order-name', PRESENTER_GUEST.name);
     setField('order-phone', PRESENTER_GUEST.phone);
     setField('order-email', PRESENTER_GUEST.email);
+    // The soonest time the kitchen could take it, so the ticket lands at the
+    // top of the queue. Breakfast in the cart must be collected before its
+    // cut-off, which can push the order to the next open day.
+    const cutoff = cartCutoff();
     const day = document.getElementById('order-date') as HTMLSelectElement | null;
-    const date = day?.options[0]?.value ?? '';
-    if (date) setField('order-date', date);
-    await nextFrame();
-    const time = slotFor(date, '18:00');
-    if (time) setField('order-time', time);
-    return 'Guest details filled. Check the time, then place the order.';
+    const options = [...(day?.options ?? [])].filter((option) => option.value);
+    let pushedByCutoff = false;
+    for (const option of options) {
+      const time = slotFor(option.value, '');
+      if (!time) continue;
+      if (cutoff && time >= cutoff.until) { pushedByCutoff = true; continue; }
+      setField('order-date', option.value);
+      await nextFrame();
+      setField('order-time', time);
+      const label = /^(today|tomorrow)$/i.test(option.text.trim()) ? option.text.trim().toLowerCase() : option.text.trim();
+      const when = `${label} at ${time}`;
+      return pushedByCutoff && cutoff
+        ? `${cutoff.category} stops at ${cutoff.until}, so this is set for ${when}.`
+        : `Guest details filled for ${when}. Place the order when ready.`;
+    }
+    return cutoff
+      ? `${cutoff.category} is not served again before the order window closes. Remove ${cutoff.category.toLowerCase()} items and try again.`
+      : 'Guest details filled. No collection time is open, so choose one.';
   }
 
   if (document.getElementById('booking-name')) {
@@ -107,7 +137,7 @@ async function fillVisibleForm(): Promise<string> {
 
   if (document.getElementById('track-reference')) {
     setField('track-reference', 'JB-DEMO-0003');
-    setField('track-contact', 'lerato.sample@example.com');
+    setField('track-contact', 'lerato.mokoena@example.com');
     return 'Filled with a seeded order. Press Check status.';
   }
 
@@ -118,6 +148,7 @@ export const DemoShell: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [showWeek, setShowWeek] = useState(false);
   const [notice, setNotice] = useState('');
   const noticeTimer = useRef<number>();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -290,13 +321,25 @@ export const DemoShell: React.FC = () => {
               {!onAdmin && (
                 <button
                   type="button"
-                  onClick={() => void fillVisibleForm().then(say)}
+                  onClick={() => {
+                    // Close first, so the filled form is in view rather than under the panel.
+                    setOpen(false);
+                    void fillVisibleForm().then(say);
+                  }}
                   className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-3 text-sm font-bold text-ink transition-colors hover:bg-accent/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Sparkles size={15} aria-hidden="true" />
                   Fill guest details on this page
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setShowWeek(true); }}
+                className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-surface transition-colors hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <BarChart3 size={15} aria-hidden="true" />
+                The week in numbers
+              </button>
               <button
                 type="button"
                 onClick={reset}
@@ -313,6 +356,9 @@ export const DemoShell: React.FC = () => {
           </div>
         </div>
       )}
+
+      <EmailPreviews />
+      {showWeek && <WeekInNumbers onClose={() => setShowWeek(false)} />}
 
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 z-[302] flex justify-center px-4" style={{ bottom: STRIP_HEIGHT + 12 }}>
         {notice && (

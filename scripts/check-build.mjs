@@ -28,7 +28,7 @@ const contents = files.map((file) => [file, fs.readFileSync(file, 'utf8')]);
 const find = (needle) => contents.filter(([, text]) => text.includes(needle)).map(([file]) => file);
 
 // Strings that only exist in demo modules.
-const DEMO_MARKERS = ['data-rd-demo', 'rd-demo-records-v1', 'rd-demo-signed-out', 'JB-DEMO-', 'Presenter controls'];
+const DEMO_MARKERS = ['data-rd-demo', 'rd-demo-records-v2', 'rd-demo-signed-out', 'JB-DEMO-', 'Presenter controls'];
 const problems = [];
 
 // Which Vercel project is building, if any. The demo project must only ever
@@ -116,7 +116,7 @@ if (process.env.VERCEL && !demo) {
 }
 
 if (demo) {
-  for (const marker of ['data-rd-demo', 'rd-demo-records-v1']) {
+  for (const marker of ['data-rd-demo', 'rd-demo-records-v2']) {
     if (!find(marker).length) problems.push(`demo build is missing "${marker}": the demo modules were not swapped in`);
   }
   const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');

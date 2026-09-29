@@ -9,7 +9,7 @@
 import { restaurantDate } from '../core/tenant';
 import { createSeed, type DemoRecords } from './seed';
 
-const KEY = 'rd-demo-records-v1';
+const KEY = 'rd-demo-records-v2';
 
 interface Stored extends DemoRecords {
   /** The restaurant date the seed was laid out for. A new day re-seeds, so "today" is never empty. */

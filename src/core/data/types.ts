@@ -82,6 +82,18 @@ export interface CustomerHistory {
   bookings: Booking[];
 }
 
+/**
+ * Order value, not takings: guests pay on collection, so this is what was
+ * ordered (every status except cancelled), by requested time.
+ */
+export interface SalesSummary {
+  todayTotal: number;
+  todayCount: number;
+  /** Today and the six restaurant days before it. */
+  weekTotal: number;
+  weekCount: number;
+}
+
 export interface DashboardSnapshot {
   todayBookingsCount: number;
   todayOrdersCount: number;
@@ -89,6 +101,7 @@ export interface DashboardSnapshot {
   newOrdersCount: number;
   todayBookings: Booking[];
   newOrders: Order[];
+  sales: SalesSummary;
 }
 
 /**

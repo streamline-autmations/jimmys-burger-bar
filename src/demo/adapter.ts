@@ -17,6 +17,7 @@ import { copy, restaurantDate, restaurantDayBounds } from '../core/tenant';
 import { orderableCategories, orderableItems } from '../core/menu/orderable';
 import { nextStatuses } from '../pages/admin/operations';
 import { readRecords, subscribeRecords, updateRecords } from './store';
+import { salesWindow, summariseSales } from '../core/data/sales';
 
 /** Enough latency that loading states are seen, not so much that a demo drags. */
 let latencyMs = 280;
@@ -56,7 +57,8 @@ export function fictionalContact(email: string, phone: string): { email: string;
   const mailbox = (email.split('@')[0] || 'guest').toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'guest';
   // From the last nine digits, so "082 ..." and "+27 82 ..." map to the same fictional number.
   const key = phone.replace(/\D/g, '').slice(-9);
-  const tail = String([...key].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 100, 7)).padStart(2, '0');
+  // 50-99: seeded guests hold 01-49, so a typed number never merges into one of them.
+  const tail = String(50 + [...key].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 50, 7));
   return { email: `${mailbox}@example.com`, phone: `+27 00 000 00${tail}` };
 }
 
@@ -255,6 +257,9 @@ export const adapter: DataAdapter = {
     const todays = bookings.filter((row) => row.booking_date === today && row.status !== 'cancelled')
       .sort((a, b) => a.booking_time.localeCompare(b.booking_time));
     const fresh = orders.filter((row) => row.status === 'new').sort(byCreated);
+    const range = salesWindow();
+    const week = orders.filter((row) => row.status !== 'cancelled' && row.requested_time
+      && row.requested_time >= range.weekStart && row.requested_time < range.end);
     return clone({
       todayBookingsCount: todays.length,
       todayOrdersCount: orders.filter((row) => row.status !== 'cancelled' && row.requested_time && row.requested_time >= start && row.requested_time < end).length,
@@ -262,6 +267,7 @@ export const adapter: DataAdapter = {
       newOrdersCount: fresh.length,
       todayBookings: todays.slice(0, 8),
       newOrders: fresh.slice(0, 8),
+      sales: summariseSales(week, range),
     });
   },
 

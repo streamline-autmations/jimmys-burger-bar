@@ -478,3 +478,65 @@ test('no seeded order breaks the breakfast cut-off', () => {
     }
   }
 });
+
+test('order references are short, readable and dated', () => {
+  const { generateOrderNumber } = load('src/lib/orderMessage.ts');
+  const at = new Date('2026-09-29T21:30:00Z'); // 23:30 SAST on the 29th
+  const seen = new Set();
+  for (let i = 0; i < 2000; i += 1) {
+    const ref = generateOrderNumber(at);
+    assert.match(ref, /^JB-0929-[2-9A-HJKMNP-Z]{6}$/, ref);
+    seen.add(ref);
+  }
+  assert.equal(seen.size, 2000, 'no repeats in 2,000 references on one day');
+  assert.match(generateOrderNumber(new Date('2026-09-29T22:30:00Z')), /^JB-0930-/, 'the date is the restaurant\'s, not UTC');
+});
+
+test('sales figures split today from the week and skip nothing', () => {
+  const { summariseSales } = load('src/core/data/sales.ts');
+  const window = { todayStart: '2026-09-29T22:00:00.000Z', end: '2026-09-30T22:00:00.000Z' };
+  const sales = summariseSales([
+    { total: 100.1, requested_time: '2026-09-30T08:00:00+00:00' },
+    { total: '200.2', requested_time: '2026-09-30T21:59:00Z' },
+    { total: 50, requested_time: '2026-09-29T21:59:00Z' },
+    { total: 10, requested_time: null },
+  ], window);
+  assert.deepEqual(sales, { todayTotal: 300.3, todayCount: 2, weekTotal: 360.3, weekCount: 4 });
+});
+
+test('a commission rate must be a fraction', () => {
+  assert.throws(() => defineRestaurant({ ...config, reporting: { appCommissionRate: 25 } }), /appCommissionRate/);
+  assert.doesNotThrow(() => defineRestaurant({ ...config, reporting: { appCommissionRate: 0.25 } }));
+});
+
+test('demo review time matches the server setting it describes', () => {
+  const { REVIEW_REQUEST_TIME } = load('src/demo/config.ts');
+  const tenant = JSON.parse(fs.readFileSync('supabase/tenants/jimmys.json', 'utf8'));
+  assert.equal(REVIEW_REQUEST_TIME, tenant.reviewRequests.localTime);
+});
+
+test('seeded history falls on trading days, inside trading hours, the same each time', () => {
+  const at = new Date('2026-09-29T09:30:00Z');
+  const first = seedModule.createSeed(at);
+  assert.deepEqual(seedModule.createSeed(at), first, 'a reset shows the same records');
+  const local = new Intl.DateTimeFormat('en-GB', { timeZone: config.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const history = first.orders.filter((row) => !['JB-DEMO-0001', 'JB-DEMO-0002', 'JB-DEMO-0003', 'JB-DEMO-0004', 'JB-DEMO-0005'].includes(row.order_no));
+  assert.ok(history.length >= 50, `a busy week, got ${history.length}`);
+  for (const order of history) {
+    const date = hours.restaurantDate(new Date(order.requested_time));
+    const open = hours.tradingHours(date);
+    assert.ok(open, `${order.order_no} on closed day ${date}`);
+    const time = local.format(new Date(order.requested_time));
+    assert.ok(time >= open.open && time <= hours.latestTime(open.close), `${order.order_no} at ${time}`);
+    assert.ok(order.requested_time < at.toISOString(), `${order.order_no} is history, not future`);
+  }
+});
+
+test('a contact typed into the demo never lands on a seeded guest', () => {
+  const { fictionalContact } = demoAdapterModule;
+  const seeded = new Set(seedModule.createSeed(new Date()).customers.map((row) => row.phone));
+  for (let n = 0; n < 500; n += 1) {
+    const { phone } = fictionalContact('', `08${String(n * 7919).padStart(8, '0')}`);
+    assert.ok(!seeded.has(phone), phone);
+  }
+});

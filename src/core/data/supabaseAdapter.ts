@@ -2,6 +2,7 @@ import { supabase } from '../../lib/supabase';
 import { restaurantDate, restaurantDayBounds } from '../tenant';
 import { withTimeout } from './timeout';
 import { classifySubmission } from './submission';
+import { salesWindow, summariseSales } from './sales';
 import type {
   Booking, Customer, CustomerHistory, DashboardSnapshot, DataAdapter, ListOptions,
   LookupResult, NewBooking, NewOrder, OrderWithItems,
@@ -180,9 +181,11 @@ export const supabaseAdapter: DataAdapter = {
     const today = restaurantDate();
     const { start, end } = restaurantDayBounds(today);
 
+    const range = salesWindow();
+
     const [
       todayBookingsCount, todayOrdersCount, pendingBookingsCount,
-      newOrdersCount, todayBookings, newOrders,
+      newOrdersCount, todayBookings, newOrders, weekOrders,
     ] = await withTimeout(Promise.all([
       supabase.from('bookings').select('*', { count: 'exact', head: true })
         .eq('booking_date', today).neq('status', 'cancelled'),
@@ -196,11 +199,15 @@ export const supabaseAdapter: DataAdapter = {
         .order('booking_time', { ascending: true }).limit(8),
       supabase.from('orders').select('*')
         .eq('status', 'new').order('created_at', { ascending: true }).limit(8),
+      // Two small columns for a week of orders. PostgREST caps a response at its
+      // max-rows setting (1,000 by default), far above a week of collection orders.
+      supabase.from('orders').select('total, requested_time')
+        .neq('status', 'cancelled').gte('requested_time', range.weekStart).lt('requested_time', range.end),
     ]));
 
     const firstError = [
       todayBookingsCount.error, todayOrdersCount.error, pendingBookingsCount.error,
-      newOrdersCount.error, todayBookings.error, newOrders.error,
+      newOrdersCount.error, todayBookings.error, newOrders.error, weekOrders.error,
     ].find(Boolean);
     if (firstError) throw firstError;
 
@@ -211,6 +218,7 @@ export const supabaseAdapter: DataAdapter = {
       newOrdersCount: newOrdersCount.count ?? 0,
       todayBookings: todayBookings.data ?? [],
       newOrders: newOrders.data ?? [],
+      sales: summariseSales(weekOrders.data ?? [], range),
     };
   },
 

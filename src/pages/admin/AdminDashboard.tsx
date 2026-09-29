@@ -10,24 +10,17 @@ import { config } from '../../config';
 import { formatBookingTime, formatDayTime, titleCase } from './adminUtils';
 import { AdminError, AdminSkeleton } from './AdminStates';
 import { AdminStatusBadge } from './AdminStatusBadge';
-import type { Booking, Order } from './types';
+import type { DashboardSnapshot, SalesSummary } from '../../core/data';
+import { formatWholeMoney } from '../../core/data/sales';
 
-interface DashboardData {
-  todayBookingsCount: number;
-  todayOrdersCount: number;
-  pendingBookingsCount: number;
-  newOrdersCount: number;
-  todayBookings: Booking[];
-  newOrders: Order[];
-}
-
-const initialData: DashboardData = {
+const initialData: DashboardSnapshot = {
   todayBookingsCount: 0,
   todayOrdersCount: 0,
   pendingBookingsCount: 0,
   newOrdersCount: 0,
   todayBookings: [],
   newOrders: [],
+  sales: { todayTotal: 0, todayCount: 0, weekTotal: 0, weekCount: 0 },
 };
 
 const todayLabel = new Intl.DateTimeFormat(config.locale, {
@@ -72,6 +65,46 @@ const ActionQueue: React.FC<{
   </article>
 );
 
+/** Whole units: the strip is read at a glance, and cents are noise here. */
+const rands = formatWholeMoney;
+
+const Figure: React.FC<{ label: string; value: string; note: string; highlight?: boolean; className?: string }> = ({ label, value, note, highlight, className = '' }) => (
+  <div className={`min-w-0 px-5 py-4 ${highlight ? 'bg-accent text-ink' : ''} ${className}`}>
+    <dt className={`text-sm font-bold ${highlight ? 'text-ink' : 'text-paper/75'}`}>{label}</dt>
+    <dd className="mt-1 font-display text-[1.65rem] font-bold leading-none tabular-nums sm:text-3xl">{value}</dd>
+    <dd className={`mt-1.5 text-xs font-semibold ${highlight ? 'text-ink/75' : 'text-paper/60'}`}>{note}</dd>
+  </div>
+);
+
+/**
+ * What came in directly. Order value rather than takings, since guests pay on
+ * collection. The commission figure appears only when the restaurant's config
+ * sets a comparison rate.
+ */
+const SalesStrip: React.FC<{ sales: SalesSummary }> = ({ sales }) => {
+  const rate = config.reporting?.appCommissionRate;
+  const average = sales.weekCount ? sales.weekTotal / sales.weekCount : 0;
+  return (
+    <dl
+      aria-label="Direct orders"
+      className={`mb-5 grid grid-cols-2 divide-paper/10 overflow-hidden rounded-2xl bg-ink text-paper ${rate ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} [&>div]:border-paper/10 [&>div:nth-child(n+3)]:border-t lg:[&>div]:border-l lg:[&>div:first-child]:border-l-0 lg:[&>div:nth-child(n+3)]:border-t-0`}
+    >
+      <Figure label="Ordered today" value={rands(sales.todayTotal)} note={plural(sales.todayCount, 'order', 'orders')} />
+      <Figure label="Last 7 days" value={rands(sales.weekTotal)} note={plural(sales.weekCount, 'order', 'orders')} />
+      {/* Without the commission figure, the average takes the whole second row on phones. */}
+      <Figure label="Average order" value={rands(average)} note="Last 7 days" className={rate ? '' : 'col-span-2 lg:col-span-1'} />
+      {rate ? (
+        <Figure
+          highlight
+          label="Commission kept"
+          value={rands(sales.weekTotal * rate)}
+          note={`What a ${Math.round(rate * 100)}% delivery app would have taken`}
+        />
+      ) : null}
+    </dl>
+  );
+};
+
 const rowClass =
   'group flex items-center gap-4 border-t border-ink/10 px-5 py-3.5 transition-colors duration-150 hover:bg-paper';
 
@@ -106,6 +139,7 @@ export const AdminDashboard: React.FC = () => {
         <AdminSkeleton rows={4} />
       ) : error && !updatedAt ? null : (
         <>
+          <SalesStrip sales={data.sales} />
           <div className="grid items-start gap-5 lg:grid-cols-2">
             <ActionQueue
               title="Orders to accept"

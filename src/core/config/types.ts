@@ -195,4 +195,15 @@ export interface RestaurantConfig {
   socials: { facebook: string; instagram: string };
   /** Overrides the product's generic English copy. Only what differs. */
   copy?: CopyOverrides;
+  /** Optional figures on the staff Today page. */
+  reporting?: ReportingConfig;
+}
+
+export interface ReportingConfig {
+  /**
+   * A delivery app's commission as a fraction (0.25 is 25%). When set, Today
+   * shows what that commission would have cost on the last seven days of
+   * direct orders. Leave it out to hide the comparison.
+   */
+  appCommissionRate?: number;
 }

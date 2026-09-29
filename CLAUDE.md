@@ -322,6 +322,13 @@ Orders and bookings are submitted under a reference generated in the browser
 The session checkpoint (`<slug>-order-reference`, `<slug>-booking-attempt`) is cleared only
 when it still holds this attempt's reference.
 
+**Order reference format (2026-09-29):** `JB-MMDD-XXXXXX` (restaurant-local date, six
+characters without 0/O/1/I/L), from `generateOrderNumber` in `src/lib/orderMessage.ts`.
+It replaced a 16-hex reference nobody could read out at the counter. It is still the retry
+key and unique across all time, so it must not become a short counter; a clash with another
+guest's order is refused and the next attempt gets a new reference. A short per-day
+number would need a database column and a migration, which Christiaan chose not to do yet.
+
 Migration `supabase/migrations/20260914120000_phase3_*.sql` (applied live 2026-09-14) adds
 `customer_id`, `lookup_request` (used by `/track`), `normalise_phone` and create_order
 idempotency, and fixed a live bug: a returning guest's known phone with a new email

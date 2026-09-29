@@ -1,9 +1,15 @@
 import { RefreshCw } from 'lucide-react';
 import { formatTimeOnly } from './adminUtils';
 
-export function AdminRefresh({ loading, updatedAt, onRefresh, disabled = false, polling = true }: { loading: boolean; updatedAt: Date | null; onRefresh: () => void; disabled?: boolean; polling?: boolean }) {
-  return <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm">
-    <p role="status" className="text-ink/75">{loading ? 'Refreshing…' : updatedAt ? polling ? `Updated ${formatTimeOnly(updatedAt.toISOString())} SAST. Checks for new requests every 30 seconds.` : `Updated ${formatTimeOnly(updatedAt.toISOString())} SAST. Refresh to check for new requests.` : 'No records loaded yet.'}</p>
-    <button type="button" disabled={loading || disabled} onClick={onRefresh} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-ink/20 bg-surface px-4 font-bold disabled:opacity-50"><RefreshCw size={16} aria-hidden="true" />Refresh</button>
+/**
+ * Freshness and a manual refresh. `compact` drops the polling sentence into the
+ * tooltip, for page headers that share their row with a title.
+ */
+export function AdminRefresh({ loading, updatedAt, onRefresh, disabled = false, polling = true, compact = false, className = 'mb-5' }: { loading: boolean; updatedAt: Date | null; onRefresh: () => void; disabled?: boolean; polling?: boolean; compact?: boolean; className?: string }) {
+  const note = polling ? 'Checks for new requests every 30 seconds.' : 'Refresh to check for new requests.';
+  const time = updatedAt ? `Updated ${formatTimeOnly(updatedAt.toISOString())}.` : 'No records loaded yet.';
+  return <div className={`flex flex-wrap items-center gap-3 text-sm ${className}`}>
+    <p role="status" className="text-ink/70" title={compact && updatedAt ? note : undefined}>{loading ? 'Refreshing…' : compact || !updatedAt ? time : `${time} ${note}`}</p>
+    <button type="button" disabled={loading || disabled} onClick={onRefresh} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-ink/15 bg-surface px-3.5 font-bold text-ink transition-colors duration-150 hover:bg-paper disabled:opacity-50"><RefreshCw size={15} aria-hidden="true" className={loading ? 'animate-spin' : ''} />Refresh</button>
   </div>;
 }

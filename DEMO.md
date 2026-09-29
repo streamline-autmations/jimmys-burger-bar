@@ -58,6 +58,22 @@ and the staff console on **Kitchen queue**. Press **Reset demo records** first.
 
 If a click goes wrong, use the jump points rather than navigating back through the site.
 
+## Recording the staff console (1920x1080)
+
+Press **Reset demo records** first, then record at 100% zoom. Every selection is in the
+URL (`?order=` / `?booking=`), so a reload keeps the same ticket open.
+
+1. **New order, inspect, accept.** Start on **Today** (`/admin`). Under *Orders to accept*,
+   click **Review** on Pieter Example. The Orders page opens with his ticket: collection time,
+   items with photos, total, and the five-step progress rail. Click **Accept order**. The
+   badge and rail move to Accepted and a note confirms it; nothing else on screen moves.
+2. **Pending table request, inspect, confirm.** From **Today**, click **Review** on Megan
+   Placeholder's 18:30 request. Her ticket shows date, time, party of 4, inside seating and
+   her note. Click **Confirm booking**; the rail moves from Requested to Confirmed.
+
+To follow a guest from the customer site instead: place an order as Thabo Example (see the
+walkthrough above), then open **Orders** in the staff window and select his row.
+
 ## What is real and what is not
 
 Real: Jimmy's design, menu and prices, and the product behaviour (the demo adapter

@@ -93,3 +93,27 @@ export const CLOSED_STATUSES = new Set(['completed', 'cancelled']);
 
 export const isActionable = (status: string): boolean => ACTIONABLE_STATUSES.has(status);
 export const isClosed = (status: string): boolean => CLOSED_STATUSES.has(status);
+
+const weekdayFormatter = new Intl.DateTimeFormat(locale, {
+  timeZone: timezone,
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
+
+/** "Today", "Tomorrow", "Yesterday" or "Thu 1 Oct", for a restaurant-local YYYY-MM-DD date. */
+export const formatDayLabel = (date: string, now = new Date()): string => {
+  const today = restaurantDate(now);
+  if (date === today) return 'Today';
+  const shift = (days: number) => restaurantDate(new Date(restaurantInstant(today, '12:00').getTime() + days * 86_400_000));
+  if (date === shift(1)) return 'Tomorrow';
+  if (date === shift(-1)) return 'Yesterday';
+  return weekdayFormatter.format(restaurantInstant(date, '12:00'));
+};
+
+/** The restaurant-local date of an instant, as YYYY-MM-DD. */
+export const restaurantDateOf = (value: string): string => restaurantDate(new Date(value));
+
+/** "Today 21:45" style label for an instant, read on the restaurant's clock. */
+export const formatDayTime = (value: string | null): { day: string; time: string } =>
+  value ? { day: formatDayLabel(restaurantDateOf(value)), time: formatTimeOnly(value) } : { day: 'No time', time: '--:--' };

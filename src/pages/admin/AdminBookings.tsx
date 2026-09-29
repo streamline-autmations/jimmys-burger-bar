@@ -1,297 +1,353 @@
 import { useAdminResource } from './useAdminResource';
 import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
-import { controlClass } from './adminUtils';
-import React, { useRef, useCallback, useMemo, useState } from 'react';
-import { CalendarDays, Clock3, History, Mail, Phone, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { History, Mail, MessageSquareText, Phone } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { data as db, type ListView } from '../../core/data';
+import { useIsDesktop } from '../../lib/useDesktop';
 import {
-  actionableCardClass,
-  cardClass,
   formatBookingDate,
   formatBookingTime,
-  historicalCardClass,
-  isActionable,
+  formatDayLabel,
+  formatDayTime,
   isClosed,
-  thClass,
   titleCase,
 } from './adminUtils';
 import { AdminEmpty, AdminError, AdminSkeleton } from './AdminStates';
 import { AdminPageHeader } from './AdminPageHeader';
-import { AdminStatusBadge, AdminStatusControl } from './AdminStatusBadge';
+import { AdminStatusBadge } from './AdminStatusBadge';
+import { Fact, ProgressRail, QueueFilter, QueueRow, QueueToolbar, TicketActions, TicketPlaceholder, WorkspaceSplit, type SavedChange } from './AdminWorkspace';
 import { BOOKING_STATUSES, type Booking, type BookingStatus } from './types';
 
 type BookingFilter = 'all' | BookingStatus;
 
+const VIEWS = [
+  { value: 'active', label: 'Upcoming' },
+  { value: 'today', label: 'Today' },
+  { value: 'history', label: 'Past bookings' },
+  { value: 'all', label: 'All dates' },
+];
+
+const PROGRESS = ['pending', 'confirmed'] as const;
+const PROGRESS_LABELS = { pending: 'Requested', confirmed: 'Confirmed' };
+
+// Honest about what confirming is: the product has no floor plan and no
+// availability check, so staff decide whether there is room.
+const HINTS: Record<string, string> = {
+  pending: 'Check you have room first. Confirming does not hold a specific table. The guest can see the confirmation on the tracking page.',
+};
+
+/** Today, Tomorrow and Yesterday need the calendar date beside them; a weekday label already carries it. */
+const isRelativeDay = (date: string) => ['Today', 'Tomorrow', 'Yesterday'].includes(formatDayLabel(date));
+
+const guestsLabel = (count: number) => `${count} ${count === 1 ? 'guest' : 'guests'}`;
+
+const BookingTicket: React.FC<{ booking: Booking; actions: React.ReactNode; docked: boolean }> = ({ booking, actions, docked }) => {
+  const received = formatDayTime(booking.created_at);
+  return (
+    <article
+      aria-label={`Booking for ${booking.name}`}
+      className={`admin-ticket-in flex flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-ink/10 shadow-[0_18px_44px_-26px_rgb(var(--color-ink)/0.5)] ${
+        docked ? 'max-h-[calc(100dvh-3.5rem-var(--admin-bottom-inset,0px))]' : ''
+      }`}
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <header className="px-5 pb-4 pt-5 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <AdminStatusBadge status={booking.status} size="md" />
+            <p className="text-xs text-ink/60">
+              Received {received.day === 'Today' || received.day === 'Yesterday' ? received.day.toLowerCase() : received.day} at {received.time}
+            </p>
+          </div>
+          <h2 className="mt-3 break-words font-display text-[1.9rem] font-bold leading-[1.1] text-primary">{booking.name}</h2>
+          <p className="mt-1 text-sm text-ink/65">
+            {booking.status === 'pending' ? 'Table request, waiting for you to confirm.' : booking.status === 'confirmed' ? 'Confirmed booking.' : 'Cancelled booking.'}
+          </p>
+        </header>
+
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-y border-ink/10 bg-paper px-5 py-4 sm:grid-cols-4 sm:px-6">
+          <Fact label="Date">
+            {formatDayLabel(booking.booking_date)}
+            {isRelativeDay(booking.booking_date) && <span className="block font-body text-sm font-semibold text-ink/65">{formatBookingDate(booking.booking_date)}</span>}
+          </Fact>
+          <Fact label="Time">
+            <span className="text-2xl tabular-nums">{formatBookingTime(booking.booking_time)}</span>
+          </Fact>
+          <Fact label="Party">{guestsLabel(booking.guests)}</Fact>
+          <Fact label="Seating">{booking.seating_preference}</Fact>
+        </dl>
+
+        {booking.status === 'cancelled' ? (
+          <p className="mx-5 mt-5 rounded-xl bg-ink/[0.05] px-4 py-3 text-sm font-semibold text-ink/75 sm:mx-6">
+            This booking was cancelled. It stays here for the record.
+          </p>
+        ) : (
+          <div className="mx-auto max-w-xs px-4 pt-5">
+            <ProgressRail steps={PROGRESS} current={booking.status} labels={PROGRESS_LABELS} />
+          </div>
+        )}
+
+        <section className="mx-5 mt-5 sm:mx-6" aria-label="Guest note">
+          {booking.notes ? (
+            <div className="rounded-xl bg-accent/[0.14] px-4 py-3 ring-1 ring-accent/40">
+              <h3 className="flex items-center gap-1.5 text-xs font-bold text-ink/70">
+                <MessageSquareText size={14} aria-hidden="true" />
+                Note from the guest
+              </h3>
+              <p className="mt-1 whitespace-pre-line break-words text-base leading-relaxed text-ink">{booking.notes}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-ink/60">No note from the guest.</p>
+          )}
+        </section>
+
+        <section className="px-5 pb-5 pt-4 sm:px-6" aria-label="Guest contact">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <a href={`tel:${booking.phone}`} className="inline-flex min-h-10 items-center gap-1.5 rounded font-semibold text-ink hover:text-primary hover:underline">
+              <Phone size={15} aria-hidden="true" className="text-ink/60" />
+              {booking.phone}
+            </a>
+            <a href={`mailto:${booking.email}`} className="inline-flex min-h-10 min-w-0 items-center gap-1.5 rounded font-semibold text-ink hover:text-primary hover:underline">
+              <Mail size={15} aria-hidden="true" className="shrink-0 text-ink/60" />
+              <span className="truncate">{booking.email}</span>
+            </a>
+            {booking.customer_id && (
+              <Link to={`/admin/customers/${booking.customer_id}`} className="inline-flex min-h-10 items-center gap-1.5 rounded font-bold text-primary hover:underline">
+                <History size={15} aria-hidden="true" />
+                Guest history
+              </Link>
+            )}
+          </div>
+        </section>
+      </div>
+      {actions}
+    </article>
+  );
+};
+
 export const AdminBookings: React.FC = () => {
+  const desktop = useIsDesktop();
+  const [params, setParams] = useSearchParams();
+  const selectedId = params.get('booking');
   const [search, setSearch] = useState('');
   const [view, setView] = useState<ListView>('active');
   const [limit, setLimit] = useState(200);
-
   const [filter, setFilter] = useState<BookingFilter>('all');
+
   const mutation = useRef(false);
-  const [feedback, setFeedback] = useState('');
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState<{ id: string; to: string } | null>(null);
+  const [saved, setSaved] = useState<SavedChange | null>(null);
   const [updateErrors, setUpdateErrors] = useState<Record<string, string>>({});
 
-  const load = useCallback(async () => {
-    return db.listBookings({ view, limit });
-  }, [view, limit]);
-  const { data: bookings, setData: setBookings, loading, error, updatedAt, refresh: fetchBookings } = useAdminResource<Booking[]>(load, [], { paused: savingId !== null });
+  const load = useCallback(async () => db.listBookings({ view, limit }), [view, limit]);
+  const { data: bookings, setData: setBookings, loading, error, updatedAt, refresh: fetchBookings } =
+    useAdminResource<Booking[]>(load, [], { paused: saving !== null });
 
-
-  const filteredBookings = useMemo(
+  const filtered = useMemo(
     () => bookings.filter((item) => (filter === 'all' || item.status === filter) && matchesSearch(search, item.id, item.name, item.phone, item.email)),
     [bookings, filter, search],
   );
 
-  const pendingCount = useMemo(
-    () => bookings.filter((booking) => booking.status === 'pending').length,
-    [bookings],
-  );
+  const counts = useMemo(() => {
+    const result: Record<string, number> = { all: bookings.length };
+    for (const booking of bookings) result[booking.status] = (result[booking.status] ?? 0) + 1;
+    return result;
+  }, [bookings]);
 
-  const updateStatus = async (booking: Booking, status: BookingStatus) => {
-    if (mutation.current || !nextStatuses(booking.status).includes(status)) return;
-    mutation.current = true;
-    setFeedback('');
-    setSavingId(booking.id);
-    setUpdateErrors((current) => {
-      const next = { ...current };
-      delete next[booking.id];
+  // Consecutive runs of one date, in the adapter's order (soonest first for
+  // upcoming, latest first for past bookings).
+  const groups = useMemo(() => {
+    const result: { date: string; rows: Booking[] }[] = [];
+    for (const booking of filtered) {
+      const last = result[result.length - 1];
+      if (last && last.date === booking.booking_date) last.rows.push(booking);
+      else result.push({ date: booking.booking_date, rows: [booking] });
+    }
+    return result;
+  }, [filtered]);
+
+  const selected = bookings.find((booking) => booking.id === selectedId) ?? null;
+
+  const select = useCallback((id: string | null) => {
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      if (id) next.set('booking', id);
+      else next.delete('booking');
       return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  useEffect(() => {
+    if (!desktop || !updatedAt || selected || filtered.length === 0) return;
+    select((filtered.find((booking) => booking.status === 'pending') ?? filtered[0]).id);
+  }, [desktop, updatedAt, selected, filtered, select]);
+
+  const updateStatus = async (booking: Booking, next: BookingStatus) => {
+    if (mutation.current || !nextStatuses(booking.status).includes(next)) return;
+    mutation.current = true;
+    setSaved(null);
+    setSaving({ id: booking.id, to: next });
+    setUpdateErrors((current) => {
+      const copy = { ...current };
+      delete copy[booking.id];
+      return copy;
     });
 
     try {
-      await db.advanceBookingStatus(booking.id, booking.status, status);
-      setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, status } : item));
-      setFeedback('Status saved. Contact the customer if they need an update.');
+      await db.advanceBookingStatus(booking.id, booking.status, next);
+      setBookings((current) => current.map((item) => (item.id === booking.id ? { ...item, status: next } : item)));
+      setSaved({ id: booking.id, status: next, at: new Date() });
       await fetchBookings();
     } catch {
       setUpdateErrors((current) => ({ ...current, [booking.id]: 'Could not verify this change. Refresh before trying again; another staff member may have updated it.' }));
-    } finally { mutation.current = false; setSavingId(null); }
+    } finally {
+      mutation.current = false;
+      setSaving(null);
+    }
   };
 
-  const statusControl = (booking: Booking) => (
-    <AdminStatusControl
-      value={booking.status as BookingStatus}
-      options={BOOKING_STATUSES}
-      disabled={savingId !== null || (loading && !updatedAt)}
-      saving={savingId === booking.id}
-      error={updateErrors[booking.id]}
-      describedAs={`Update status for ${booking.name}`}
-      onChange={(next) => void updateStatus(booking, next)}
+  const ticketFor = (booking: Booking, docked: boolean) => (
+    <BookingTicket
+      key={booking.id}
+      booking={booking}
+      docked={docked}
+      actions={
+        <TicketActions
+          status={booking.status}
+          cancelLabel={booking.status === 'pending' ? 'Cancel request' : 'Cancel booking'}
+          describedAs={`Booking for ${booking.name}`}
+          disabled={saving !== null || (loading && !updatedAt)}
+          saving={saving?.id === booking.id}
+          savingTo={saving?.id === booking.id ? saving.to : null}
+          error={updateErrors[booking.id]}
+          saved={saved?.id === booking.id && saved.status === booking.status ? saved : null}
+          hint={HINTS[booking.status]}
+          onChange={(next) => void updateStatus(booking, next as BookingStatus)}
+        />
+      }
     />
+  );
+
+  const pending = counts.pending ?? 0;
+  const summary = !updatedAt
+    ? undefined
+    : view === 'active'
+      ? pending
+        ? `${pending} table ${pending === 1 ? 'request' : 'requests'} to confirm, ${bookings.length} upcoming in total.`
+        : `No requests waiting. ${bookings.length} upcoming ${bookings.length === 1 ? 'booking' : 'bookings'}.`
+      : `${bookings.length} ${bookings.length === 1 ? 'booking' : 'bookings'} loaded.`;
+
+  const queue = loading && !updatedAt ? (
+    <AdminSkeleton rows={5} />
+  ) : error && !updatedAt ? null : filtered.length === 0 ? (
+    <AdminEmpty
+      title={filter === 'all' && !search ? 'No bookings here' : 'No matching bookings'}
+      hint={filter === 'all' && !search ? 'Table requests appear here as guests send them.' : 'Try another search, status or date view.'}
+    />
+  ) : (
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <section key={group.date} aria-label={formatBookingDate(group.date)}>
+          <h2 className="mb-2 flex items-baseline gap-2 px-1">
+            <span className="font-display text-lg font-bold text-primary">{formatDayLabel(group.date)}</span>
+            {isRelativeDay(group.date) && <span className="text-sm font-medium text-ink/60">{formatBookingDate(group.date)}</span>}
+          </h2>
+          <ul className="space-y-2">
+            {group.rows.map((booking) => {
+              const isSelected = booking.id === selected?.id;
+              const closed = isClosed(booking.status);
+              return (
+                <li key={booking.id}>
+                  <QueueRow
+                    selected={isSelected}
+                    needsAction={booking.status === 'pending'}
+                    closed={closed}
+                    expanded={desktop ? undefined : isSelected}
+                    label={`${booking.name}, ${titleCase(booking.status)}, ${formatDayLabel(booking.booking_date)} ${formatBookingTime(booking.booking_time)}, ${guestsLabel(booking.guests)}`}
+                    onSelect={() => select(!desktop && isSelected ? null : booking.id)}
+                  >
+                    <span className={`w-14 shrink-0 font-display text-xl font-bold tabular-nums ${closed ? 'text-ink/50 line-through decoration-2' : 'text-primary'}`}>
+                      {formatBookingTime(booking.booking_time)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-base font-bold ${closed ? 'text-ink/70' : 'text-ink'}`}>{booking.name}</span>
+                      <span className="mt-0.5 block truncate text-sm text-ink/65">
+                        {guestsLabel(booking.guests)}, {booking.seating_preference.toLowerCase()}
+                        {booking.notes && <span className="font-semibold text-ink/75">. Has a note</span>}
+                      </span>
+                    </span>
+                    <AdminStatusBadge status={booking.status} />
+                  </QueueRow>
+                  {!desktop && isSelected && <div className="mt-2">{ticketFor(booking, false)}</div>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+
+  const ticket = selected ? ticketFor(selected, true) : loading && !updatedAt ? (
+    <TicketPlaceholder title="Loading bookings…" />
+  ) : !updatedAt ? (
+    <TicketPlaceholder title="Bookings could not load" hint="Use Try again once the connection is back." />
+  ) : filtered.length === 0 ? (
+    <TicketPlaceholder title="Nothing to review" hint="When a guest requests a table, it opens here." />
+  ) : (
+    <TicketPlaceholder title="No booking selected" hint="Choose one from the list to see the details and next step." />
   );
 
   return (
     <section>
-      <AdminPageHeader
-        eyebrow="Reservations"
-        title="Bookings"
-        count={
-          loading
-            ? undefined
-            : `${filteredBookings.length} shown${pendingCount ? ` · ${pendingCount} awaiting confirmation` : ''}`
+      <WorkspaceSplit
+        queue={
+          <>
+            <AdminPageHeader title="Bookings" count={summary}>
+              <AdminRefresh compact className="" disabled={saving !== null} loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchBookings()} />
+            </AdminPageHeader>
+
+            <QueueToolbar
+              filter={
+                <QueueFilter<BookingFilter>
+                  label="Filter bookings by status"
+                  options={['all', ...BOOKING_STATUSES] as BookingFilter[]}
+                  value={filter}
+                  counts={updatedAt ? counts : {}}
+                  onChange={setFilter}
+                  names={{ pending: 'To confirm' }}
+                />
+              }
+              search={search}
+              onSearch={setSearch}
+              view={view}
+              views={VIEWS}
+              onView={(value) => { setView(value as ListView); setLimit(200); }}
+              viewDisabled={saving !== null}
+            />
+
+            {error && (
+              <div className="mb-5">
+                <AdminError message={error} onRetry={() => void fetchBookings()} />
+              </div>
+            )}
+
+            {queue}
+            {updatedAt && bookings.length > 0 && (
+              <p className="mt-3 text-xs text-ink/60">
+                {filtered.length} of {bookings.length} loaded {bookings.length === 1 ? 'booking' : 'bookings'} shown. Search covers loaded records only.
+              </p>
+            )}
+            {bookings.length >= limit && (
+              <button className="mt-4 min-h-11 rounded-xl border border-ink/20 bg-surface px-5 font-bold" disabled={loading || saving !== null} onClick={() => setLimit((value) => value + 200)}>
+                Load more records
+              </button>
+            )}
+          </>
         }
-      >
-        <div
-          className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-surface p-1 ring-1 ring-ink/10"
-          role="group"
-          aria-label="Filter bookings by status"
-        >
-          {(['all', ...BOOKING_STATUSES] as const).map((status) => (
-            <button
-              key={status}
-              type="button"
-              aria-pressed={filter === status}
-              onClick={() => setFilter(status)}
-              className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                filter === status ? 'bg-primary text-surface' : 'text-ink/65 hover:bg-paper hover:text-ink'
-              }`}
-            >
-              {titleCase(status)}
-            </button>
-          ))}
-        </div>
-      </AdminPageHeader>
-
-      <p role="status" className="mb-3 text-sm font-semibold">{feedback}</p>
-      <AdminRefresh disabled={savingId !== null} loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchBookings()} />
-      <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_220px]">
-        <label className="text-sm font-semibold">Search loaded records<input type="search" className={controlClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, contact or reference" /></label>
-        <label className="text-sm font-semibold">Date / queue<select disabled={savingId !== null} className={controlClass} value={view} onChange={(event) => { setView(event.target.value as ListView); setLimit(200); }}><option value="active">Upcoming bookings</option><option value="today">Today</option><option value="history">History</option><option value="all">All dates</option></select></label>
-      </div>
-      <p className="mb-4 text-sm text-ink/75">{filteredBookings.length} matching / {bookings.length} loaded. Search applies to loaded records.</p>
-
-      {error && (
-        <div className="mb-6">
-          <AdminError message={error} onRetry={() => void fetchBookings()} />
-        </div>
-      )}
-
-      {loading && !updatedAt ? (
-        <AdminSkeleton />
-      ) : error && !updatedAt ? null : filteredBookings.length === 0 ? (
-        <AdminEmpty
-          title="Nothing here"
-          hint={filter === 'all' ? 'Bookings will appear as guests reserve tables.' : 'No bookings have this status.'}
-        />
-      ) : (
-        <>
-          {/* Phones and tablets: one card per booking. A horizontally scrolling
-              table put the status control off screen, so staff could not
-              actually confirm a table from the floor. */}
-          <ul className="space-y-3 lg:hidden">
-            {filteredBookings.map((booking) => (
-              <li
-                key={booking.id}
-                className={`p-4 ${
-                  isActionable(booking.status)
-                    ? actionableCardClass
-                    : isClosed(booking.status)
-                      ? historicalCardClass
-                      : cardClass
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-display text-base font-bold text-primary">{booking.name}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/65">
-                      <span className="inline-flex items-center gap-1.5">
-                        <CalendarDays size={14} aria-hidden="true" />
-                        {formatBookingDate(booking.booking_date)}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 font-bold text-ink/80">
-                        <Clock3 size={14} aria-hidden="true" />
-                        {formatBookingTime(booking.booking_time)}
-                      </span>
-                    </p>
-                  </div>
-                  <AdminStatusBadge status={booking.status} />
-                </div>
-
-                <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/70">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Users size={14} aria-hidden="true" />
-                    {booking.guests} {booking.guests === 1 ? 'guest' : 'guests'}
-                  </span>
-                  <span className="text-ink/30" aria-hidden="true">
-                    ·
-                  </span>
-                  <span>{titleCase(booking.seating_preference)}</span>
-                </p>
-
-                {booking.notes && (
-                  <p className="mt-2 rounded-xl bg-paper/80 px-3 py-2 text-sm leading-relaxed text-ink/70">
-                    {booking.notes}
-                  </p>
-                )}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a
-                    href={`tel:${booking.phone}`}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-bold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                  >
-                    <Phone size={14} aria-hidden="true" />
-                    Call
-                  </a>
-                  <a
-                    href={`mailto:${booking.email}`}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-ink/15 px-3.5 text-sm font-bold text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                  >
-                    <Mail size={14} aria-hidden="true" />
-                    Email
-                  </a>
-                  {booking.customer_id && (
-                    <Link
-                      to={`/admin/customers/${booking.customer_id}`}
-                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-ink/15 px-3.5 text-sm font-bold text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                    >
-                      <History size={14} aria-hidden="true" />
-                      Guest history
-                    </Link>
-                  )}
-                </div>
-
-                <div className="mt-3 border-t border-ink/10 pt-3">{statusControl(booking)}</div>
-              </li>
-            ))}
-          </ul>
-
-          {/* Desktop keeps the table: it is the denser, better read when a whole
-              service fits on one screen. */}
-          <div className={`${cardClass} hidden overflow-hidden lg:block`}>
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-ink/10 bg-paper/60">
-                <tr>
-                  <th className={thClass}>Customer</th>
-                  <th className={thClass}>Date &amp; time</th>
-                  <th className={thClass}>Party</th>
-                  <th className={thClass}>Notes</th>
-                  <th className={`${thClass} w-56`}>Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink/10">
-                {filteredBookings.map((booking) => (
-                  <tr
-                    key={booking.id}
-                    className={`align-top transition-colors hover:bg-paper/50 ${
-                      isClosed(booking.status) ? 'text-ink/65' : ''
-                    }`}
-                  >
-                    <td className="relative px-4 py-4">
-                      {isActionable(booking.status) && (
-                        <span className="absolute inset-y-0 left-0 w-1 bg-accent" aria-hidden="true" />
-                      )}
-                      <p className="font-semibold text-ink">{booking.name}</p>
-                      <a className="mt-1 block text-xs text-ink/65 hover:text-primary" href={`mailto:${booking.email}`}>
-                        {booking.email}
-                      </a>
-                      <a className="block text-xs text-ink/65 hover:text-primary" href={`tel:${booking.phone}`}>
-                        {booking.phone}
-                      </a>
-                      {booking.customer_id && (
-                        <Link
-                          to={`/admin/customers/${booking.customer_id}`}
-                          className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded text-xs font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                        >
-                          <History size={14} aria-hidden="true" />
-                          Guest history
-                        </Link>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <p className="font-medium">{formatBookingDate(booking.booking_date)}</p>
-                      <p className="mt-1 font-display text-base font-bold text-primary">
-                        {formatBookingTime(booking.booking_time)}
-                      </p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <p className="font-medium">
-                        {booking.guests} {booking.guests === 1 ? 'guest' : 'guests'}
-                      </p>
-                      <p className="mt-1 text-xs text-ink/65">{titleCase(booking.seating_preference)}</p>
-                    </td>
-                    <td className="max-w-64 px-4 py-4">
-                      <p className="line-clamp-2 text-ink/70" title={booking.notes ?? undefined}>
-                        {booking.notes || 'No notes'}
-                      </p>
-                    </td>
-                    <td className="w-56 px-4 py-4">
-                      <div className="mb-2.5">
-                        <AdminStatusBadge status={booking.status} />
-                      </div>
-                      {statusControl(booking)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-      {bookings.length >= limit && <button className="mt-5 min-h-11 rounded-xl border border-ink/20 px-5 font-bold" disabled={loading || savingId !== null} onClick={() => setLimit((value) => value + 200)}>Load more records</button>}
+        ticket={desktop ? ticket : null}
+      />
     </section>
   );
 };

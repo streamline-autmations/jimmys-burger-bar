@@ -506,3 +506,20 @@ html[data-intro-handoff] [data-nav-logo] {
 /* Operational controls and customer form actions must be visible by keyboard. */
 :where(button, a, input, select, textarea):focus-visible { outline: 3px solid rgb(var(--color-accent)); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .animate-pulse, .animate-spin { animation: none !important; } }
+
+/* ---- Staff console ---------------------------------------------------------
+   Motion here only answers a staff action: a ticket opening, a status landing.
+   Short (180-220ms), no overshoot, and off entirely under reduced motion. */
+@keyframes admin-ticket-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes admin-note-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: none; }
+}
+.admin-ticket-in { animation: admin-ticket-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.admin-note-in { animation: admin-note-in 180ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-ticket-in, .admin-note-in { animation: none; }
+}

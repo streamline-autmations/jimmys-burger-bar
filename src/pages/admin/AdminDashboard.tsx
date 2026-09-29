@@ -1,21 +1,13 @@
 import { useAdminResource } from './useAdminResource';
 import { AdminRefresh } from './AdminRefresh';
 import React, { useCallback } from 'react';
-import { ArrowRight, CalendarDays, Clock3, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCartMoney } from '../../lib/cartStore';
 import { toMinor } from '../../core/domain/money';
 import { data as db } from '../../core/data';
 import { config } from '../../config';
-import {
-  cardClass,
-  eyebrowClass,
-  formatBookingTime,
-  formatTimeOnly,
-  panelClass,
-  panelHeadingClass,
-  titleCase,
-} from './adminUtils';
+import { formatBookingTime, formatDayTime, titleCase } from './adminUtils';
 import { AdminError, AdminSkeleton } from './AdminStates';
 import { AdminStatusBadge } from './AdminStatusBadge';
 import type { Booking, Order } from './types';
@@ -45,46 +37,65 @@ const todayLabel = new Intl.DateTimeFormat(config.locale, {
   month: 'long',
 });
 
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+/**
+ * One of the two queues that need a decision. Gold-edged while anything is
+ * waiting; every row opens that record's ticket on its own page.
+ */
+const ActionQueue: React.FC<{
+  title: string;
+  count: number;
+  to: string;
+  linkLabel: string;
+  empty: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}> = ({ title, count, to, linkLabel, empty, children, footer }) => (
+  <article
+    className={`relative flex min-w-0 flex-col overflow-hidden rounded-2xl bg-surface ring-1 shadow-[0_10px_30px_-20px_rgb(var(--color-ink)/0.4)] ${
+      count > 0 ? 'ring-accent/60' : 'ring-ink/10'
+    }`}
+  >
+    {count > 0 && <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1.5 bg-accent" />}
+    <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
+      <h2 className="flex items-center gap-2.5 font-display text-lg font-bold leading-tight text-primary sm:text-xl">
+        {title}
+        <span className={`rounded-lg px-2 py-0.5 text-base tabular-nums ${count > 0 ? 'bg-accent text-ink' : 'bg-ink/[0.07] text-ink/60'}`}>{count}</span>
+      </h2>
+      <Link to={to} className="shrink-0 rounded text-sm font-bold text-primary hover:underline">
+        {linkLabel}
+      </Link>
+    </header>
+    {count === 0 ? <p className="px-5 pb-6 pt-2 text-sm text-ink/65">{empty}</p> : children}
+    {footer}
+  </article>
+);
+
+const rowClass =
+  'group flex items-center gap-4 border-t border-ink/10 px-5 py-3.5 transition-colors duration-150 hover:bg-paper';
+
 export const AdminDashboard: React.FC = () => {
   const load = useCallback(() => db.loadDashboard(), []);
   const { data, loading, error, updatedAt, refresh: fetchDashboard } = useAdminResource(load, initialData);
 
-  // Two tiers, deliberately. The top row is what somebody has to DO something
-  // about; the strip underneath is context. The previous four identical tiles
-  // gave "new orders" exactly the same weight as "today's total", which is the
-  // wrong emphasis for a screen that gets glanced at mid-service.
-  const needsAction = [
-    {
-      label: 'New orders',
-      value: data.newOrdersCount,
-      hint: 'waiting to be accepted',
-      to: '/admin/orders',
-      icon: ShoppingBag,
-    },
-    {
-      label: 'Pending bookings',
-      value: data.pendingBookingsCount,
-      hint: 'upcoming, awaiting confirmation',
-      to: '/admin/bookings',
-      icon: UtensilsCrossed,
-    },
-  ];
-
-  const context = [
-    { label: "Bookings today", value: data.todayBookingsCount, icon: CalendarDays },
-    { label: 'Orders due today', value: data.todayOrdersCount, icon: Clock3 },
-  ];
+  const pendingToday = data.todayBookings.filter((booking) => booking.status === 'pending');
+  const morePending = Math.max(0, data.pendingBookingsCount - pendingToday.length);
+  const moreOrders = Math.max(0, data.newOrdersCount - data.newOrders.length);
 
   return (
     <section>
-      <div className="mb-6">
-        <p className={eyebrowClass}>{todayLabel.format(new Date())}</p>
-        <h1 className="mt-1 font-display text-[1.75rem] font-bold leading-tight text-primary sm:text-4xl">
-          Today at {config.venue.name}
-        </h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-[1.75rem] font-bold leading-tight text-primary sm:text-4xl">Today at {config.venue.name}</h1>
+          <p className="mt-1 min-h-6 text-base font-medium text-ink/70">
+            {todayLabel.format(new Date())}
+            {updatedAt && `. ${plural(data.todayBookingsCount, 'booking', 'bookings')} and ${plural(data.todayOrdersCount, 'order', 'orders')} due today.`}
+          </p>
+        </div>
+        <AdminRefresh compact className="" loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchDashboard()} />
       </div>
 
-      <AdminRefresh loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchDashboard()} />
       {error && (
         <div className="mb-6">
           <AdminError message={error} onRetry={() => void fetchDashboard()} />
@@ -92,128 +103,122 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {loading && !updatedAt ? (
-        <AdminSkeleton rows={3} />
+        <AdminSkeleton rows={4} />
       ) : error && !updatedAt ? null : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {needsAction.map(({ label, value, hint, to, icon: Icon }) => {
-              const active = value > 0;
-              return (
-                <Link
-                  key={label}
-                  to={to}
-                  className={`group flex items-center gap-4 rounded-2xl p-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                    active
-                      ? 'bg-primary text-surface ring-1 ring-primary hover:bg-primary/95'
-                      : `${cardClass} text-ink hover:bg-paper/60`
-                  }`}
-                >
-                  <span
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-                      active ? 'bg-accent text-ink' : 'bg-accent/20 text-primary'
-                    }`}
-                  >
-                    <Icon size={22} aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-display text-3xl font-bold leading-none">{value}</span>
-                    <span className={`mt-1 block text-sm font-bold ${active ? 'text-surface' : 'text-ink'}`}>
-                      {label}
-                    </span>
-                    <span className={`block text-xs ${active ? 'text-surface/70' : 'text-ink/65'}`}>{hint}</span>
-                  </span>
-                  <ArrowRight
-                    size={18}
-                    aria-hidden="true"
-                    className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${
-                      active ? 'text-surface/80' : 'text-ink/65'
-                    }`}
-                  />
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <ActionQueue
+              title="Orders to accept"
+              count={data.newOrdersCount}
+              to="/admin/orders"
+              linkLabel="All orders"
+              empty="Nothing waiting. New orders appear here as guests place them."
+              footer={moreOrders > 0 && (
+                <Link to="/admin/orders" className="border-t border-ink/10 px-5 py-3 text-sm font-bold text-primary hover:bg-paper">
+                  {plural(moreOrders, 'more order', 'more orders')} waiting
                 </Link>
-              );
-            })}
-          </div>
+              )}
+            >
+              <ul>
+                {data.newOrders.map((order) => {
+                  const requested = formatDayTime(order.requested_time);
+                  return (
+                    <li key={order.id}>
+                      <Link to={`/admin/orders?order=${order.id}`} className={rowClass} aria-label={`Review order from ${order.customer_name}, ${formatCartMoney(toMinor(order.total))}`}>
+                        <span className="w-14 shrink-0">
+                          <span className="block font-display text-xl font-bold leading-none text-primary tabular-nums">{requested.time}</span>
+                          <span className="mt-1 block text-xs font-semibold text-ink/60">{requested.day}</span>
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-bold text-ink">{order.customer_name}</span>
+                          <span className="block text-sm text-ink/65">
+                            {order.order_type === 'table' && order.table_number ? `Table ${order.table_number}` : titleCase(order.order_type)}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-display text-base font-bold text-primary tabular-nums">{formatCartMoney(toMinor(order.total))}</span>
+                        <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-bold text-primary">
+                          <span className="hidden sm:inline">Review</span>
+                          <ChevronRight size={16} aria-hidden="true" className="transition-transform duration-150 group-hover:translate-x-0.5" />
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </ActionQueue>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {context.map(({ label, value, icon: Icon }) => (
-              <div key={label} className={`${cardClass} flex items-center gap-3 px-4 py-3.5`}>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink/[0.06] text-primary">
-                  <Icon size={17} aria-hidden="true" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-display text-xl font-bold leading-none text-primary">{value}</span>
-                  <span className="mt-0.5 block truncate text-xs font-medium text-ink/65">{label}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <article className={`${panelClass} min-w-0`}>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h2 className={panelHeadingClass}>Today&apos;s service (up to 8)</h2>
-                <Link
-                  to="/admin/bookings"
-                  className="shrink-0 rounded text-sm font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                >
-                  All bookings
+            <ActionQueue
+              title="Table requests to confirm"
+              count={data.pendingBookingsCount}
+              to="/admin/bookings"
+              linkLabel="All bookings"
+              empty="No table requests waiting."
+              footer={morePending > 0 && (
+                <Link to="/admin/bookings" className="border-t border-ink/10 px-5 py-3 text-sm font-bold text-primary hover:bg-paper">
+                  {plural(morePending, 'more request', 'more requests')} for later dates
                 </Link>
-              </div>
-              {data.todayBookings.length === 0 ? (
-                <p className="py-8 text-center text-sm text-ink/65">No bookings today.</p>
+              )}
+            >
+              {pendingToday.length === 0 ? (
+                <p className="border-t border-ink/10 px-5 py-4 text-sm text-ink/65">None for today.</p>
               ) : (
-                <ul className="divide-y divide-ink/10">
-                  {data.todayBookings.map((booking) => (
-                    <li key={booking.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                      <time className="w-14 shrink-0 font-display text-base font-bold text-primary">
-                        {formatBookingTime(booking.booking_time)}
-                      </time>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">{booking.name}</p>
-                        <p className="text-xs text-ink/65">
-                          {booking.guests} {booking.guests === 1 ? 'guest' : 'guests'} ·{' '}
-                          {titleCase(booking.seating_preference)}
-                        </p>
-                      </div>
-                      <AdminStatusBadge status={booking.status} />
+                <ul>
+                  {pendingToday.map((booking) => (
+                    <li key={booking.id}>
+                      <Link to={`/admin/bookings?booking=${booking.id}`} className={rowClass} aria-label={`Review table request from ${booking.name}`}>
+                        <span className="w-14 shrink-0">
+                          <span className="block font-display text-xl font-bold leading-none text-primary tabular-nums">{formatBookingTime(booking.booking_time)}</span>
+                          <span className="mt-1 block text-xs font-semibold text-ink/60">Today</span>
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-bold text-ink">{booking.name}</span>
+                          <span className="block truncate text-sm text-ink/65">
+                            {plural(booking.guests, 'guest', 'guests')}, {booking.seating_preference.toLowerCase()}
+                          </span>
+                        </span>
+                        <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-bold text-primary">
+                          <span className="hidden sm:inline">Review</span>
+                          <ChevronRight size={16} aria-hidden="true" className="transition-transform duration-150 group-hover:translate-x-0.5" />
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
               )}
-            </article>
+            </ActionQueue>
+          </div>
 
-            <article className={`${panelClass} min-w-0`}>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h2 className={panelHeadingClass}>Waiting to be accepted</h2>
-                <Link
-                  to="/admin/orders"
-                  className="shrink-0 rounded text-sm font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                >
-                  All orders
-                </Link>
-              </div>
-              {data.newOrders.length === 0 ? (
-                <p className="py-8 text-center text-sm text-ink/65">No orders waiting for acceptance.</p>
-              ) : (
-                <ul className="divide-y divide-ink/10">
-                  {data.newOrders.map((order) => (
-                    <li key={order.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                      <span className="w-14 shrink-0 font-display text-base font-bold text-primary">
-                        {formatTimeOnly(order.requested_time)}
+          <article className="mt-5 overflow-hidden rounded-2xl bg-surface ring-1 ring-ink/10">
+            <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
+              <h2 className="font-display text-xl font-bold text-primary">Today&apos;s tables</h2>
+              <Link to="/admin/bookings" className="shrink-0 rounded text-sm font-bold text-primary hover:underline">
+                All bookings
+              </Link>
+            </header>
+            {data.todayBookings.length === 0 ? (
+              <p className="px-5 pb-6 pt-1 text-sm text-ink/65">No bookings today.</p>
+            ) : (
+              <ul className="grid border-t border-ink/10 sm:grid-cols-2 xl:grid-cols-4">
+                {data.todayBookings.map((booking) => (
+                  <li key={booking.id} className="border-b border-ink/10 sm:border-r">
+                    <Link to={`/admin/bookings?booking=${booking.id}`} className="flex h-full items-start gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-paper">
+                      <span className="w-12 shrink-0 font-display text-lg font-bold leading-6 text-primary tabular-nums">{formatBookingTime(booking.booking_time)}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold text-ink">{booking.name}</span>
+                        <span className="mb-1.5 block text-xs text-ink/65">{plural(booking.guests, 'guest', 'guests')}, {booking.seating_preference.toLowerCase()}</span>
+                        <AdminStatusBadge status={booking.status} />
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">
-                          {order.order_no} · {order.customer_name}
-                        </p>
-                        <p className="text-xs text-ink/65">{titleCase(order.order_type)}</p>
-                      </div>
-                      <span className="shrink-0 font-display font-bold text-primary">{formatCartMoney(toMinor(order.total))}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {data.todayBookingsCount > data.todayBookings.length && (
+              <Link to="/admin/bookings" className="block px-5 py-3 text-sm font-bold text-primary hover:bg-paper">
+                {plural(data.todayBookingsCount - data.todayBookings.length, 'more booking', 'more bookings')} today
+              </Link>
+            )}
+          </article>
         </>
       )}
     </section>

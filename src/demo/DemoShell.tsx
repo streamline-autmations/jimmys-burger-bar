@@ -214,6 +214,8 @@ export const DemoShell: React.FC = () => {
     <>
       <style>{`
         html[data-rd-demo] body { padding-bottom: ${STRIP_HEIGHT}px; }
+        /* The staff console's sticky sidebar and ticket stop short of the strip. */
+        html[data-rd-demo] { --admin-bottom-inset: ${STRIP_HEIGHT}px; }
         html[data-rd-demo] nav.fixed.bottom-0 { bottom: ${STRIP_HEIGHT}px; }
         html[data-rd-demo] .fixed.bottom-6 { bottom: calc(1.5rem + ${STRIP_HEIGHT}px); }
         /* Embedded maps carry their own outbound links, out of reach of the click guard. */

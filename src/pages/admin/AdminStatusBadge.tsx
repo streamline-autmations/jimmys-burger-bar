@@ -1,71 +1,39 @@
-import { nextStatuses } from './operations';
 import React from 'react';
 import { titleCase } from './adminUtils';
 
-// Colour carries urgency, but never alone: each badge also shows a dot and its
-// own label, so the state is legible without relying on colour perception.
+// Gold means "someone has to decide": a new order or a table request. Navy
+// fill means the record is settled for the guest (ready, confirmed). Work in
+// progress is a navy outline, and closed records stand down. Colour is never
+// the only signal: every badge carries its own label.
 const statusClasses: Record<string, string> = {
-  pending: 'bg-accent/25 text-ink ring-1 ring-accent/50',
-  confirmed: 'bg-primary text-surface ring-1 ring-primary',
-  new: 'bg-primary text-surface ring-1 ring-primary',
-  accepted: 'bg-ink/10 text-ink ring-1 ring-ink/20',
-  preparing: 'bg-accent/25 text-ink ring-1 ring-accent/50',
-  ready: 'bg-primary text-surface ring-1 ring-primary',
-  completed: 'bg-ink/[0.07] text-ink/65 ring-1 ring-ink/10',
-  cancelled: 'bg-surface text-ink ring-1 ring-ink/30',
+  new: 'bg-accent text-ink',
+  pending: 'bg-accent text-ink',
+  accepted: 'bg-primary/[0.08] text-primary ring-1 ring-inset ring-primary/30',
+  preparing: 'bg-primary/[0.08] text-primary ring-1 ring-inset ring-primary/30',
+  ready: 'bg-primary text-surface',
+  confirmed: 'bg-primary text-surface',
+  completed: 'bg-ink/[0.06] text-ink/70',
+  cancelled: 'bg-surface text-ink/70 ring-1 ring-inset ring-ink/25',
 };
 
 const dotClasses: Record<string, string> = {
-  pending: 'bg-accent',
-  confirmed: 'bg-accent',
-  new: 'bg-accent',
+  new: 'bg-ink',
+  pending: 'bg-ink',
   accepted: 'bg-primary',
-  preparing: 'bg-accent',
+  preparing: 'bg-primary',
   ready: 'bg-accent',
+  confirmed: 'bg-accent',
   completed: 'bg-ink/40',
-  cancelled: 'bg-ink',
+  cancelled: 'bg-ink/40',
 };
 
-export const AdminStatusBadge: React.FC<{ status: string }> = ({ status }) => (
+export const AdminStatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' }> = ({ status, size = 'sm' }) => (
   <span
-    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${
-      statusClasses[status] ?? 'bg-ink/[0.07] text-ink/65 ring-1 ring-ink/10'
-    }`}
+    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full font-bold transition-colors duration-200 ${
+      size === 'md' ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs'
+    } ${statusClasses[status] ?? 'bg-ink/[0.06] text-ink/70'}`}
   >
     <span className={`h-1.5 w-1.5 rounded-full ${dotClasses[status] ?? 'bg-ink/40'}`} aria-hidden="true" />
     {titleCase(status)}
   </span>
 );
-
-/** Show only permitted next steps; closing a record requires confirmation. */
-export const AdminStatusControl = <T extends string>({
-  value,
-  options,
-  disabled,
-  saving,
-  error,
-  describedAs,
-  onChange,
-}: {
-  value: T;
-  options: readonly T[];
-  disabled: boolean;
-  saving: boolean;
-  error?: string;
-  describedAs: string;
-  onChange: (next: T) => void;
-}) => {
-  const actions = nextStatuses(value).filter((next) => options.includes(next as T));
-  const labels: Record<string, string> = { accepted: 'Accept order', preparing: 'Start preparing', ready: 'Mark ready', completed: 'Complete order', confirmed: 'Confirm booking', cancelled: 'Cancel request' };
-  return <div role="group" aria-label={describedAs}>
-    <div className="flex flex-wrap gap-2">
-      {actions.map((next) => <button key={next} type="button" disabled={disabled} className={`min-h-11 rounded-xl px-3 text-sm font-bold disabled:opacity-50 ${next === 'cancelled' ? 'border border-ink/25 bg-surface text-ink' : 'bg-primary text-surface'}`} onClick={() => {
-        if ((next === 'cancelled' || next === 'completed') && !window.confirm(`${labels[next]}? ${describedAs}. This closes the record and cannot be undone here.`)) return;
-        onChange(next as T);
-      }}>{labels[next]}</button>)}
-    </div>
-    {!actions.length && <p className="text-sm text-ink/70">Closed record</p>}
-    {saving && <p role="status" className="mt-2 text-sm">Saving…</p>}
-    {error && <p className="mt-2 text-sm text-ink" role="alert">{error}</p>}
-  </div>;
-};

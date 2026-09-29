@@ -288,6 +288,16 @@ as the strips begin to lift (it had been on screen for ~1s after landing).
   is a generic reference-site pattern with no basis in Jimmy's actual brand. Awaiting
   client's pick between the two before calling this settled.
 - Home page is ~490 lines; the featured-tile component is defined at the top of the file.
+- **Staff console (restyled 2026-09-28):** navy sidebar at lg+, and Orders/Bookings are a
+  queue plus a "ticket" panel (`src/pages/admin/AdminWorkspace.tsx`). The selected record
+  lives in the URL (`?order=` / `?booking=`), which is how the Today page links straight to
+  one. Below lg the ticket renders inline under the tapped row and the desktop column is
+  NOT rendered (`ticket={desktop ? ticket : null}`); rendering both left a hidden duplicate
+  ticket in the DOM. The sticky sidebar and ticket stop short of the demo strip through
+  `--admin-bottom-inset`, set only by `DemoShell`. Dish thumbnails come from the orderable
+  menu by name (`dishPhotos.ts`); a dish without a photo gets a blank tile, never another
+  dish's photo. Status transitions and their confirmations are unchanged
+  (`operations.ts` `nextStatuses`).
 
 ## Customer submissions: the retry contract (Phase 3, 2026-09-14)
 

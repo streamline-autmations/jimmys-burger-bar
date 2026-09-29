@@ -226,14 +226,17 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Burgers",
+        // Burgers photos are AI-generated (Codex, 2026-09-28) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
+        // Beef Burger is real: public/images/gallery/burger-macro.jpg.
         note: "With chips · served all day",
         items: [
-          { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 90 },
-          { name: "Chicken Burger", description: "Chicken patty, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 90 },
-          { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce", price: 100, popular: true },
-          { name: "Pizza Burger", description: "180g beef patty, tomato sauce, mozzarella and pepperoni", price: 105 },
-          { name: "Gourmet Burger", description: "180g beef or chicken, sweet chilli, bacon, onion rings", price: 130 },
-          { name: "Nacho Burger", description: "Chicken, bacon, sweet chilli, onion rings and nacho chips", price: 130, popular: true },
+          { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 90, image: "/images/menu/burgers/beef-burger.webp" },
+          { name: "Chicken Burger", description: "Chicken patty, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 90, image: "/images/menu/burgers/chicken-burger.webp" },
+          { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce", price: 100, popular: true, image: "/images/menu/burgers/smash-burger.webp" },
+          { name: "Pizza Burger", description: "180g beef patty, tomato sauce, mozzarella and pepperoni", price: 105, image: "/images/menu/burgers/pizza-burger.webp" },
+          { name: "Gourmet Burger", description: "180g beef or chicken, sweet chilli, bacon, onion rings", price: 130, image: "/images/menu/burgers/gourmet-burger.webp" },
+          { name: "Nacho Burger", description: "Chicken, bacon, sweet chilli, onion rings and nacho chips", price: 130, popular: true, image: "/images/menu/burgers/nacho-burger.webp" },
         ]
       },
       {

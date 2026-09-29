@@ -213,15 +213,18 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
+        // Breakfast photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
+        // Jimmy's Breakfast is real: public/images/gallery/breakfast-plate.jpg.
         note: "Served until 12",
         availableUntil: "12:00",
         items: [
-          { name: "Breakfast Bun", description: "Bun with bacon, egg and cheese, with chips", price: 60 },
-          { name: "Breakfast Burger", description: "Beef burger with egg, bacon and chips", price: 95, popular: true },
-          { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 70, popular: true },
-          { name: "Avo on Toast", description: "Smashed avo on toast with grilled tomatoes", price: 60 },
-          { name: "Omelette", description: "Bacon and mushroom, or mushroom and cheese", price: 60 },
-          { name: "Carb Clever Breakfast", description: "2 eggs, 2 bacon, tomato and avo", price: 60 },
+          { name: "Breakfast Bun", description: "Bun with bacon, egg and cheese, with chips", price: 60, image: "/images/menu/breakfast/breakfast-bun.webp" },
+          { name: "Breakfast Burger", description: "Beef burger with egg, bacon and chips", price: 95, popular: true, image: "/images/menu/breakfast/breakfast-burger.webp" },
+          { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 70, popular: true, image: "/images/menu/breakfast/jimmys-breakfast.webp" },
+          { name: "Avo on Toast", description: "Smashed avo on toast with grilled tomatoes", price: 60, image: "/images/menu/breakfast/avo-on-toast.webp" },
+          { name: "Omelette", description: "Bacon and mushroom, or mushroom and cheese", price: 60, image: "/images/menu/breakfast/omelette.webp" },
+          { name: "Carb Clever Breakfast", description: "2 eggs, 2 bacon, tomato and avo", price: 60, image: "/images/menu/breakfast/carb-clever-breakfast.webp" },
         ]
       },
       {
@@ -255,10 +258,13 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Platters",
+        // Platters photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
+        // Warrior Platter is real: public/images/menu/warrior-platter.jpeg.
         note: "Built for the table",
         items: [
-          { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, popular: true },
-          { name: "Snack Platter", description: "Chicken strips, chicken wings, jalapeño poppers, chips and onion rings", price: 250 },
+          { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, popular: true, image: "/images/menu/platters/warrior-platter.webp" },
+          { name: "Snack Platter", description: "Chicken strips, chicken wings, jalapeño poppers, chips and onion rings", price: 250, image: "/images/menu/platters/snack-platter.webp" },
         ]
       },
       {
@@ -277,11 +283,13 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
+        // Chicken Meals photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips, salad or vegetables",
         items: [
-          { name: "Chicken Wings", description: "Glazed and grilled", price: 90, popular: true },
-          { name: "Chicken Strips", description: "Golden and tender", price: 70 },
-          { name: "Chicken Schnitzel", description: "Crumbed and pan-fried", price: 95 },
+          { name: "Chicken Wings", description: "Glazed and grilled", price: 90, popular: true, image: "/images/menu/chicken-meals/chicken-wings.webp" },
+          { name: "Chicken Strips", description: "Golden and tender", price: 70, image: "/images/menu/chicken-meals/chicken-strips.webp" },
+          { name: "Chicken Schnitzel", description: "Crumbed and pan-fried", price: 95, image: "/images/menu/chicken-meals/chicken-schnitzel.webp" },
         ]
       },
       {
@@ -295,13 +303,15 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Salads",
+        // Salads photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "Fresh from the kitchen",
         items: [
-          { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 55 },
-          { name: "Jimmy's Salad", description: "Greek salad with chicken, bacon and avocado", price: 80, popular: true },
-          { name: "Burger Salad", description: "Greek salad with a 180g patty, bacon and avocado", price: 90 },
-          { name: "Chicken Salad", description: "Greek salad with chicken", price: 70 },
-          { name: "Steak Salad", description: "Greek salad with steak", price: 85 },
+          { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 55, image: "/images/menu/salads/greek-salad.webp" },
+          { name: "Jimmy's Salad", description: "Greek salad with chicken, bacon and avocado", price: 80, popular: true, image: "/images/menu/salads/jimmys-salad.webp" },
+          { name: "Burger Salad", description: "Greek salad with a 180g patty, bacon and avocado", price: 90, image: "/images/menu/salads/burger-salad.webp" },
+          { name: "Chicken Salad", description: "Greek salad with chicken", price: 70, image: "/images/menu/salads/chicken-salad.webp" },
+          { name: "Steak Salad", description: "Greek salad with steak", price: 85, image: "/images/menu/salads/steak-salad.webp" },
         ]
       },
       {

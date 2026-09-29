@@ -87,6 +87,10 @@ checks(sort, check_name, ok, detail) as (
     exists (select 1 from settings where key = 'phone.country_code' and value ~ '^[0-9]{1,3}$'),
     coalesce((select value from settings where key = 'phone.country_code'), 'missing: apply supabase/seed/settings.<slug>.sql')
   union all
+  select 26, 'trading hours setting',
+    exists (select 1 from settings where key = 'trading_hours' and value::jsonb ? 'weekly'),
+    coalesce(left((select value from settings where key = 'trading_hours'), 60), 'missing: orders and bookings are not checked against opening hours. Apply supabase/seed/settings.<slug>.sql')
+  union all
   select 22, 'order notifications webhook',
     exists (select 1 from settings where key = 'webhook.order' and value like 'https://%'),
     coalesce((select value from settings where key = 'webhook.order'), 'not set: orders are saved but nobody is emailed')

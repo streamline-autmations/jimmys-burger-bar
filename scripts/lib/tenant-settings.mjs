@@ -57,8 +57,47 @@ export function validateTenant(infra, config) {
   return problems;
 }
 
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+// The site treats a close of "00:00" as midnight at the end of the day (src/core/domain/hours.ts).
+const closeOf = (close) => (close === '00:00' ? '24:00' : close);
+
+/**
+ * The `trading_hours` setting the database checks orders and bookings against:
+ * `weekly` by JS day number (0 = Sunday), `exceptions` by date. Each entry is
+ * [open, close] or null for closed, with the site's rule open <= time < close.
+ */
+export function tradingHoursJson(venue) {
+  const problems = [];
+  const window = (entry, where) => {
+    if (!entry?.open && !entry?.close) return null;
+    if (!HHMM.test(entry.open ?? '') || !(HHMM.test(entry.close ?? '') || entry.close === '24:00')) {
+      problems.push(`${where} must have both open and close as "HH:MM"`);
+      return null;
+    }
+    const close = closeOf(entry.close);
+    if (entry.open >= close) problems.push(`${where} opens at ${entry.open}, after it closes at ${entry.close}`);
+    return [entry.open, close];
+  };
+  const weekly = {};
+  for (let day = 0; day < 7; day += 1) {
+    const rows = (venue?.hours ?? []).filter((row) => row.days?.includes(day));
+    if (rows.length > 1) problems.push(`venue.hours lists day ${day} more than once`);
+    weekly[day] = rows[0] ? window(rows[0], `venue.hours "${rows[0].label}"`) : null;
+  }
+  const exceptions = {};
+  for (const closure of venue?.closures ?? []) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(closure.date ?? '')) problems.push(`venue.closures date "${closure.date}" must be YYYY-MM-DD`);
+    exceptions[closure.date] = window(closure, `venue.closures ${closure.date}`);
+  }
+  if (!Object.values(weekly).some(Boolean) && !Object.values(exceptions).some(Boolean)) {
+    problems.push('venue.hours has no open day, so every order and booking would be refused');
+  }
+  return { json: JSON.stringify({ weekly, exceptions }), problems };
+}
+
 export function settingsSql(infra, config) {
-  const problems = validateTenant(infra, config);
+  const hours = tradingHoursJson(config.venue);
+  const problems = [...validateTenant(infra, config), ...hours.problems];
   if (problems.length) throw new Error(`Tenant "${infra.slug}" is not ready:\n  - ${problems.join('\n  - ')}`);
 
   const rows = [
@@ -67,6 +106,7 @@ export function settingsSql(infra, config) {
     ['webhook.order', infra.webhooks.order, 'n8n webhook for new order notifications'],
     ['webhook.booking', infra.webhooks.booking, 'n8n webhook for new booking notifications'],
     ['webhook.review', infra.webhooks.review, 'n8n webhook for review request emails'],
+    ['trading_hours', hours.json, 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'],
   ];
   const set = rows.filter(([, value]) => value !== null);
   const unset = rows.filter(([, value]) => value === null).map(([key]) => key);

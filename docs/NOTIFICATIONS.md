@@ -78,8 +78,14 @@ order or booking.
 { "type": "booking", "id": "uuid", "name": "Guest name", "email": "guest@example.com", "reference": "2026-09-20" }
 ```
 
-Orders qualify once marked **completed** that day; bookings once **confirmed** and two
-hours past their time. For bookings, `reference` is the booking date.
+Each run asks every order marked **completed** in the last 48 hours that has not been asked
+yet, so an order completed after the run (a late Friday) goes out the next evening, and one
+missed run is caught up. Bookings qualify once **confirmed** and two hours past their time,
+read in the restaurant's timezone. `review_sent_at` means nobody is ever asked twice. For
+bookings, `reference` is the booking date.
+
+Before migration `20260929120000` the order query matched `completed_at::date = current_date`
+in UTC, so anything completed after the 20:00 run was never asked.
 
 ## n8n pitfalls this project has already hit
 

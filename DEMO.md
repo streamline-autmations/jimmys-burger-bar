@@ -38,8 +38,8 @@ The demo deploys as **its own Vercel project**, never on a restaurant's domain.
   breakfast cut-off, moving to the next open day if it has to. The panel closes itself.
 - **Email cards** show the emails the real product sends, at the moment it sends them:
   the guest's confirmation on the customer side, the restaurant's copy in the staff
-  console, and, when an order is completed before 20:00, the Google review request queued
-  for that night. Steps that send nothing (confirming a booking, accepting an order) show
+  console, and, when an order is completed, the Google review request queued for the next
+  20:00 run. Steps that send nothing (confirming a booking, accepting an order) show
   nothing.
 - **Today** opens with the order value strip: today, the last 7 days, the average order,
   and the commission a 25% delivery app would have taken on those orders. The real
@@ -76,8 +76,8 @@ and the staff console on **Kitchen queue**. Press **Reset demo records** first.
 | 1:08 | | **Today** | "Today's service at a glance, and what came in direct." |
 | 1:15 | | Controls → **The week in numbers** | "That's commission you keep. That's Restaurant Direct." |
 
-Before 20:00 the review card appears on completion. After 20:00 it does not, because the
-real nightly job has already run; skip that line of the script in an evening demo.
+After 20:00 the review card says "tomorrow evening": the real nightly job has already run,
+and picks the order up the next night.
 
 If a click goes wrong, use the jump points rather than navigating back through the site.
 

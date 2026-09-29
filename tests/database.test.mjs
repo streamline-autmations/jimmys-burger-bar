@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test, before } from 'node:test';
 import fs from 'node:fs';
 import { createDatabase, fingerprint, asRole } from './db/harness.mjs';
-import { dailyCronUtc, validateTenant, settingsSql } from '../scripts/lib/tenant-settings.mjs';
+import { dailyCronUtc, validateTenant, settingsSql, tradingHoursJson } from '../scripts/lib/tenant-settings.mjs';
 import { buildCompareSql, currentFingerprint } from '../scripts/db-fingerprint.mjs';
 
 const STAFF_ID = '5a000000-0000-4000-8000-000000000001';
@@ -21,11 +21,23 @@ before(async () => {
 });
 
 const one = async (sql, params) => (await db.query(sql, params)).rows[0];
-const tomorrowAt = (hhmm) => {
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' })
-    .format(new Date(Date.now() + 86400000));
-  return new Date(`${date}T${hhmm}:00+02:00`).toISOString();
+const sastDate = (offsetDays) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' })
+  .format(new Date(Date.now() + offsetDays * 86400000));
+const weekday = (date) => new Date(`${date}T12:00:00Z`).getUTCDay();
+/** `offset` days from today, moved later past a Sunday: Jimmy's is closed then, and the database refuses it. */
+const openDay = (offset) => {
+  let days = offset;
+  while (weekday(sastDate(days)) === 0) days += 1;
+  return sastDate(days);
 };
+/** The first date at least two days ahead that falls on `day` (0 = Sunday). */
+const nextWeekday = (day) => {
+  let days = 2;
+  while (weekday(sastDate(days)) !== day) days += 1;
+  return sastDate(days);
+};
+const at = (date, hhmm) => new Date(`${date}T${hhmm}:00+02:00`).toISOString();
+const tomorrowAt = (hhmm) => at(openDay(1), hhmm);
 let contactSeq = 0;
 const order = (overrides = {}) => ({
   ref: `JB-TEST${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
@@ -83,7 +95,7 @@ test('generated seed files apply cleanly, twice', async () => {
 test('the public can request a booking and nothing else directly', async () => {
   await asRole(db, 'anon', async () => {
     await db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time)
-      values ('Anon Example', 'anon@example.com', '082 000 0002', 2, current_date + 2, '19:00')`);
+      values ('Anon Example', 'anon@example.com', '082 000 0002', 2, '${openDay(2)}', '19:00')`);
     for (const table of ['bookings', 'orders', 'order_items', 'customers', 'staff', 'app_settings', 'menu_items', 'notification_log']) {
       await db.exec('savepoint probe');
       await assert.rejects(db.query(`select * from public.${table} limit 1`), /permission denied/, `anon must not read ${table}`);
@@ -200,7 +212,7 @@ test('a guest can check a request with the reference and their own contact only'
 test('booking spam from one contact is throttled', async () => {
   await asRole(db, 'anon', async () => {
     const insert = () => db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time)
-      values ('Spam Example', 'spam@example.com', '082 999 0000', 2, current_date + 3, '19:00')`);
+      values ('Spam Example', 'spam@example.com', '082 999 0000', 2, '${openDay(3)}', '19:00')`);
     for (let i = 0; i < 3; i += 1) await insert();
     await assert.rejects(insert(), /too many booking requests/);
   });
@@ -216,6 +228,93 @@ test('the nightly job sends one review request per completed order', async () =>
   assert.equal(await sent(), 1, 'never twice');
 });
 
+test('an order completed after the nightly run is asked the next night, and old ones never', async () => {
+  const late = (await createOrder(order({ email: 'late-review@example.com' }))).rows[0];
+  const old = (await createOrder(order({ email: 'old-review@example.com' }))).rows[0];
+  await db.query(`update public.orders set status = 'completed' where id = any($1)`, [[late.id, old.id]]);
+  // 21:00 last night, after the 20:00 run; and three days ago, long past.
+  await db.query(`update public.orders set completed_at = now() - interval '23 hours' where id = $1`, [late.id]);
+  await db.query(`update public.orders set completed_at = now() - interval '3 days' where id = $1`, [old.id]);
+  await db.query(`select public.send_review_requests()`);
+  const asked = async (id) => (await one(`select review_sent_at is not null as asked from public.orders where id = $1`, [id])).asked;
+  assert.equal(await asked(late.id), true, 'late order is asked');
+  assert.equal(await asked(old.id), false, 'an order older than 48 hours is left alone');
+});
+
+test('a booking review waits two hours after the booking, in the restaurant\'s time', async () => {
+  const booked = await one(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time)
+    values ('Review Booking', 'booking-review@example.com', '082 500 0001', 2, '${openDay(2)}', '19:00') returning id`);
+  await db.query(`update public.bookings set status = 'confirmed' where id = $1`, [booked.id]);
+  // Two and a half hours ago, local. Read as UTC it would still be in the future.
+  await db.query(`update public.bookings set
+      booking_date = ((now() - interval '150 minutes') at time zone 'Africa/Johannesburg')::date,
+      booking_time = ((now() - interval '150 minutes') at time zone 'Africa/Johannesburg')::time
+    where id = $1`, [booked.id]);
+  await db.query(`select public.send_review_requests()`);
+  assert.equal((await one(`select review_sent_at is not null as asked from public.bookings where id = $1`, [booked.id])).asked, true);
+});
+
+// ---------------------------------------------------------------------------
+// Trading hours (migration 20260929120000): nothing is accepted while closed.
+// ---------------------------------------------------------------------------
+
+test('orders and bookings are refused outside trading hours', async () => {
+  const sunday = nextWeekday(0);
+  const monday = nextWeekday(1);
+  const friday = nextWeekday(5);
+  const refusedOrder = (time, why) => assert.rejects(createOrder(order({ time })), /outside trading hours/, why);
+  await refusedOrder(at(sunday, '12:00'), 'closed on Sunday');
+  await refusedOrder(at(monday, '08:45'), 'before opening');
+  await refusedOrder(at(monday, '20:00'), 'closing time itself');
+  assert.ok((await createOrder(order({ time: at(monday, '19:45') }))).rows[0].id, 'just before closing');
+  assert.ok((await createOrder(order({ time: at(friday, '23:45') }))).rows[0].id, 'a midnight close includes 23:45');
+
+  await asRole(db, 'anon', async () => {
+    const book = (date, time) => db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time)
+      values ('Hours Example', 'hours${date}${time}@example.com', '082 600 ${time.replace(':', '')}', 2, $1, $2)`, [date, time]);
+    for (const [date, time, why] of [[sunday, '12:00', 'Sunday'], [monday, '20:00', 'closing time'], [monday, '07:30', 'before opening']]) {
+      await db.exec('savepoint probe');
+      await assert.rejects(book(date, time), /outside trading hours/, why);
+      await db.exec('rollback to savepoint probe');
+    }
+    await book(monday, '19:30');
+  });
+});
+
+test('dated exceptions open or close a day, and a missing setting refuses nothing', async () => {
+  const sunday = nextWeekday(0);
+  const monday = nextWeekday(1);
+  await db.exec('begin');
+  try {
+    await db.query(`update public.app_settings set value = jsonb_set(value::jsonb, '{exceptions}', $1::jsonb)::text where key = 'trading_hours'`,
+      [JSON.stringify({ [sunday]: ['09:00', '14:00'], [monday]: null })]);
+    assert.ok((await createOrder(order({ time: at(sunday, '12:00') }))).rows[0].id, 'a special Sunday opening');
+    await db.exec('savepoint probe');
+    await assert.rejects(createOrder(order({ time: at(sunday, '15:00') })), /outside trading hours/, 'after the special closing');
+    await db.exec('rollback to savepoint probe');
+    await assert.rejects(createOrder(order({ time: at(monday, '12:00') })), /outside trading hours/, 'a closure on a normal day');
+    await db.exec('rollback to savepoint probe');
+    await db.query(`delete from public.app_settings where key = 'trading_hours'`);
+    assert.ok((await createOrder(order({ time: at(sunday, '18:00') }))).rows[0].id, 'no setting: nothing refused');
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
+test('trading hours come from the tenant config, with a midnight close', () => {
+  const { json, problems } = tradingHoursJson({
+    hours: [{ days: [1, 2, 3, 4, 5], label: 'Weekdays', open: '09:00', close: '00:00' }, { days: [6], label: 'Sat', open: '10:00', close: '14:00' }, { days: [0], label: 'Sun' }],
+    closures: [{ date: '2026-12-25' }, { date: '2026-12-27', open: '09:00', close: '12:00' }],
+  });
+  assert.deepEqual(problems, []);
+  assert.deepEqual(JSON.parse(json), {
+    weekly: { 0: null, 1: ['09:00', '24:00'], 2: ['09:00', '24:00'], 3: ['09:00', '24:00'], 4: ['09:00', '24:00'], 5: ['09:00', '24:00'], 6: ['10:00', '14:00'] },
+    exceptions: { '2026-12-25': null, '2026-12-27': ['09:00', '12:00'] },
+  });
+  assert.equal(tradingHoursJson({ hours: [{ days: [1], label: 'Mon', open: '9:00', close: '17:00' }, { days: [2], label: 'Tue', open: '09:00', close: '17:00' }] }).problems.length, 1, 'unpadded time');
+  assert.equal(tradingHoursJson({ hours: [{ days: [0], label: 'Sun' }] }).problems.length, 1, 'never open');
+});
+
 // ---------------------------------------------------------------------------
 // Tenant settings generation.
 // ---------------------------------------------------------------------------
@@ -228,7 +327,7 @@ test('review schedules convert to UTC and flag daylight-saving zones', () => {
 });
 
 test('tenant infrastructure files are validated before any SQL is written', () => {
-  const config = { slug: 'newplace', timezone: 'Africa/Johannesburg' };
+  const config = { slug: 'newplace', timezone: 'Africa/Johannesburg', venue: { hours: [{ days: [1, 2, 3, 4, 5], label: 'Weekdays', open: '09:00', close: '17:00' }] } };
   const good = { slug: 'newplace', supabaseProjectRef: 'abcdefghijklmnopqrst', phoneCountryCode: '27', webhooks: { order: 'https://n8n.example.com/a', booking: null, review: null }, reviewRequests: { localTime: null } };
   assert.deepEqual(validateTenant(good, config), []);
   assert.match(settingsSql(good, config), /delete from public\.app_settings where key in \('webhook\.booking', 'webhook\.review'\)/);
@@ -245,19 +344,19 @@ test('the public cannot forge a confirmed or back-dated booking', async () => {
   await asRole(db, 'anon', async () => {
     await db.exec('savepoint probe');
     await assert.rejects(db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, status)
-      values ('Forge Example', 'forge@example.com', '082 300 0001', 2, current_date + 2, '19:00', 'confirmed')`), /permission denied/, 'status');
+      values ('Forge Example', 'forge@example.com', '082 300 0001', 2, '${openDay(2)}', '19:00', 'confirmed')`), /permission denied/, 'status');
     await db.exec('rollback to savepoint probe');
     await assert.rejects(db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, created_at)
-      values ('Forge Example', 'forge@example.com', '082 300 0001', 2, current_date + 2, '19:00', now() - interval '1 day')`), /permission denied/, 'created_at');
+      values ('Forge Example', 'forge@example.com', '082 300 0001', 2, '${openDay(2)}', '19:00', now() - interval '1 day')`), /permission denied/, 'created_at');
     await db.exec('rollback to savepoint probe');
   });
 });
 
 test('booking requests outside what the form allows are refused', async () => {
   const bad = [
-    `9999, current_date + 2`,
-    `2, current_date - 5`,
-    `2, current_date + 400`,
+    `9999, '${openDay(2)}'`,
+    `2, '${openDay(-5)}'`,
+    `2, '${openDay(400)}'`,
   ];
   await asRole(db, 'anon', async () => {
     for (const values of bad) {
@@ -268,7 +367,7 @@ test('booking requests outside what the form allows are refused', async () => {
     }
   });
   const staffInsert = await asRole(db, 'postgres', async () => (await one(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, status)
-    values ('Import Example', 'import@example.com', '082 300 0003', 2, current_date + 2, '19:00', 'confirmed') returning status`)).status);
+    values ('Import Example', 'import@example.com', '082 300 0003', 2, '${openDay(2)}', '19:00', 'confirmed') returning status`)).status);
   assert.equal(staffInsert, 'confirmed', 'the project owner can still import confirmed bookings');
 });
 

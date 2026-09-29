@@ -9,7 +9,8 @@ values
   ('phone.country_code', '27', 'Country code used to match local and international forms of one phone number'),
   ('webhook.order', 'https://dockerfile-1n82.onrender.com/webhook/jimmys-order', 'n8n webhook for new order notifications'),
   ('webhook.booking', 'https://dockerfile-1n82.onrender.com/webhook/jimmys-booking', 'n8n webhook for new booking notifications'),
-  ('webhook.review', 'https://dockerfile-1n82.onrender.com/webhook/jimmys-review-request', 'n8n webhook for review request emails')
+  ('webhook.review', 'https://dockerfile-1n82.onrender.com/webhook/jimmys-review-request', 'n8n webhook for review request emails'),
+  ('trading_hours', '{"weekly":{"0":null,"1":["09:00","20:00"],"2":["09:00","20:00"],"3":["09:00","21:00"],"4":["09:00","21:00"],"5":["09:00","24:00"],"6":["09:00","24:00"]},"exceptions":{}}', 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused')
 on conflict (key) do update set
   value = excluded.value,
   description = excluded.description,

@@ -27,7 +27,7 @@ function weekFigures() {
   const today = restaurantDate();
   const from = addDays(today, -6);
   const tables = bookings.filter((row) => row.status === 'confirmed' && row.booking_date >= from && row.booking_date <= today);
-  // The nightly job asks each guest whose order was completed that day, before it runs.
+  // Each completed order is asked at the first nightly run after it; today's once that run has passed.
   const reviewsSent = week.filter((row) => row.status === 'completed'
     && (restaurantDate(new Date(row.requested_time!)) < today || clock.format(new Date()) >= REVIEW_REQUEST_TIME)).length;
   return {

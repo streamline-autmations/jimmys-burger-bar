@@ -101,8 +101,18 @@
   },
   {
     "kind": "function",
+    "name": "enforce_trading_hours()",
+    "fingerprint": "010a4ce2335d47af41ee97cfcc2259a8"
+  },
+  {
+    "kind": "function",
     "name": "is_staff()",
     "fingerprint": "317765192237ae8c8e190cbd7a1f3f84"
+  },
+  {
+    "kind": "function",
+    "name": "is_trading_time(p_date date, p_time time without time zone)",
+    "fingerprint": "c5856bafe46b17a3dc167cae3f08a83a"
   },
   {
     "kind": "function",
@@ -132,7 +142,7 @@
   {
     "kind": "function",
     "name": "send_review_requests()",
-    "fingerprint": "7bfa133060d19eb21b6811e9333f5b63"
+    "fingerprint": "14b88327e39e4e4fdb37cf92a4197037"
   },
   {
     "kind": "function",
@@ -201,6 +211,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "enforce_trading_hours() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "enforce_trading_hours() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "is_staff() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -208,6 +228,16 @@
     "kind": "function_exec",
     "name": "is_staff() authenticated",
     "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "is_trading_time(p_date date, p_time time without time zone) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "is_trading_time(p_date date, p_time time without time zone) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
     "kind": "function_exec",
@@ -491,6 +521,11 @@
   },
   {
     "kind": "trigger",
+    "name": "bookings.bookings_enforce_trading_hours",
+    "fingerprint": "26998668c966de6f9af5553c09ee13c4"
+  },
+  {
+    "kind": "trigger",
     "name": "bookings.bookings_notify_webhook",
     "fingerprint": "c950bed89af69819189c6de73d66f255"
   },
@@ -518,6 +553,11 @@
     "kind": "trigger",
     "name": "orders.orders_enforce_status",
     "fingerprint": "e2942679a78c380792c4aa5b903e53c9"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_enforce_trading_hours",
+    "fingerprint": "d533b77f3143000a1c19ea173ebaf01a"
   },
   {
     "kind": "trigger",

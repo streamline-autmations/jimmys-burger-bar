@@ -346,6 +346,14 @@ test('server refusals carry a reason the customer can act on', () => {
 // ---------------------------------------------------------------------------
 
 const seedModule = load('src/demo/seed.ts');
+
+/** 18:00 SAST on the next day Jimmy's is open (never Sunday): the demo refuses closed days like the database. */
+function nextOpenEvening() {
+  const future = new Date(Date.now() + 26 * 3600000);
+  future.setUTCHours(16, 0, 0, 0);
+  while (!hours.tradingHours(hours.restaurantDate(future))) future.setUTCDate(future.getUTCDate() + 1);
+  return future;
+}
 const demoAdapterModule = load('src/demo/adapter.ts');
 const demoStore = load('src/demo/store.ts');
 const { ConflictError } = load('src/core/data/errors.ts');
@@ -385,8 +393,7 @@ test('demo adapter follows the database rules', async () => {
   demoAdapterModule.setDemoLatency(0);
   demoStore.resetRecords();
 
-  const future = new Date(Date.now() + 26 * 3600000);
-  future.setUTCHours(16, 0, 0, 0); // 18:00 SAST
+  const future = nextOpenEvening(); // 18:00 SAST
   const order = {
     orderNo: 'JB-TESTDEMO01', customerName: 'Test Example', email: 'test@example.com', phone: '+27 00 000 0098',
     orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
@@ -430,8 +437,7 @@ test('demo stores a fictional version of whatever contact details are typed', as
   assert.match(typed.phone, /^\+27 00 000 00\d\d$/);
   assert.equal(fictionalContact('', '+27 82 123 4567').phone, typed.phone, 'formats of one number map to one fictional number');
 
-  const future = new Date(Date.now() + 26 * 3600000);
-  future.setUTCHours(16, 0, 0, 0);
+  const future = nextOpenEvening();
   await db.createOrder({
     orderNo: 'JB-TESTDEMO10', customerName: 'Real Person', email: 'Real.Person@gmail.com', phone: '082 123 4567',
     orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
@@ -449,8 +455,7 @@ test('demo stores a fictional version of whatever contact details are typed', as
 test('demo order checks match create_order exactly', async () => {
   const { adapter: db, setDemoLatency } = demoAdapterModule;
   setDemoLatency(0);
-  const future = new Date(Date.now() + 26 * 3600000);
-  future.setUTCHours(16, 0, 0, 0);
+  const future = nextOpenEvening();
   const base = {
     customerName: 'Test Example', email: 'test@example.com', phone: '+27 00 000 0098',
     orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
@@ -539,4 +544,25 @@ test('a contact typed into the demo never lands on a seeded guest', () => {
     const { phone } = fictionalContact('', `08${String(n * 7919).padStart(8, '0')}`);
     assert.ok(!seeded.has(phone), phone);
   }
+});
+
+test('the demo refuses orders and bookings while Jimmy\'s is closed, like the database', async () => {
+  const { adapter: db, setDemoLatency } = demoAdapterModule;
+  setDemoLatency(0);
+  demoStore.resetRecords();
+  let sunday = new Date(Date.now() + 2 * 86400000);
+  while (new Date(`${hours.restaurantDate(sunday)}T12:00:00Z`).getUTCDay() !== 0) sunday = new Date(sunday.getTime() + 86400000);
+  const date = hours.restaurantDate(sunday);
+  const base = {
+    customerName: 'Test Example', email: 'closed@example.com', phone: '+27 00 000 0097',
+    orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
+    total: 100, marketingConsent: false, items: [{ name: 'Smash Burger', qty: 1, unit_price: 100 }],
+  };
+  await assert.rejects(db.createOrder({ ...base, orderNo: 'JB-TESTSUNDAY', requestedTime: hours.restaurantInstant(date, '12:00').toISOString() }),
+    (error) => error.kind === 'rejected');
+  await assert.rejects(db.createBooking({
+    id: '0b000000-0000-4000-8000-000000000001', name: 'Test Example', email: 'closed@example.com', phone: '+27 00 000 0097',
+    guests: 2, bookingDate: date, bookingTime: '12:00', seatingPreference: 'Inside', notes: null, marketingConsent: false,
+  }), (error) => error.kind === 'rejected');
+  demoStore.resetRecords();
 });

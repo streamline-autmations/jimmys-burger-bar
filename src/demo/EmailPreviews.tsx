@@ -3,7 +3,7 @@
 //
 // Only what the real product sends appears here (docs/NOTIFICATIONS.md): the
 // kitchen and guest emails when an order or booking request is saved, and the
-// nightly Google review request for orders completed that day. Confirming a
+// nightly Google review request for completed orders. Confirming a
 // booking or moving an order along sends nothing, so it shows nothing.
 //
 // Each window shows its own side. The customer site shows what the guest
@@ -97,15 +97,16 @@ function bookingPreviews(booking: Booking, side: 'guest' | 'staff'): Preview[] {
   }];
 }
 
-function reviewPreview(order: OrderWithItems): Preview | null {
-  // The nightly job only covers orders completed that day before it runs.
-  if (clock.format(new Date()) >= REVIEW_REQUEST_TIME) return null;
+function reviewPreview(order: OrderWithItems): Preview {
+  // The nightly job asks every order completed since its last run, so an order
+  // completed after it goes out the next evening.
+  const when = clock.format(new Date()) < REVIEW_REQUEST_TIME ? 'tonight' : 'tomorrow evening';
   return {
     id: `review-${order.id}`,
     icon: 'star',
     title: 'Google review request queued',
     to: order.email,
-    lines: [`At ${REVIEW_REQUEST_TIME} tonight, ${order.customer_name.split(' ')[0]} gets one email asking for a Google review of ${venue}.`],
+    lines: [`At ${REVIEW_REQUEST_TIME} ${when}, ${order.customer_name.split(' ')[0]} gets one email asking for a Google review of ${venue}.`],
   };
 }
 
@@ -150,7 +151,7 @@ export const EmailPreviews: React.FC = () => {
       const next: Preview[] = [
         ...newOrders.flatMap((row) => orderPreviews(row, current)),
         ...newBookings.flatMap((row) => bookingPreviews(row, current)),
-        ...(current === 'staff' ? completed.map(reviewPreview).filter((item): item is Preview => item !== null) : []),
+        ...(current === 'staff' ? completed.map(reviewPreview) : []),
       ];
       if (!next.length) return;
       setPreviews((list) => [...list.filter((item) => !next.some((fresh) => fresh.id === item.id)), ...next].slice(-3));

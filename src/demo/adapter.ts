@@ -18,6 +18,13 @@ import { orderableCategories, orderableItems } from '../core/menu/orderable';
 import { nextStatuses } from '../pages/admin/operations';
 import { readRecords, subscribeRecords, updateRecords } from './store';
 import { salesWindow, summariseSales } from '../core/data/sales';
+import { tradingHours } from '../lib/tradingHours';
+
+/** The database's is_trading_time: open <= time < close on that date, closures included. */
+const withinTradingHours = (date: string, time: string): boolean => {
+  const window = tradingHours(date);
+  return !!window && time >= window.open && time < window.close;
+};
 
 /** Enough latency that loading states are seen, not so much that a demo drags. */
 let latencyMs = 280;
@@ -107,6 +114,7 @@ export const adapter: DataAdapter = {
     }
     if (!order.items.length || order.items.length > 100) throw new SubmissionError('rejected');
     const requestedLocal = localTime.format(new Date(order.requestedTime));
+    if (!withinTradingHours(restaurantDate(new Date(order.requestedTime)), requestedLocal)) throw new SubmissionError('rejected');
     let total = 0;
     for (const line of order.items) {
       if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > 99) throw new SubmissionError('rejected');
@@ -157,6 +165,7 @@ export const adapter: DataAdapter = {
 
   async createBooking(booking: NewBooking) {
     await settle(300);
+    if (!withinTradingHours(booking.bookingDate, booking.bookingTime.slice(0, 5))) throw new SubmissionError('rejected');
     const contact = fictionalContact(booking.email, booking.phone);
     const now = new Date().toISOString();
     updateRecords((next) => {

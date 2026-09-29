@@ -358,6 +358,28 @@ R0.01.
 Items are matched by NAME, so orderable names must be unique (enforced by the generator
 and a test). Renaming a dish in config retires the old name on the next seed.
 
+## Trading hours are enforced by the database (2026-09-29)
+
+Migration `20260929120000_trading_hours_and_late_reviews.sql` adds a BEFORE INSERT trigger on
+`orders` and `bookings` that refuses a requested time outside trading hours ("requested time
+is outside trading hours", classified as a plain refusal). The hours are the `trading_hours`
+setting, GENERATED from `venue.hours` and `venue.closures` by `npm run tenant:sql`, with the
+site's rule: open <= time < close, "00:00"/"24:00" = midnight, dated closures win. Without the
+setting nothing is refused. Change hours in the tenant config, regenerate, apply the settings
+file. The demo adapter mirrors the same check.
+
+The same migration fixes `send_review_requests`, which never asked orders completed after the
+nightly 20:00 run (UTC date match); it now asks anything completed in the last 48 hours not
+yet asked.
+
+It is a trigger rather than a change to `create_order` on purpose: the unapplied hardening
+migration also redefines `create_order`. **Live status (2026-09-29):** the migration IS applied
+to Jimmy's project, so the review fix is live. The regenerated `supabase/seed/settings.jimmys.sql`
+is NOT applied yet, so there is no `trading_hours` setting and the hours check allows
+everything. To switch it on: apply that settings file, then run `supabase/verify.sql` (check 26).
+The same file also adds `phone.country_code` ("27", already the fallback) and renames the review
+cron job `jimmys-review-requests` to `restaurant-direct-review-requests` on the same schedule.
+
 ## Provisioning a new restaurant (Phase 5, 2026-09-15)
 
 The runbook is `docs/NEW-RESTAURANT.md`. The pieces:

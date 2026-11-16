@@ -132,6 +132,12 @@ export type Database = {
       }
       orders: {
         Row: {
+          payment_status: string
+          paid_at: string | null
+          payment_expires_at: string | null
+          provider_payment_id: string | null
+          payment_review_required: boolean
+          refund_amount: number
           created_at: string
           customer_id: string | null
           customer_name: string
@@ -150,6 +156,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          payment_status?: string
+          paid_at?: string | null
+          payment_expires_at?: string | null
+          provider_payment_id?: string | null
+          payment_review_required?: boolean
+          refund_amount?: number
           created_at?: string
           customer_id?: string | null
           customer_name: string
@@ -168,6 +180,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          payment_status?: string
+          paid_at?: string | null
+          payment_expires_at?: string | null
+          provider_payment_id?: string | null
+          payment_review_required?: boolean
+          refund_amount?: number
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -192,6 +210,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      begin_payment: {
+        Args: { p_reference: string; p_contact: string; p_restaurant: string; p_mode: string }
+        Returns: Json
+      }
+      mark_order_paid: {
+        Args: { p_reference: string; p_transaction: string; p_status: string; p_amount: number; p_raw: Json }
+        Returns: Json
+      }
+      record_payment_refund: {
+        Args: { p_reference: string; p_refund_id: string; p_amount: number; p_confirmed: boolean; p_reviewer: string }
+        Returns: undefined
+      }
+      collection_commission_report: {
+        Args: Record<PropertyKey, never>
+        Returns: { reference: string; month: string; food_subtotal: number; delivery: number; refunds: number; payment_state: string; fulfilment_state: string; commission_base: number }[]
+      }
       create_order: {
         Args: {
           p_customer_name: string

@@ -1,0 +1,20 @@
+{
+  "$schema": "./tenant.schema.json",
+  "slug": "jimmys-staging",
+  "supabaseProjectRef": "cagcpwlzqpolojpgewtw",
+  "vercelProject": "jimmys-staging",
+  "phoneCountryCode": "27",
+  "webhooks": {
+    "order": null,
+    "booking": null,
+    "review": null
+  },
+  "reviewRequests": {
+    "localTime": null
+  },
+  "payments": {
+    "provider": "payfast",
+    "mode": "sandbox",
+    "siteUrl": "https://jimmys-staging.invalid"
+  }
+}

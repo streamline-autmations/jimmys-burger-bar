@@ -70,7 +70,9 @@ export function tenantHtml({ slug, entry }: { slug: string; entry?: string }): P
           : '',
       };
 
-      let output = html;
+      let output = slug === 'jimmys-staging'
+        ? html.replace('</head>', '<meta name="robots" content="noindex,nofollow" /></head>')
+        : html;
       for (const [token, value] of Object.entries(tokens)) {
         output = output.split(token).join(value);
       }

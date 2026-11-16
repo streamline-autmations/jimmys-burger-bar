@@ -167,3 +167,13 @@ project, run `npm run db:fingerprint`, commit, and check each project with `comp
 - **One build per restaurant.** Tenancy is decided at build time (`VITE_TENANT`), so each
   restaurant is its own Vercel project.
 - **No menu editor.** Menu and price changes go through the repo (above), by design for V1.
+
+Restaurant Direct sandbox payments (Slice 1): see [PAYMENTS.md](restaurant-direct/PAYMENTS.md).
+The optional infrastructure `payments` block mirrors `ordering.payment`; missing/null
+means pay on collection. The template stays off. Edge Function secrets are named
+`PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, `PAYFAST_MODE`.
+Set them directly in the isolated project's Function secrets, never in tenant JSON,
+tracked env files, Vercel, browser code or any `VITE_` variable. No real credentials
+are needed for repository checks. This slice is restricted in code to project
+`cagcpwlzqpolojpgewtw` and `sandbox`; a live enablement needs a separate reviewed change.
+Do not run its migration or seeds on Jimmy's production under this brief.

@@ -1,3 +1,4 @@
+import { config } from '../../config';
 import { supabase } from '../../lib/supabase';
 import { restaurantDate, restaurantDayBounds } from '../tenant';
 import { withTimeout } from './timeout';
@@ -11,6 +12,13 @@ import type {
 import { ConflictError } from './errors';
 
 export const supabaseAdapter: DataAdapter = {
+  subscribe(listener) {
+    if (config.ordering.payment !== 'payfast') return () => {};
+    const channel = supabase.channel('paid-order-refresh')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, listener)
+      .subscribe((status) => { if (status === 'SUBSCRIBED') listener(); });
+    return () => { void supabase.removeChannel(channel); };
+  },
   async createOrder(order: NewOrder) {
     let result;
     try {
@@ -92,6 +100,7 @@ export const supabaseAdapter: DataAdapter = {
       .order('id')
       .limit(limit);
 
+    if (config.ordering.payment === 'payfast' && view !== 'history') query = query.in('payment_status', ['paid', 'not_required']).neq('status', 'cancelled');
     if (view === 'active') query = query.not('status', 'in', '(completed,cancelled)');
     if (view === 'history') query = query.in('status', ['completed', 'cancelled']);
     if (view === 'today') {
@@ -183,25 +192,28 @@ export const supabaseAdapter: DataAdapter = {
 
     const range = salesWindow();
 
+    const payable = <T,>(query: T): T =>
+      config.ordering.payment === 'payfast' ? (query as T & { in: (column: string, values: string[]) => T }).in('payment_status', ['paid', 'not_required']) : query;
+
     const [
       todayBookingsCount, todayOrdersCount, pendingBookingsCount,
       newOrdersCount, todayBookings, newOrders, weekOrders,
     ] = await withTimeout(Promise.all([
       supabase.from('bookings').select('*', { count: 'exact', head: true })
         .eq('booking_date', today).neq('status', 'cancelled'),
-      supabase.from('orders').select('*', { count: 'exact', head: true })
+      payable(supabase.from('orders').select('*', { count: 'exact', head: true }))
         .neq('status', 'cancelled').gte('requested_time', start).lt('requested_time', end),
       supabase.from('bookings').select('*', { count: 'exact', head: true })
         .gte('booking_date', today).eq('status', 'pending'),
-      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'new'),
+      payable(supabase.from('orders').select('*', { count: 'exact', head: true })).eq('status', 'new'),
       supabase.from('bookings').select('*')
         .eq('booking_date', today).neq('status', 'cancelled')
         .order('booking_time', { ascending: true }).limit(8),
-      supabase.from('orders').select('*')
+      payable(supabase.from('orders').select('*'))
         .eq('status', 'new').order('created_at', { ascending: true }).limit(8),
       // Two small columns for a week of orders. PostgREST caps a response at its
       // max-rows setting (1,000 by default), far above a week of collection orders.
-      supabase.from('orders').select('total, requested_time')
+      payable(supabase.from('orders').select('total, requested_time'))
         .neq('status', 'cancelled').gte('requested_time', range.weekStart).lt('requested_time', range.end),
     ]));
 

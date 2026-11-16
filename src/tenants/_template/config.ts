@@ -115,6 +115,7 @@ export const template = defineRestaurant({
   },
 
   ordering: {
+    payment: 'on_collection',
     orderPrefix: 'XX', // PLACEHOLDER: two or three letters for order references
     fulfilment: ['collection'],
     closedDayNote: 'Choose a day the restaurant is open.',

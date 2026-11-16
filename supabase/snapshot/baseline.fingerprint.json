@@ -62,12 +62,32 @@
   {
     "kind": "column_grant",
     "name": "orders anon",
-    "fingerprint": "7e2d0c843a35427d7166ef9cf34d51b1"
+    "fingerprint": "e4bc25678e0f189d2c49b99dc57adc57"
   },
   {
     "kind": "column_grant",
     "name": "orders authenticated",
-    "fingerprint": "5156ef1bfcc4073b30e66d718ce2a99a"
+    "fingerprint": "1373c9ddce3fcc082b75457c0b7575ad"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_events anon",
+    "fingerprint": "bf4e4da8d6493f984e74672d869dc506"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_events authenticated",
+    "fingerprint": "2ac8bc516c1d76d7d81aee0b2781452b"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_transactions anon",
+    "fingerprint": "2c9b62cc5def5ad432c7487b8be410a2"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_transactions authenticated",
+    "fingerprint": "2c9b62cc5def5ad432c7487b8be410a2"
   },
   {
     "kind": "column_grant",
@@ -81,13 +101,23 @@
   },
   {
     "kind": "function",
+    "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text)",
+    "fingerprint": "2d4e4be9e2667547591795e5dd8d22ee"
+  },
+  {
+    "kind": "function",
     "name": "bookings_upsert_customer()",
     "fingerprint": "e52ac4d5c2bb9d4624757a420bc4f0fb"
   },
   {
     "kind": "function",
+    "name": "collection_commission_report()",
+    "fingerprint": "67526a114695f780c0e004de53be604a"
+  },
+  {
+    "kind": "function",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb)",
-    "fingerprint": "b54782c2148ef727e166e44b52d6f935"
+    "fingerprint": "94973d5bf79cd593b0210a48e1a06a7d"
   },
   {
     "kind": "function",
@@ -106,6 +136,16 @@
   },
   {
     "kind": "function",
+    "name": "expire_pending_payments()",
+    "fingerprint": "c3d9549d1f71647b39fde8d0da8723e9"
+  },
+  {
+    "kind": "function",
+    "name": "guard_payment_update()",
+    "fingerprint": "854dc5a47ee8c033bfbd98626e7c61c7"
+  },
+  {
+    "kind": "function",
     "name": "is_staff()",
     "fingerprint": "317765192237ae8c8e190cbd7a1f3f84"
   },
@@ -117,7 +157,12 @@
   {
     "kind": "function",
     "name": "lookup_request(p_reference text, p_contact text)",
-    "fingerprint": "1e99e9f6977dfea442112126b19e3161"
+    "fingerprint": "fe858178709b7ea8da45bbf5aaa5374d"
+  },
+  {
+    "kind": "function",
+    "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb)",
+    "fingerprint": "72417d5b940475bbcb71f4b4c5c0bfed"
   },
   {
     "kind": "function",
@@ -133,6 +178,16 @@
     "kind": "function",
     "name": "orders_upsert_customer()",
     "fingerprint": "ee484d885ce2e38c7b046b04707c58b1"
+  },
+  {
+    "kind": "function",
+    "name": "prepare_order_payment()",
+    "fingerprint": "2da176d743c4a9d0c86518020647a6d3"
+  },
+  {
+    "kind": "function",
+    "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid)",
+    "fingerprint": "269c2c2afc55e8c6394a5d160f5ae497"
   },
   {
     "kind": "function",
@@ -171,6 +226,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "bookings_upsert_customer() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -178,6 +243,16 @@
     "kind": "function_exec",
     "name": "bookings_upsert_customer() authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "collection_commission_report() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "collection_commission_report() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
   {
     "kind": "function_exec",
@@ -221,6 +296,26 @@
   },
   {
     "kind": "function_exec",
+    "name": "expire_pending_payments() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "expire_pending_payments() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "guard_payment_update() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "guard_payment_update() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "is_staff() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -251,6 +346,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "normalise_phone(p_phone text) anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -277,6 +382,26 @@
   {
     "kind": "function_exec",
     "name": "orders_upsert_customer() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "prepare_order_payment() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "prepare_order_payment() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid) authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -391,6 +516,11 @@
   },
   {
     "kind": "policy",
+    "name": "payment_events.payment_events_staff_read",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
     "name": "staff.staff can read staff",
     "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
   },
@@ -427,7 +557,17 @@
   {
     "kind": "table",
     "name": "orders",
-    "fingerprint": "a39268ece90e1d49ec5701a04a22a0ad"
+    "fingerprint": "1a2652ecff67d0770d573b1cdc7172f9"
+  },
+  {
+    "kind": "table",
+    "name": "payment_events",
+    "fingerprint": "71a96c0bd93db49bc4161efdce528126"
+  },
+  {
+    "kind": "table",
+    "name": "payment_transactions",
+    "fingerprint": "3711fc7d0735873f5c524ac78ad6fce0"
   },
   {
     "kind": "table",
@@ -506,6 +646,26 @@
   },
   {
     "kind": "table_grant",
+    "name": "payment_events anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "payment_events authenticated",
+    "fingerprint": "99938282f04071859941e18f16efcf42"
+  },
+  {
+    "kind": "table_grant",
+    "name": "payment_transactions anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "payment_transactions authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
     "name": "staff anon",
     "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
   },
@@ -558,6 +718,16 @@
     "kind": "trigger",
     "name": "orders.orders_enforce_trading_hours",
     "fingerprint": "d533b77f3143000a1c19ea173ebaf01a"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_guard_payment",
+    "fingerprint": "fd967c60d2c6e6c3951ff2ffe908e402"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_prepare_payment",
+    "fingerprint": "c4b7f518234ccb212e823ad0793fcdff"
   },
   {
     "kind": "trigger",

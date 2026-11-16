@@ -55,6 +55,8 @@ export interface NewBooking {
 export type LookupResult =
   | {
       kind: 'order';
+      payment_status?: string;
+      paid_at?: string | null;
       reference: string;
       status: OrderStatus;
       order_type: 'collection' | 'delivery' | 'table';

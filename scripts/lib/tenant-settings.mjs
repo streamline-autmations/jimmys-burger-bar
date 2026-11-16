@@ -54,6 +54,9 @@ export function validateTenant(infra, config) {
   const localTime = infra.reviewRequests?.localTime;
   if (localTime !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(localTime ?? '')) problems.push('reviewRequests.localTime must be "HH:MM" or null');
   if (localTime && !infra.webhooks?.review) problems.push('reviewRequests.localTime is set but webhooks.review is null');
+  const payment = config.ordering?.payment ?? 'on_collection';
+  if ((infra.payments?.provider ?? 'on_collection') !== payment) problems.push('ordering.payment disagrees with infrastructure payments.provider');
+  if (infra.payments && (!['sandbox', 'live'].includes(infra.payments.mode) || !/^https:\/\/[^/?#]+$/.test(infra.payments.siteUrl ?? ''))) problems.push('payments needs mode sandbox/live and an HTTPS site origin');
   return problems;
 }
 
@@ -108,8 +111,15 @@ export function settingsSql(infra, config) {
     ['webhook.review', infra.webhooks.review, 'n8n webhook for review request emails'],
     ['trading_hours', hours.json, 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'],
   ];
+  if (infra.payments) rows.push(
+    ['payments.provider', infra.payments.provider, 'Hosted payment provider'],
+    ['payments.mode', infra.payments.mode, 'Must match Edge Function PAYFAST_MODE'],
+    ['payments.restaurant', infra.slug, 'Expected checkout restaurant'],
+    ['payments.site_url', infra.payments.siteUrl, 'Trusted return/cancel origin'],
+  );
   const set = rows.filter(([, value]) => value !== null);
   const unset = rows.filter(([, value]) => value === null).map(([key]) => key);
+  if (infra.payments === null) unset.push('payments.provider', 'payments.mode', 'payments.restaurant', 'payments.site_url');
 
   const review = infra.reviewRequests.localTime ? dailyCronUtc(infra.reviewRequests.localTime, config.timezone) : null;
   const cron = review
@@ -135,5 +145,5 @@ delete from public.app_settings where key in (${unset.map(sqlText).join(', ')});
 -- One review job per project, whatever it was named before${review ? ` (${infra.reviewRequests.localTime} ${config.timezone} is ${review.expression} UTC)` : ''}.
 select cron.unschedule(jobid) from cron.job where command ~* 'send_review_requests';
 ${cron}
-`;
+${infra.payments ? "-- Preserve a manager's runtime pause when regenerating settings.\ninsert into public.app_settings(key,value,description) values('ordering.paused','false','Pause new online payments') on conflict(key) do nothing;\nselect cron.schedule('restaurant-direct-payment-expiry', '*/5 * * * *', 'select public.expire_pending_payments()');\n" : ''}`;
 }

@@ -112,6 +112,8 @@ export interface SeoConfig {
 }
 
 export interface OrderingConfig {
+  /** Defaults to on_collection when omitted. */
+  payment?: 'on_collection' | 'payfast';
   orderPrefix: string;
   /** Enabled fulfilment modes. A venue with no delivery simply omits it. */
   fulfilment: ('collection' | 'delivery' | 'table')[];

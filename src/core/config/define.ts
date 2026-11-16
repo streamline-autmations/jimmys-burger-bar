@@ -9,6 +9,7 @@ import type { RestaurantConfig } from './types';
  * Failing loudly at boot is far cheaper than a client noticing.
  */
 export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
+  config = { ...config, ordering: { payment: 'on_collection', ...config.ordering } };
   const problems: string[] = [];
   const need = (value: unknown, path: string) => {
     if (value === undefined || value === null || value === '') problems.push(`${path} is required`);

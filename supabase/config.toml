@@ -1,0 +1,3 @@
+# Payfast cannot attach a Supabase JWT. Both routes enforce their own checks.
+[functions.payfast]
+verify_jwt = false

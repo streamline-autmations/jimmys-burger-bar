@@ -210,6 +210,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ordering_state: { Args: Record<PropertyKey, never>; Returns: Json }
+      set_ordering_paused: { Args: { p_paused: boolean }; Returns: undefined }
+      set_menu_item_available: { Args: { p_name: string; p_available: boolean }; Returns: undefined }
       begin_payment: {
         Args: { p_reference: string; p_contact: string; p_restaurant: string; p_mode: string }
         Returns: Json

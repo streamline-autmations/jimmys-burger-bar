@@ -11,7 +11,7 @@ values
   ('payments.provider', 'payfast', 'Hosted payment provider'),
   ('payments.mode', 'sandbox', 'Must match Edge Function PAYFAST_MODE'),
   ('payments.restaurant', 'jimmys-staging', 'Expected checkout restaurant'),
-  ('payments.site_url', 'https://jimmys-staging.invalid', 'Trusted return/cancel origin')
+  ('payments.site_url', 'https://jimmys-staging.vercel.app', 'Trusted return/cancel origin')
 on conflict (key) do update set
   value = excluded.value,
   description = excluded.description,

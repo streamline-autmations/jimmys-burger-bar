@@ -26,7 +26,7 @@ export type SubmissionFailure = 'rejected' | 'throttled' | 'uncertain';
  * `served`: an item is not served at the requested time (e.g. breakfast after 12).
  * `time`: the requested time has already passed.
  */
-export type RefusalReason = 'menu' | 'served' | 'time';
+export type RefusalReason = 'menu' | 'served' | 'time' | 'paused' | 'hours';
 
 export class SubmissionError extends Error {
   constructor(
@@ -80,6 +80,8 @@ export function classifySubmission(error: unknown, savedConstraint?: string): Su
       text.includes('not served at that time') ? 'served'
       : text.includes('menu item unavailable') || text.includes('menu price changed') ? 'menu'
       : text.includes('requested time is in the past') ? 'time'
+      : text.includes('ordering_paused') ? 'paused'
+      : text.includes('outside trading hours') ? 'hours'
       : undefined;
     return new SubmissionError('rejected', false, error, reason);
   }

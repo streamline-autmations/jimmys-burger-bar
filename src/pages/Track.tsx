@@ -1,15 +1,19 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Clock3, LoaderCircle, MessageCircle, RotateCw, Search, WifiOff, X } from 'lucide-react';
 import { config } from '../config';
-import { copy, formatMoney } from '../core/tenant';
+import { copy, formatMoney, orderCtaLabel } from '../core/tenant';
 import { toMinor } from '../core/domain/money';
 import { data as db, isOffline, type LookupResult } from '../core/data';
 import { fadeInUp } from '../lib/motion';
 import { FormField } from '../components/forms/FormField';
 import { ErrorSummary } from '../components/forms/ErrorSummary';
 import { useFormErrors } from '../lib/useFormErrors';
+import { useCartStore } from '../lib/cartStore';
+import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
+import { WhatsAppFallback } from '../components/WhatsAppFallback';
+import { Starburst } from '../components/Starburst';
 
 type TrackField = 'reference' | 'contact';
 
@@ -54,8 +58,18 @@ type LookupState =
 export const Track: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const [reference, setReference] = useState(() => params.get('ref') ?? '');
-  const [contact, setContact] = useState('');
+  // Back from the payment page: this device remembers which order and which
+  // email, so the guest lands on their status instead of an empty form.
+  const [contact, setContact] = useState(() => {
+    const saved = readPending();
+    return saved && (!params.get('ref') || saved.reference === params.get('ref')) ? saved.email : '';
+  });
+  // 'return' or 'cancelled', as the payment page sent the guest back. Navigation only: never proof of payment.
+  const [arrival] = useState(() => params.get('pay'));
   const [state, setState] = useState<LookupState>({ phase: 'idle' });
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const firstFound = useRef(0);
   const outcomeRef = useRef<HTMLDivElement>(null);
   const request = useRef(0);
 
@@ -70,19 +84,65 @@ export const Track: React.FC = () => {
     .filter((field) => form.visible[field])
     .map((field) => ({ fieldId: `track-${field}`, message: form.visible[field]! }));
 
-  const lookup = async () => {
+  // `silent` is the background re-check: it never blanks or replaces what is on screen with an error.
+  const lookup = async (silent = false) => {
     const id = ++request.current;
-    setState({ phase: 'loading' });
+    if (!silent) setState({ phase: 'loading' });
     try {
       const result = await db.lookupRequest(reference, contact);
       if (id !== request.current) return;
-      setState(result ? { phase: 'found', result, checkedAt: new Date() } : { phase: 'not-found' });
-      if (result) setParams({ ref: result.reference }, { replace: true });
+      if (result) {
+        firstFound.current ||= Date.now();
+        setState({ phase: 'found', result, checkedAt: new Date() });
+        setParams({ ref: result.reference }, { replace: true });
+      } else if (!silent) setState({ phase: 'not-found' });
     } catch (error) {
-      if (id !== request.current) return;
+      if (id !== request.current || silent) return;
       setState({ phase: 'error', offline: isOffline(error) });
     }
-    requestAnimationFrame(() => outcomeRef.current?.focus({ preventScroll: false }));
+    if (!silent) requestAnimationFrame(() => outcomeRef.current?.focus({ preventScroll: false }));
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (reference.trim() && contact.trim()) void lookup(); }, []);
+
+  const order = state.phase === 'found' && state.result.kind === 'order' ? state.result : null;
+  const payment = order?.payment_status && order.payment_status !== 'not_required' ? order.payment_status : null;
+  const closed = order ? order.status === 'completed' || order.status === 'cancelled' : true;
+
+  // A paid-for order is followed without tapping: every 3 seconds while the
+  // payment confirmation is awaited (2 minutes at most), then every 15 until it is collected.
+  const pollMs = !payment || closed || payment === 'failed' ? 0
+    : payment === 'pending' && Date.now() - firstFound.current < 120_000 ? 3000 : 15_000;
+  useEffect(() => {
+    if (!pollMs) return;
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void lookup(true); }, pollMs);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pollMs, reference, contact]);
+
+  // The cart survives the trip to the payment page and is emptied here, once,
+  // when the server says the money arrived. A dead order stops being offered for payment.
+  useEffect(() => {
+    const saved = readPending();
+    if (!order || !payment || saved?.reference !== order.reference) return;
+    if (payment !== 'pending' && payment !== 'failed' && payment !== 'expired' && !saved.paid) {
+      useCartStore.getState().clear();
+      writePending({ ...saved, paid: true });
+    }
+    if (closed || payment === 'failed' || payment === 'expired') writePending(null);
+  }, [order, payment, closed]);
+
+  const payNow = async () => {
+    if (!order) return;
+    setPaying(true);
+    setPayError(null);
+    try {
+      submitHostedForm(await db.beginPayment!(order.reference, contact.trim()));
+    } catch (error) {
+      setPaying(false);
+      setPayError(paymentStartMessage(error instanceof Error ? error.message : ''));
+    }
   };
 
   const submit = (event: React.FormEvent) => {
@@ -162,11 +222,13 @@ export const Track: React.FC = () => {
             </div>
           )}
 
-          {state.phase === 'found' && <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup()} />}
+          {state.phase === 'found' && (order && payment
+            ? <PaidOrder order={order} payment={payment} arrival={arrival} paying={paying} payError={payError} onPay={() => void payNow()} checkedAt={state.checkedAt} live={pollMs > 0} onRefresh={() => void lookup()} />
+            : <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup()} />)}
         </div>
 
         <p className="mt-10 text-center text-sm text-ink/70">
-          Nothing to track yet? <Link to="/order" className="font-bold text-primary underline underline-offset-2">Order online</Link>
+          Nothing to track yet? <Link to="/order" className="font-bold text-primary underline underline-offset-2">{orderCtaLabel}</Link>
           {config.features.reservations && <> or <Link to="/visit#book" className="font-bold text-primary underline underline-offset-2">book a table</Link></>}.
         </p>
       </div>
@@ -184,6 +246,123 @@ const ContactLine: React.FC<{ reference: string }> = ({ reference }) => (
     <MessageCircle size={16} aria-hidden="true" /> WhatsApp {config.venue.name}
   </a>
 );
+
+type OrderResult = Extract<LookupResult, { kind: 'order' }>;
+const checkedTime = new Intl.DateTimeFormat(config.locale, { timeZone: config.timezone, hour: '2-digit', minute: '2-digit' });
+
+/**
+ * A pay-first order. Payment and fulfilment are two separate facts and are
+ * shown as two separate steps: "Payment received" is the server's word that
+ * the money arrived, and only then can the restaurant accept the order.
+ */
+const PaidOrder: React.FC<{
+  order: OrderResult; payment: string; arrival: string | null;
+  paying: boolean; payError: string | null; onPay: () => void;
+  checkedAt: Date; live: boolean; onRefresh: () => void;
+}> = ({ order, payment, arrival, paying, payError, onPay, checkedAt, live, onRefresh }) => {
+  const venue = config.venue.name;
+  const stage = ORDER_STEPS.findIndex((step) => step.status === order.status); // -1 when cancelled
+  const cancelled = order.status === 'cancelled';
+  const unpaid = payment === 'pending' || payment === 'failed' || payment === 'expired';
+  const awaiting = payment === 'pending' && arrival === 'return';
+
+  const [heading, detail] =
+    payment === 'pending' ? (awaiting
+      ? ['Waiting for payment confirmation', 'Coming back from Payfast is not proof of payment. This page updates on its own as soon as Payfast confirms it, usually within a minute.']
+      : ['Not paid yet', `This order is saved but not paid, so ${venue} has not received it. Unpaid orders are released after 30 minutes.`])
+    : payment === 'failed' ? ['Payment did not go through', `Payfast reported that this payment failed, so ${venue} has not received the order. Your cart is still saved.`]
+    : payment === 'expired' ? ['Order released, not paid', `This order was not paid within 30 minutes, so it was released. ${venue} did not receive it.`]
+    : payment === 'refunded' ? ['Refunded', `This order was refunded. Contact ${venue} if that is unexpected.`]
+    : cancelled ? ['Paid, but not going ahead', `Your payment was received, but this order is cancelled and will not be made. Contact ${venue} with your reference about a refund.`]
+    : stage <= 0 ? ['Payment received', `Waiting for ${venue} to accept your order.`]
+    : stage === 1 ? [`${venue} accepted your order`, 'The kitchen has it.']
+    : stage === 2 ? ['Preparing', 'Your food is being made.']
+    : stage === 3 ? ['Ready to collect', `Collect at ${config.venue.address}.`]
+    : ['Collected', 'Enjoy your meal.'];
+
+  const steps: { label: string; state: 'done' | 'current' | 'todo' }[] = [
+    { label: 'Payment received', state: unpaid ? 'current' : 'done' },
+    { label: `${venue} accepted your order`, state: stage >= 1 ? 'done' : unpaid ? 'todo' : 'current' },
+    { label: 'Preparing', state: stage > 2 ? 'done' : stage === 2 ? 'current' : 'todo' },
+    { label: 'Ready to collect', state: stage > 3 ? 'done' : stage === 3 ? 'current' : 'todo' },
+    { label: 'Collected', state: stage === 4 ? 'done' : 'todo' },
+  ];
+  if (unpaid) steps[0].label = awaiting ? 'Waiting for payment confirmation' : 'Payment';
+
+  return (
+    <article className={`${panel} relative`} aria-labelledby="track-result-heading">
+      {/* The one stamp in the flow: it lands only on the server's word that the money arrived. */}
+      {!unpaid && !cancelled && (
+        <div className="absolute -top-6 right-3 rotate-6 md:right-6" aria-hidden="true">
+          <Starburst label="payment" value="PAID" className="h-20 w-20" />
+        </div>
+      )}
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-ink/55">Order {order.reference}</p>
+      <h2 id="track-result-heading" className="mt-1 pr-20 font-display text-3xl font-extrabold text-primary">{heading}</h2>
+      <p className="mt-2 text-ink/75">{detail}</p>
+
+      {payment === 'pending' && (
+        <div className="mt-5 rounded-xl bg-accent/15 p-4 ring-1 ring-accent/50">
+          {awaiting && <p className="mb-3 text-sm font-semibold text-ink">Only if you left Payfast without paying:</p>}
+          <button type="button" onClick={onPay} disabled={paying} className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 font-display font-bold text-surface disabled:opacity-50">
+            {paying ? 'Taking you to Payfast…' : `Pay ${formatMoney(toMinor(order.total))} now`}
+          </button>
+          <Link to="/order" className="ml-3 inline-flex min-h-12 items-center font-display text-sm font-bold text-primary underline underline-offset-2">Change my order</Link>
+          {payError && <p role="alert" className="mt-3 text-sm font-semibold text-ink">{payError}</p>}
+          <WhatsAppFallback lines={order.items} className="mt-4 border-t border-ink/15 pt-4" />
+        </div>
+      )}
+      {(payment === 'failed' || payment === 'expired') && (
+        <div className="mt-5">
+          <Link to="/order" className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-display font-bold text-surface">Order again</Link>
+          <WhatsAppFallback lines={order.items} className="mt-4" />
+        </div>
+      )}
+      {!unpaid && cancelled && <ContactLine reference={order.reference} />}
+
+      {!cancelled && payment !== 'failed' && (
+        <ol className="mt-6 space-y-0" aria-label="Order progress">
+          {steps.map((step, index) => (
+            <li key={index} className="relative flex items-center gap-3 pb-4 last:pb-0" aria-current={step.state === 'current' ? 'step' : undefined}>
+              {index < steps.length - 1 && (
+                <span className={`absolute left-[13px] top-7 h-[calc(100%-1.25rem)] w-0.5 ${step.state === 'done' ? 'bg-primary' : 'bg-ink/15'}`} aria-hidden="true" />
+              )}
+              <span
+                className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                  step.state === 'done' ? 'bg-primary text-surface' : step.state === 'current' ? 'bg-accent text-ink ring-2 ring-primary' : 'bg-paper text-ink/40 ring-1 ring-ink/15'
+                }`}
+                aria-hidden="true"
+              >
+                {step.state === 'done' ? <Check size={14} strokeWidth={3} /> : step.state === 'current' ? <Clock3 size={14} /> : null}
+              </span>
+              <span className={`font-display text-sm font-bold ${step.state === 'current' ? 'text-ink' : step.state === 'done' ? 'text-ink/75' : 'text-ink/50'}`}>
+                {step.label}
+                <span className="sr-only">{step.state === 'done' ? ', done' : step.state === 'current' ? ', current step' : ', not yet'}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
+        <div><dt className="text-ink/60">Collection time</dt><dd className="font-display font-bold text-ink">{order.requested_time ? dateTime.format(new Date(order.requested_time)) : 'Not set'}</dd></div>
+        <div><dt className="text-ink/60">{unpaid ? 'Total' : 'Paid'}</dt><dd className="font-display font-bold text-ink">{formatMoney(toMinor(order.total))}</dd></div>
+        <div className="col-span-2"><dt className="text-ink/60">Collect from</dt><dd className="font-display font-bold text-ink">{venue}, {config.venue.address}</dd></div>
+      </dl>
+      {order.items.length > 0 && (
+        <ul className="mt-4 rounded-xl bg-paper/70 px-4 py-3 text-sm text-ink/80">
+          {order.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
+        </ul>
+      )}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-4 text-sm text-ink/65">
+        <span>Checked at {checkedTime.format(checkedAt)}{live ? '. Updates on its own while this page is open.' : ''}</span>
+        <button type="button" onClick={onRefresh} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/20 px-4 font-display font-bold text-ink">
+          <RotateCw size={15} aria-hidden="true" /> Check again
+        </button>
+      </div>
+    </article>
+  );
+};
 
 const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: boolean; onRefresh: () => void }> = ({ result, checkedAt, refreshing, onRefresh }) => {
   const checked = new Intl.DateTimeFormat(config.locale, { timeZone: config.timezone, hour: '2-digit', minute: '2-digit' }).format(checkedAt);

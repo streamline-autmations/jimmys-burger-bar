@@ -10,6 +10,7 @@ import { createMoneyFormatter, toMinor, fromMinor, type Minor } from './domain/m
 import { createTimeHelpers } from './domain/time';
 import { createHours } from './domain/hours';
 import { resolveCopy } from './config/copy';
+import { orderableCategories } from './menu/orderable';
 
 export const formatMoney = createMoneyFormatter(config.currency);
 
@@ -28,6 +29,20 @@ export const hours = createHours(config.venue.hours, config.venue.closures);
 
 /** Tenant copy, merged over the product's generic English defaults. */
 export const copy = resolveCopy(config.copy);
+
+/** The guest pays online before the kitchen sees the order. Off means today's request-and-pay-on-collection flow. */
+export const payFirst = config.ordering.payment === 'payfast';
+
+/** What every order button says. A collection-only venue names it. */
+export const orderCtaLabel =
+  config.ordering.fulfilment.length === 1 && config.ordering.fulfilment[0] === 'collection' ? 'Order for collection' : 'Order online';
+
+/** The same list the server price list is generated from (npm run menu:sql). */
+export const orderCategories = orderableCategories(config.menu.categories, {
+  label: copy.order.softDrinksLabel,
+  note: copy.order.softDrinksNote,
+  items: config.ordering.nonAlcoholicDrinks,
+});
 
 /**
  * Namespaces browser storage per tenant, so two Restaurant Direct sites served

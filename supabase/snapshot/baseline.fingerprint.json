@@ -176,6 +176,11 @@
   },
   {
     "kind": "function",
+    "name": "ordering_state()",
+    "fingerprint": "9014cfaac5a293b03f6b23beb4978907"
+  },
+  {
+    "kind": "function",
     "name": "orders_upsert_customer()",
     "fingerprint": "ee484d885ce2e38c7b046b04707c58b1"
   },
@@ -203,6 +208,16 @@
     "kind": "function",
     "name": "set_completed_at()",
     "fingerprint": "2dca1692b45d6e9ee606598392247346"
+  },
+  {
+    "kind": "function",
+    "name": "set_menu_item_available(p_name text, p_available boolean)",
+    "fingerprint": "3532f6d5d5b43df27859ee71b043e24e"
+  },
+  {
+    "kind": "function",
+    "name": "set_ordering_paused(p_paused boolean)",
+    "fingerprint": "b32abbc19309696e45af83c51289aca2"
   },
   {
     "kind": "function",
@@ -376,6 +391,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "ordering_state() anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "ordering_state() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
     "name": "orders_upsert_customer() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -433,6 +458,26 @@
     "kind": "function_exec",
     "name": "set_completed_at() authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_menu_item_available(p_name text, p_available boolean) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_menu_item_available(p_name text, p_available boolean) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_ordering_paused(p_paused boolean) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_ordering_paused(p_paused boolean) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
   {
     "kind": "function_exec",

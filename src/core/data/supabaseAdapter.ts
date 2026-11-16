@@ -6,7 +6,7 @@ import { classifySubmission } from './submission';
 import { salesWindow, summariseSales } from './sales';
 import type {
   Booking, Customer, CustomerHistory, DashboardSnapshot, DataAdapter, ListOptions,
-  LookupResult, NewBooking, NewOrder, OrderWithItems,
+  LookupResult, NewBooking, NewOrder, OrderingState, OrderWithItems,
 } from './types';
 
 import { ConflictError } from './errors';
@@ -18,6 +18,30 @@ export const supabaseAdapter: DataAdapter = {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, listener)
       .subscribe((status) => { if (status === 'SUBSCRIBED') listener(); });
     return () => { void supabase.removeChannel(channel); };
+  },
+  async beginPayment(reference, email) {
+    // Plain fetch: the function checks the Origin itself and takes no Supabase JWT.
+    const response = await withTimeout(fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant: config.slug, reference, contact: email }),
+    }));
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.fields) throw new Error(typeof body.error === 'string' ? body.error : 'TEMPORARY_FAILURE');
+    return { action: body.action, fields: body.fields };
+  },
+  async orderingState() {
+    const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('ordering_state')));
+    if (error) throw error;
+    return data as unknown as OrderingState;
+  },
+  async setOrderingPaused(paused) {
+    const { error } = await withTimeout(Promise.resolve(supabase.rpc('set_ordering_paused', { p_paused: paused })));
+    if (error) throw error;
+  },
+  async setItemAvailable(name, available) {
+    const { error } = await withTimeout(Promise.resolve(supabase.rpc('set_menu_item_available', { p_name: name, p_available: available })));
+    if (error) throw error;
   },
   async createOrder(order: NewOrder) {
     let result;

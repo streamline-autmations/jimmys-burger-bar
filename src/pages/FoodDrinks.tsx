@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Beer, Download, ShoppingBag, Utensils } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { config } from '../config';
-import { formatMoney } from '../core/tenant';
+import { formatMoney, orderCtaLabel } from '../core/tenant';
 import { buildBoard } from '../core/menu/board';
 import { fadeInUp } from '../lib/motion';
 import { RevealHeading } from '../components/RevealHeading';
@@ -258,7 +258,7 @@ export const FoodDrinks: React.FC = () => {
               to="/order"
               className="inline-flex items-center gap-2 bg-accent text-ink px-5 py-3 rounded-full font-display font-bold text-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <ShoppingBag size={16} /> Order online
+              <ShoppingBag size={16} /> {orderCtaLabel}
             </Link>
           </div>
         </motion.div>

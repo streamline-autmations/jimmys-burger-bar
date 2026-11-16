@@ -7,6 +7,8 @@ import { AdminDashboard } from './AdminDashboard';
 import { AdminGuard } from './AdminGuard';
 import { AdminLogin } from './AdminLogin';
 import { AdminOrders } from './AdminOrders';
+import { AdminOrdering } from './AdminOrdering';
+import { payFirst } from '../../core/tenant';
 import { AdminSecurity } from './AdminMfa';
 
 const guarded = (page: React.ReactNode) => <AdminGuard>{page}</AdminGuard>;
@@ -17,6 +19,7 @@ export const AdminApp: React.FC = () => (
     <Route index element={guarded(<AdminDashboard />)} />
     <Route path="bookings" element={guarded(<AdminBookings />)} />
     <Route path="orders" element={guarded(<AdminOrders />)} />
+    {payFirst && <Route path="ordering" element={guarded(<AdminOrdering />)} />}
     <Route path="customers" element={guarded(<AdminCustomers />)} />
     <Route path="customers/:customerId" element={guarded(<AdminCustomerDetail />)} />
     <Route path="security" element={guarded(<AdminSecurity />)} />

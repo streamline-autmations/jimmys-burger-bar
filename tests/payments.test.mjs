@@ -160,3 +160,38 @@ test('ITN server confirmation requires TLS sandbox POST, unsigned data and exact
  }
  await assert.rejects(confirmItn(entries,async()=>{throw Error('network failure');}),/network failure/);
 });
+
+// Staff controls for a busy shift (20261116130000_ordering_controls.sql).
+test('staff pause and sold-out switches are public to read, staff-only to change, and enforced at order time',async()=>{
+ const stateAs=(role)=>asRole(db,role,async()=>(await one(`select public.ordering_state() s`)).s);
+ assert.deepEqual(await stateAs('anon'),{paused:false,unavailable:[]});
+ // One statement per role block: a refused statement aborts that block's transaction.
+ for(const write of [`select public.set_ordering_paused(true)`,`select public.set_menu_item_available('Smash Burger',false)`])
+  await asRole(db,'anon',async()=>{ await assert.rejects(db.query(write),/permission denied/); });
+ const stranger='5a000000-0000-4000-8000-000000000002';
+ await db.exec(`insert into auth.users(id,email) values('${stranger}','guest@example.com')`);
+ await asRole(db,'authenticated',async()=>{ await assert.rejects(db.query(`select public.set_ordering_paused(true)`),/STAFF_ONLY/); },{userId:stranger});
+ // asRole rolls back, so each switch is flipped and checked inside one staff transaction,
+ // with the refused order last (a refusal aborts the transaction).
+ const asStaff=(work)=>asRole(db,'authenticated',work,{userId:reviewer});
+ await asStaff(async()=>{
+  await db.query(`select public.set_menu_item_available('Smash Burger',false)`);
+  assert.deepEqual((await one(`select public.ordering_state() s`)).s.unavailable,['Smash Burger']);
+  await assert.rejects(order(),/menu item unavailable/i);
+ });
+ await asStaff(async()=>{ await assert.rejects(db.query(`select public.set_menu_item_available('No such dish',false)`),/MENU_ITEM_NOT_FOUND/); });
+ await asStaff(async()=>{
+  await db.query(`select public.set_ordering_paused(true)`);
+  assert.equal((await one(`select public.ordering_state() s`)).s.paused,true);
+  await assert.rejects(order(),/ORDERING_PAUSED/);
+ });
+ assert.equal((await state(await order())).payment_status,'pending');
+});
+test('tracking reports payment separately from fulfilment, and only after the server marks it paid',async()=>{
+ const o=await order(); await begin(o);
+ const look=()=>asRole(db,'anon',async()=>(await one(`select public.lookup_request($1,$2) r`,[o.ref,o.email])).r);
+ let r=await look(); assert.equal(r.payment_status,'pending'); assert.equal(r.status,'new'); assert.equal(r.paid_at,null);
+ await paid(o); r=await look(); assert.equal(r.payment_status,'paid'); assert.equal(r.status,'new'); assert.ok(r.paid_at);
+ await db.query(`update public.orders set status='accepted' where order_no=$1`,[o.ref]);
+ r=await look(); assert.equal(r.payment_status,'paid'); assert.equal(r.status,'accepted');
+});

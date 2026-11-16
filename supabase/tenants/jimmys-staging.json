@@ -15,6 +15,6 @@
   "payments": {
     "provider": "payfast",
     "mode": "sandbox",
-    "siteUrl": "https://jimmys-staging.invalid"
+    "siteUrl": "https://jimmys-staging.vercel.app"
   }
 }

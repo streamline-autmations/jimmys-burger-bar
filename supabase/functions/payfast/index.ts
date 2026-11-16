@@ -9,7 +9,7 @@ const json = (body: unknown, status = 200, origin?: string) => new Response(JSON
 });
 const env = (name: string) => { const value = Deno.env.get(name); if (!value) throw Error('SERVER_CONFIGURATION'); return value; };
 Deno.serve(async (request: Request) => {
-  let origin: string | undefined;
+  let origin: string | undefined; let route: string | undefined; let note = '';
   try {
     const base = env('SUPABASE_URL');
     if (new URL(base).hostname !== `${STAGING}.supabase.co`) throw Error('STAGING_ONLY');
@@ -22,7 +22,7 @@ Deno.serve(async (request: Request) => {
     if (settingsError) throw Error('DATABASE_UNAVAILABLE');
     const settingsMap = Object.fromEntries((settings ?? []).map(({key,value}) => [key,value]));
     const url = new URL(request.url);
-    const route = url.pathname.split('/').pop();
+    route = url.pathname.split('/').pop();
     if (route === 'checkout') {
       const site = new URL(settingsMap['payments.site_url']);
       if (site.protocol !== 'https:' || site.hostname.endsWith('.invalid') || site.origin !== settingsMap['payments.site_url']) throw Error('SERVER_CONFIGURATION');
@@ -46,7 +46,8 @@ Deno.serve(async (request: Request) => {
       if (error) throw Error(error.message.match(/PAYMENT_[A-Z_]+|PAYMENTS_DISABLED|ORDERING_PAUSED/)?.[0] ?? 'DATABASE_UNAVAILABLE');
       const fields: Record<string,string> = {
         merchant_id:merchantId, merchant_key:env('PAYFAST_MERCHANT_KEY'),
-        return_url:`${origin}/track`, cancel_url:`${origin}/track`,
+        // Payfast adds nothing to these, so the page it returns to must be told which order.
+        return_url:`${origin}/track?ref=${encodeURIComponent(data.reference)}&pay=return`, cancel_url:`${origin}/track?ref=${encodeURIComponent(data.reference)}&pay=cancelled`,
         notify_url:`${base}/functions/v1/payfast/itn`,
         m_payment_id:data.reference, amount:Number(data.amount).toFixed(2), item_name:`Collection ${data.reference}`,
       };
@@ -60,6 +61,7 @@ Deno.serve(async (request: Request) => {
     // Gateway must overwrite x-forwarded-for. Reject lists rather than trusting
     // an attacker-controlled first hop. Verify gateway behaviour before deploy.
     const sourceIp = request.headers.get('x-forwarded-for')?.trim() ?? '';
+    note = `forwarded hops ${sourceIp ? sourceIp.split(',').length : 0}`;
     const ips = (await Promise.all(validHosts.map(host => Deno.resolveDns(host,'A')))).flat();
     const {data:order,error:orderError} = await db.from('orders').select('order_no,total').eq('order_no',fields.m_payment_id ?? '').maybeSingle();
     if (orderError) throw Error('DATABASE_UNAVAILABLE');
@@ -70,9 +72,12 @@ Deno.serve(async (request: Request) => {
     const raw = Object.fromEntries(entries.filter(([key]) => ['m_payment_id','pf_payment_id','payment_status','merchant_id','amount_gross','amount_fee','amount_net'].includes(key)));
     const {data,error} = await db.rpc('mark_order_paid',{p_reference:verified.m_payment_id,p_transaction:verified.pf_payment_id,p_status:verified.payment_status,p_amount:verified.amount_gross,p_raw:raw});
     if (error) throw Error('DATABASE_UNAVAILABLE');
+    console.log('payfast itn', verified.m_payment_id, verified.pf_payment_id, verified.payment_status, data?.result);
     return json(data);
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
+    // The code only: never the payload, which carries guest details.
+    console.error('payfast', route, code, note);
     const safe = /^(BAD_SIGNATURE|BAD_SOURCE|BAD_MERCHANT|BAD_REFERENCE|AMOUNT_MISMATCH|INVALID_AMOUNT|INVALID_STATUS|INVALID_PAYLOAD|PAYMENT_[A-Z_]+|PAYMENTS_DISABLED|ORDERING_PAUSED|STAGING_ONLY|SANDBOX_ONLY|SERVER_CONFIGURATION|SERVER_VALIDATION_FAILED)$/.test(code);
     return json({error:safe ? code : 'TEMPORARY_FAILURE'}, safe ? 400 : 503, origin);
   }

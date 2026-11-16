@@ -123,6 +123,8 @@ export interface OrderingConfig {
   closedDayNote: string;
   /** How many days ahead an order can be requested for. 0 means today only. */
   maxDaysAhead: number;
+  /** Minutes the kitchen needs before the earliest collection slot. Pay-first checkout only; defaults to 0. */
+  leadMinutes?: number;
   nonAlcoholicDrinks: MenuItem[];
 }
 

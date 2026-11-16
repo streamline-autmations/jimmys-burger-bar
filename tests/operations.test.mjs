@@ -234,6 +234,18 @@ test('orderable days skip closed days and a day whose last slot has passed', () 
   assert.equal(hours.addDays('2026-12-31', 1), '2027-01-01');
 });
 
+test('collection slots are quarter hours inside trading hours, after the kitchen lead time', () => {
+  // Monday 2026-09-07, open 09:00 to 20:00. `now` is 10:00 SAST.
+  const slots = hours.collectionSlots('2026-09-07', 20, now);
+  assert.equal(slots[0], '10:30'); // 10:20 is the earliest instant; the next quarter hour after it
+  assert.equal(slots.at(-1), '19:45'); // closing time itself is not a slot
+  assert.ok(slots.every((slot) => hours.requestedTimeError('2026-09-07', slot, now) === null));
+  assert.equal(hours.collectionSlots('2026-09-07', 0, now)[0], '10:15'); // strictly in the future
+  assert.deepEqual(hours.collectionSlots('2026-09-06', 20, now), []); // Sunday, closed
+  assert.deepEqual(hours.collectionSlots('2026-09-07', 20, new Date('2026-09-07T17:30:00Z')), []); // 19:30 + 20 min is past the last slot
+  assert.equal(hours.collectionSlots('2026-09-11', 0, now).at(-1), '23:45'); // Friday closes at midnight
+  assert.equal(hours.collectionSlots('2026-09-08', 20, now)[0], '09:00'); // a later day starts at opening
+});
 test('a refused submission is definite; a lost response is uncertain', () => {
   const kind = (error, constraint) => {
     const result = submission.classifySubmission(error, constraint);

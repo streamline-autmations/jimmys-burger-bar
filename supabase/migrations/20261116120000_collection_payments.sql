@@ -169,6 +169,7 @@ $$;
 -- Preserve booking lookup and contact matching. Add payment truth to order lookup only.
 do $$ declare f text; begin
   f := pg_get_functiondef('public.lookup_request(text,text)'::regprocedure);
+  if position('''status'', v_order.status,' in f) = 0 then raise exception 'unrecognised lookup_request order block'; end if;
   f := replace(f, '''status'', v_order.status,', '''status'', v_order.status, ''payment_status'', v_order.payment_status, ''paid_at'', v_order.paid_at,');
   execute f;
 end $$;

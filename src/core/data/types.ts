@@ -115,6 +115,18 @@ export interface DashboardSnapshot {
  * previously existed nowhere - a hung request left the order button saying
  * "Placing order…" forever with no way out.
  */
+/** What staff can switch off mid-shift. Names are orderable menu item names. */
+export interface OrderingState {
+  paused: boolean;
+  unavailable: string[];
+}
+
+/** A signed hosted-checkout form. Post every field, in order, to `action`. */
+export interface PaymentHandoff {
+  action: string;
+  fields: Record<string, string>;
+}
+
 export interface DataAdapter {
   /**
    * Safe to repeat with the same `orderNo`: a retry after a lost response
@@ -152,4 +164,16 @@ export interface DataAdapter {
    * once); a Supabase realtime channel could later implement it the same way.
    */
   subscribe?(listener: () => void): () => void;
+
+  // Pay-first tenants only (ordering.payment = 'payfast'). Absent elsewhere, so
+  // a tenant without the payments migration never calls a function it lacks.
+  /**
+   * Signed checkout fields for an order that is saved and still unpaid. The
+   * amount comes from the server. Rejects with an Error whose message is the
+   * server's code, e.g. ORDERING_PAUSED or PAYMENT_NOT_PENDING.
+   */
+  beginPayment?(reference: string, email: string): Promise<PaymentHandoff>;
+  orderingState?(): Promise<OrderingState>;
+  setOrderingPaused?(paused: boolean): Promise<void>;
+  setItemAvailable?(name: string, available: boolean): Promise<void>;
 }

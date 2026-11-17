@@ -25,16 +25,18 @@ Deno.serve(async (request: Request) => {
     try { orderId = JSON.parse(body)?.order_id; } catch { /* falls through */ }
     if (typeof orderId !== 'string' || !UUID.test(orderId)) return json({ error: 'INVALID_PAYLOAD' }, 400);
 
+    // Everything that can fail runs BEFORE the claim, so a failure leaves the
+    // order unsent and a later call can still deliver it.
     const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
+    const key = await importVapidKey(publicKey, env('VAPID_PRIVATE_KEY'));
+    const subject = env('VAPID_SUBJECT');
+    const { data: rows, error: readError } = await db.from('staff_push_subscriptions').select('endpoint');
+    if (readError) throw Error('DATABASE_UNAVAILABLE');
+
     const { data: claimed, error: claimError } = await db.from('order_push').update({ sent_at: new Date().toISOString() })
       .eq('order_id', orderId).is('sent_at', null).select('order_id');
     if (claimError) throw Error('DATABASE_UNAVAILABLE');
     if (!claimed?.length) return json({ result: 'nothing_to_send' });
-
-    const { data: rows, error: readError } = await db.from('staff_push_subscriptions').select('endpoint');
-    if (readError) throw Error('DATABASE_UNAVAILABLE');
-    const key = await importVapidKey(publicKey, env('VAPID_PRIVATE_KEY'));
-    const subject = env('VAPID_SUBJECT');
 
     let delivered = 0; let failed = 0; const gone: string[] = [];
     await Promise.all((rows ?? []).map(async ({ endpoint }) => {

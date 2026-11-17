@@ -30,8 +30,8 @@ export async function pushState(): Promise<PushState> {
   const registration = await navigator.serviceWorker.getRegistration(SCOPE);
   const subscription = await registration?.pushManager.getSubscription();
   if (!subscription) return 'off';
-  await save(subscription).catch(() => {});
-  return 'on';
+  // If the server copy cannot be restored, say off: one tap on the button saves it again.
+  return save(subscription).then(() => 'on' as const, () => 'off' as const);
 }
 
 /** Call from a tap: the browser only shows its permission prompt for one. */

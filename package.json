@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
-    "test": "node --test tests/operations.test.mjs tests/database.test.mjs tests/tenants.test.mjs tests/payments.test.mjs",
+    "test": "node --test tests/operations.test.mjs tests/database.test.mjs tests/tenants.test.mjs tests/payments.test.mjs tests/delivery.test.mjs",
     "build:demo": "tsc -b && VITE_DEMO=1 vite build && VITE_DEMO=1 node scripts/check-build.mjs",
     "preview:demo": "vite preview --outDir dist-demo",
     "tenant:sql": "node scripts/tenant-sql.mjs",

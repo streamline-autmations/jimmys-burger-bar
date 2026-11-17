@@ -48,6 +48,32 @@ alert; lock-screen notifications are a separate step that is not set up yet.
   order was already moved. Nothing is done twice.
 - Cancelling and refunds stay on the full Orders screen, not the kitchen screen.
 
+## Delivery orders (staging preview only)
+
+Only the staging site takes delivery orders, as a showcase. The zone, the fees (R39 and
+R49) and the rider number are examples until Jimmy's agrees real ones.
+
+- A delivery ticket has a **Delivery** panel: street address, suburb, the guest's note
+  for the rider and the delivery fee (already inside the paid total).
+- After **Mark ready**, tap **Send to rider**. It opens WhatsApp to the dispatcher with
+  the reference, the address and the items. Check the message, then send it. Nothing is
+  sent until you press send in WhatsApp.
+- When the rider leaves, tap **Out for delivery**. The guest's tracking page says
+  *Out for delivery*.
+- When the rider confirms the drop-off, tap **Delivered**. The order closes.
+
+### If a delivery fails
+
+Only a manager or owner sees **Delivery failed** (on a ready or out-for-delivery ticket).
+
+1. Phone the guest first. If they would rather collect, keep the order and do not
+   mark it failed.
+2. Otherwise tap **Delivery failed**, then **Yes, delivery failed**. The order leaves
+   the kitchen screen and its payment shows **refund pending**. The guest's tracking
+   page says *Not delivered, refund pending*.
+3. Refund the full amount in the Payfast dashboard, then record the refund as described
+   in PAYMENTS.md. Nothing on this screen sends money.
+
 ## If the screen says Offline or Not updating
 
 - **Offline (gold banner):** the device has lost Wi-Fi or data. Guests can still order and

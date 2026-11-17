@@ -125,6 +125,13 @@ export function settingsSql(infra, config) {
   ];
   if (infra.kitchen) rows.push(['kitchen.escalation', JSON.stringify(infra.kitchen.escalation), 'Tenant kitchen escalation contact']);
   if (infra.payfastSecretNames) rows.push(['payments.secret_names', JSON.stringify(paymentSecretNames(infra)), 'Environment variable names only, never credentials']);
+  const delivery = config.ordering?.deliveryPreview;
+  // Only pay-first tenants can have it, and only they get the delete when it is switched off.
+  if (infra.payments) rows.push(['delivery.zone', delivery ? JSON.stringify({
+    bands: delivery.bands.map(({ fee, suburbs }) => ({ fee, suburbs })),
+    hours: [delivery.hours.from, delivery.hours.until],
+    minimum: delivery.minimumOrder ?? null,
+  }) : null, 'Delivery preview: suburbs, example fees and hours create_delivery_order prices from']);
   if (infra.payments) rows.push(
     ['payments.provider', infra.payments.provider, 'Hosted payment provider'],
     ['payments.mode', infra.payments.mode, 'Must match Edge Function PAYFAST_MODE'],

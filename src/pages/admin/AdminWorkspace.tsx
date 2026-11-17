@@ -182,6 +182,7 @@ const ACTION_LABELS: Record<string, string> = {
   accepted: 'Accept order',
   preparing: 'Start preparing',
   ready: 'Mark ready',
+  out_for_delivery: 'Out for delivery',
   completed: 'Complete order',
   confirmed: 'Confirm booking',
 };
@@ -189,6 +190,7 @@ const SAVING_LABELS: Record<string, string> = {
   accepted: 'Accepting…',
   preparing: 'Starting…',
   ready: 'Marking ready…',
+  out_for_delivery: 'Sending out…',
   completed: 'Completing…',
   confirmed: 'Confirming…',
   cancelled: 'Cancelling…',
@@ -197,6 +199,7 @@ const DONE_LABELS: Record<string, string> = {
   accepted: 'Order accepted',
   preparing: 'Marked as preparing',
   ready: 'Marked ready',
+  out_for_delivery: 'Out for delivery',
   completed: 'Order completed',
   confirmed: 'Booking confirmed',
   cancelled: 'Cancelled',
@@ -215,6 +218,7 @@ export interface SavedChange {
  */
 export function TicketActions({
   status,
+  orderType,
   cancelLabel,
   describedAs,
   disabled,
@@ -226,6 +230,7 @@ export function TicketActions({
   onChange,
 }: {
   status: string;
+  orderType?: string;
   cancelLabel: string;
   describedAs: string;
   disabled: boolean;
@@ -237,7 +242,7 @@ export function TicketActions({
   hint?: string;
   onChange: (next: string) => void;
 }) {
-  const actions = nextStatuses(status);
+  const actions = nextStatuses(status, orderType);
   const primary = actions.find((next) => next !== 'cancelled');
   const canCancel = actions.includes('cancelled');
 

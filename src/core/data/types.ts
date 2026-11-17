@@ -10,7 +10,7 @@ export const BOOKING_STATUSES = ['pending', 'confirmed', 'cancelled'] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
 export const ORDER_STATUSES = [
-  'new', 'accepted', 'preparing', 'ready', 'completed', 'cancelled',
+  'new', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled',
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
@@ -33,6 +33,8 @@ export interface NewOrder {
   tableNumber: string | null;
   deliveryAddress: string | null;
   deliveryNotes: string | null;
+  /** Pay-first delivery only. The server prices the fee from it; the browser never sends a fee. */
+  deliverySuburb?: string | null;
   requestedTime: string;
   /** Decimal amount, as the orders table stores it - not minor units. */
   total: number;
@@ -61,6 +63,8 @@ export type LookupResult =
       paid_at?: string | null;
       /** When the kitchen said it would be ready. Set on accept. */
       eta?: string | null;
+      /** Pay-first delivery: the fee inside `total`. */
+      delivery_fee?: number;
       reference: string;
       status: OrderStatus;
       order_type: 'collection' | 'delivery' | 'table';
@@ -182,4 +186,8 @@ export interface DataAdapter {
   orderingState?(): Promise<OrderingState>;
   setOrderingPaused?(paused: boolean): Promise<void>;
   setItemAvailable?(name: string, available: boolean): Promise<void>;
+  /** Delivery preview, managers only: a paid delivery that could not be handed over goes to refund pending. */
+  markDeliveryFailed?(id: string): Promise<void>;
+  /** The signed-in staff member's role, e.g. 'manager'. */
+  staffRole?(): Promise<string | null>;
 }

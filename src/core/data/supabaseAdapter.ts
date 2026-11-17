@@ -71,6 +71,17 @@ export const supabaseAdapter: DataAdapter = {
     const { error } = await withTimeout(Promise.resolve(supabase.rpc('set_ordering_paused', { p_paused: paused })));
     if (error) throw error;
   },
+  async markDeliveryFailed(id) {
+    const { error } = await withTimeout(Promise.resolve(supabase.rpc('mark_delivery_failed', { p_order_id: id })));
+    if (error) throw error;
+  },
+  async staffRole() {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return null;
+    const { data, error } = await withTimeout(Promise.resolve(supabase.from('staff').select('role').eq('user_id', auth.user.id).maybeSingle()));
+    if (error) throw error;
+    return data?.role ?? null;
+  },
   async setItemAvailable(name, available) {
     const { error } = await withTimeout(Promise.resolve(supabase.rpc('set_menu_item_available', { p_name: name, p_available: available })));
     if (error) throw error;
@@ -78,8 +89,23 @@ export const supabaseAdapter: DataAdapter = {
   async createOrder(order: NewOrder) {
     let result;
     try {
+      // Pay-first delivery goes through create_delivery_order, which carries the
+      // suburb the server prices the fee from. Everything else is unchanged.
       result = await withTimeout(
-        Promise.resolve(
+        Promise.resolve(order.orderType === 'delivery' && config.ordering.deliveryPreview
+          ? supabase.rpc('create_delivery_order', {
+            p_order_no: order.orderNo,
+            p_customer_name: order.customerName,
+            p_email: order.email,
+            p_phone: order.phone,
+            p_delivery_address: order.deliveryAddress ?? '',
+            p_delivery_notes: order.deliveryNotes ?? '',
+            p_requested_time: order.requestedTime,
+            p_total: order.total,
+            p_marketing_consent: order.marketingConsent,
+            p_items: order.items,
+            p_delivery_suburb: order.deliverySuburb ?? '',
+          }) :
           supabase.rpc('create_order', {
             p_order_no: order.orderNo,
             p_customer_name: order.customerName,

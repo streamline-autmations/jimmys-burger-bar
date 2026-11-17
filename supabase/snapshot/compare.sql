@@ -118,7 +118,7 @@ expected(kind, name, fingerprint) as (
     ('function', 'create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb)', '94973d5bf79cd593b0210a48e1a06a7d'),
     ('function', 'delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric)', 'ba6abb8b76617dcaa0c180000a55668c'),
     ('function', 'enforce_booking_status_transition()', '815fe4b71941d2cf1603b9abd4adb69f'),
-    ('function', 'enforce_order_status_transition()', 'd3373bcf1e38226138d1a32f3a079869'),
+    ('function', 'enforce_order_status_transition()', '4d1db4ceb1b51c86b92124bec46255a2'),
     ('function', 'enforce_trading_hours()', '010a4ce2335d47af41ee97cfcc2259a8'),
     ('function', 'expire_pending_payments()', 'c3d9549d1f71647b39fde8d0da8723e9'),
     ('function', 'guard_payment_update()', '9d339714ee2cd0dc4ae7da0495c409f1'),

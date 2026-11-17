@@ -276,13 +276,14 @@ const PaidOrder: React.FC<{
     : payment === 'failed' ? ['Payment did not go through', `Payfast reported that this payment failed, so ${venue} has not received the order. Your cart is still saved.`]
     : payment === 'expired' ? ['Order released, not paid', `This order was not paid within 30 minutes, so it was released. ${venue} did not receive it.`]
     : payment === 'refunded' ? ['Refunded', `This order was refunded. Contact ${venue} if that is unexpected.`]
-    : payment === 'refund_pending' ? ['Not delivered, refund pending', `This order could not be delivered, so ${venue} is refunding your payment. Contact ${venue} with your reference if you have questions.`]
+    : payment === 'refund_pending' && cancelled && delivery ? ['Not delivered, refund pending', `This order could not be delivered, so ${venue} is refunding your payment. Contact ${venue} with your reference if you have questions.`]
+    : payment === 'refund_pending' && cancelled ? ['Refund pending', `This order is cancelled and ${venue} is refunding your payment. Contact ${venue} with your reference if you have questions.`]
     : cancelled ? ['Paid, but not going ahead', `Your payment was received, but this order is cancelled and will not be made. Contact ${venue} with your reference about a refund.`]
-    : stage <= 0 ? ['Payment received', `Waiting for ${venue} to accept your order.`]
-    : stage === 1 ? [`${venue} accepted your order`, 'The kitchen has it.']
-    : stage === 2 ? ['Preparing', 'Your food is being made.']
-    : stage === 3 ? (delivery ? ['Ready, waiting for the rider', 'Your food is packed and waiting to go out.'] : ['Ready to collect', `Collect at ${config.venue.address}.`])
-    : at === 4 ? ['Out for delivery', 'Your food is on its way.']
+    : at <= 0 ? ['Payment received', `Waiting for ${venue} to accept your order.`]
+    : at === 1 ? [`${venue} accepted your order`, 'The kitchen has it.']
+    : at === 2 ? ['Preparing', 'Your food is being made.']
+    : at === 3 ? (delivery ? ['Ready, waiting for the rider', 'Your food is packed and waiting to go out.'] : ['Ready to collect', `Collect at ${config.venue.address}.`])
+    : delivery && at === 4 ? ['Out for delivery', 'Your food is on its way.']
     : delivery ? ['Delivered', 'Enjoy your meal.']
     : ['Collected', 'Enjoy your meal.'];
 

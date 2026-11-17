@@ -38,7 +38,18 @@ async function deliver({ suburb = 'Riversdale', time = at('12:00'), total = 100,
 const state = (o) => one(`select * from public.orders where order_no=$1`, [o.ref]);
 const begin = (o) => one(`select public.begin_payment($1,$2,'jimmys-staging','sandbox') r`, [o.ref, o.email]);
 const paid = (o, amount, tx = `77${seq}`) => one(`select public.mark_order_paid($1,$2,'COMPLETE',$3,'{}') r`, [o.ref, tx, amount]);
-const move = (o, status) => db.query(`update public.orders set status=$2 where order_no=$1`, [o.ref, status]);
+// Status moves run as a signed-in staff member, as the kitchen screen does, so the
+// transition trigger is exercised (postgres bypasses it). Committed when it succeeds.
+async function move(o, status) {
+  await db.exec('begin');
+  try {
+    await db.query(`select set_config('request.jwt.claim.sub',$1,true)`, [cook]);
+    await db.exec('set local role authenticated');
+    const { affectedRows } = await db.query(`update public.orders set status=$2 where order_no=$1`, [o.ref, status]);
+    assert.equal(affectedRows, 1, `staff could not see ${o.ref}`);
+    await db.exec('commit');
+  } catch (error) { await db.exec('rollback'); throw error; }
+}
 const toReady = async (o) => { for (const s of ['accepted', 'preparing', 'ready']) await move(o, s); };
 
 test('the fee is added by the server and the checkout charges food + fee', async () => {
@@ -107,7 +118,9 @@ test('out_for_delivery exists only for delivery orders; the report splits food a
   const o = await deliver();
   await begin(o); await paid(o, 139);
   await toReady(o);
+  await assert.rejects(move(o, 'completed'), /illegal order status transition/, 'a delivery goes out before it is done');
   await move(o, 'out_for_delivery');
+  await assert.rejects(move(o, 'cancelled'), /illegal order status transition/, 'a failed delivery goes through mark_delivery_failed');
   await move(o, 'completed');
 
   seq++;
@@ -115,7 +128,8 @@ test('out_for_delivery exists only for delivery orders; the report splits food a
   await db.query(`select * from public.create_order($1,'X',$2,$3,'collection',null,null,null,$4,100,false,$5)`, [c.ref, c.email, `084${String(seq).padStart(7, '0')}`, at('12:00'), burger]);
   assert.equal(Number((await state(c)).delivery_fee), 0);
   await begin(c); await paid(c, 100, `78${seq}`); await toReady(c);
-  await assert.rejects(move(c, 'out_for_delivery'), /orders_out_for_delivery_check/);
+  await assert.rejects(move(c, 'out_for_delivery'), /illegal order status transition/);
+  await assert.rejects(db.query(`update public.orders set status='out_for_delivery' where order_no=$1`, [c.ref]), /orders_out_for_delivery_check/);
   await move(c, 'completed');
 
   const rows = await asRole(db, 'authenticated', async () => (await db.query(`select * from public.collection_commission_report() where reference = any($1)`, [[o.ref, c.ref]])).rows, { userId: cook });

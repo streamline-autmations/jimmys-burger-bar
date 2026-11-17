@@ -23,6 +23,42 @@ alter table public.orders drop constraint orders_status_check,
   add constraint orders_status_check check (status = any (array['new','accepted','preparing','ready','out_for_delivery','completed','cancelled'])),
   add constraint orders_out_for_delivery_check check (status <> 'out_for_delivery' or order_type = 'delivery');
 
+-- As the baseline, with the delivery leg: a delivery goes ready -> out_for_delivery
+-- -> completed; collection and table orders keep ready -> completed. Staff screens
+-- offer the same steps (src/pages/admin/operations.ts nextStatuses). A failed
+-- delivery is cancelled only through mark_delivery_failed.
+create or replace function public.enforce_order_status_transition() returns trigger
+language plpgsql set search_path = '' as $function$
+declare allowed text[];
+begin
+  if new.status is not distinct from old.status then
+    return new;
+  end if;
+
+  if current_user in ('postgres', 'service_role', 'supabase_admin') then
+    raise log 'order % status forced %->% by %', old.order_no, old.status, new.status, current_user;
+    return new;
+  end if;
+
+  allowed := case old.status
+    when 'new'       then array['accepted','cancelled']
+    when 'accepted'  then array['preparing','cancelled']
+    when 'preparing' then array['ready','cancelled']
+    when 'ready'     then case when old.order_type = 'delivery' then array['out_for_delivery','cancelled'] else array['completed','cancelled'] end
+    when 'out_for_delivery' then array['completed']
+    else array[]::text[]
+  end;
+
+  if not (new.status = any (allowed)) then
+    raise log 'order % blocked illegal transition %->% by %',
+      old.order_no, old.status, new.status, current_user;
+    raise exception 'illegal order status transition: % -> %', old.status, new.status;
+  end if;
+
+  return new;
+end;
+$function$;
+
 -- Why a delivery cannot go ahead at a restaurant-local time, or null when it can.
 -- Shared by the insert trigger and begin_payment so both refuse the same things.
 create function public.delivery_refusal(p_suburb text, p_local timestamp, p_food numeric) returns text

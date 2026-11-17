@@ -91,7 +91,7 @@ function advance(table: 'orders' | 'bookings', id: string, from: string, to: str
   let moved = false;
   updateRecords((next) => {
     const row = next[table].find((item) => item.id === id);
-    if (!row || row.status !== from || !nextStatuses(from).includes(to)) return false;
+    if (!row || row.status !== from || !nextStatuses(from, 'order_type' in row ? row.order_type : undefined).includes(to)) return false;
     Object.assign(row, patch, { status: to });
     row.updated_at = new Date().toISOString();
     moved = true;

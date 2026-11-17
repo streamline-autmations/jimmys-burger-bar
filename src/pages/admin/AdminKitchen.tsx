@@ -163,8 +163,11 @@ export const AdminKitchen: React.FC = () => {
     setPushBusy(true);
     try {
       setPush(await (push === 'on' ? disablePush() : enablePush()));
-    } catch {
-      setNotice(push === 'on'
+    } catch (failure) {
+      // 42501: the database refused this account (signed in, but not on the staff list).
+      setNotice((failure as { code?: string } | null)?.code === '42501'
+        ? 'This account is not on the staff list, so it cannot get lock-screen alerts. Sign in with a staff account.'
+        : push === 'on'
         ? 'Lock-screen alerts could not be switched off. Check the connection and tap again.'
         : 'Lock-screen alerts could not be switched on. Check the connection and tap again. Sound alerts still work.');
     } finally {

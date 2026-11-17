@@ -6,7 +6,7 @@ import { ConflictError, data as db } from '../../core/data';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { formatTimeOnly } from './adminUtils';
 import { chime, enableSound, soundReady } from './kitchenAlert';
-import { disablePush, enablePush, pushState, type PushState } from './kitchenPush';
+import { disablePush, enablePush, errorCode, initialPushState, pushState, type PushState } from './kitchenPush';
 import { useAdminResource } from './useAdminResource';
 import type { OrderStatus, OrderWithItems } from './types';
 
@@ -156,9 +156,9 @@ export const AdminKitchen: React.FC = () => {
   const [saving, setSaving] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // Lock-screen alerts. 'unavailable' (unsupported, blocked, demo) renders nothing: the sound alert carries on.
-  const [push, setPush] = useState<PushState>('unavailable');
+  const [push, setPush] = useState<PushState>(initialPushState);
   const [pushBusy, setPushBusy] = useState(false);
-  useEffect(() => { void pushState().then(setPush, () => setPush('unavailable')); }, []);
+  useEffect(() => { void pushState().then(setPush, () => {}); }, []);
   const togglePush = async () => {
     setPushBusy(true);
     try {
@@ -169,7 +169,7 @@ export const AdminKitchen: React.FC = () => {
         ? 'This account is not on the staff list, so it cannot get lock-screen alerts. Sign in with a staff account.'
         : push === 'on'
         ? 'Lock-screen alerts could not be switched off. Check the connection and tap again.'
-        : 'Lock-screen alerts could not be switched on. Check the connection and tap again. Sound alerts still work.');
+        : `Lock-screen alerts could not be switched on. Check the connection and tap again. Sound alerts still work.${errorCode(failure)}`);
     } finally {
       setPushBusy(false);
     }

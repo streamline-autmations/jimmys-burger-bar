@@ -23,16 +23,31 @@ async function save(subscription: PushSubscription) {
   await db.savePushSubscription!({ endpoint, p256dh: keys.p256dh, auth: keys.auth });
 }
 
+/** What to show before pushState() answers, so a slow or failing check never hides the opt-in. */
+export const initialPushState = (): PushState =>
+  supported() && Notification.permission !== 'denied' ? 'off' : 'unavailable';
+
 /** The current state, re-saving an existing subscription so a row the server dropped comes back. */
 export async function pushState(): Promise<PushState> {
   if (!supported() || Notification.permission === 'denied') return 'unavailable';
   if (Notification.permission !== 'granted') return 'off';
-  const registration = await navigator.serviceWorker.getRegistration(SCOPE);
-  const subscription = await registration?.pushManager.getSubscription();
-  if (!subscription) return 'off';
-  // If the server copy cannot be restored, say off: one tap on the button saves it again.
-  return save(subscription).then(() => 'on' as const, () => 'off' as const);
+  try {
+    const registration = await navigator.serviceWorker.getRegistration(SCOPE);
+    const subscription = await registration?.pushManager.getSubscription();
+    if (!subscription) return 'off';
+    await save(subscription);
+    return 'on';
+  } catch {
+    // Found on Android 10 / Chrome 157: this check failed and hid the button. Say off; one tap re-runs the full opt-in.
+    return 'off';
+  }
 }
+
+/** " (Code: AbortError)" for a browser error, so staff can read the cause out over the phone. Empty otherwise. */
+export const errorCode = (failure: unknown) => {
+  const name = (failure as { name?: unknown } | null)?.name;
+  return typeof name === 'string' && name !== 'Error' ? ` (Code: ${name})` : '';
+};
 
 /** Call from a tap: the browser only shows its permission prompt for one. */
 export async function enablePush(): Promise<PushState> {

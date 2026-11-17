@@ -349,8 +349,20 @@ plus a 20-second reminder while a paid order is unaccepted (`kitchenAlert.ts`, W
 needs a tap), ETA chosen on accept (`orders.eta`, same compare-and-set update, shown on
 `/track`), escalation from `ordering.escalation` (unset = "the manager on duty").
 Staff guide: `docs/restaurant-direct/STAFF-SETUP.md`. Installable via `staff.webmanifest`
-(emitted by `vite-plugin-tenant-html.ts`, linked on /admin only). No service worker, so
-nothing is cached on staff devices.
+(emitted by `vite-plugin-tenant-html.ts`, linked on /admin only). Nothing is cached on staff
+devices: the only service worker is `staff-sw.js` (same plugin), push and notification taps
+only, no fetch handler, registered with scope `/admin/` by the lock-screen opt-in.
+
+**Lock-screen alerts (staging, 2026-11-17):** opt-in per device on the kitchen screen
+(`kitchenPush.ts`). Migration `20261117140000` adds `staff_push_subscriptions` (RLS: staff
+manage only their own) and `order_push` (dedupe, service role only). A trigger on
+`paid_at` queues one row and one pg_net call per paid order to the `kitchen-push` function
+(`push.url` setting, from `pushUrl` in the tenant file), which claims the row before
+sending. Pushes carry NO payload, so the lock screen can only show the worker's generic
+"New order at <venue>". Do not add a payload: that is what keeps guest names, items and
+amounts off lock screens. VAPID keys are Edge Function secrets (`VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); the client fetches the public key from the
+function. Denied permission hides the button and the chime carries on.
 
 **Gotcha:** do not put `orders` back into `supabase_realtime`. Measured on staging,
 `postgres_changes` delivered an UPDATE event (without row data) to a LOGGED-OUT subscriber.

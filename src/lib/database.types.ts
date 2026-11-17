@@ -130,6 +130,12 @@ export type Database = {
           },
         ]
       }
+      staff_push_subscriptions: {
+        Row: { endpoint: string; user_id: string; p256dh: string; auth: string; created_at: string }
+        Insert: { endpoint: string; user_id?: string; p256dh: string; auth: string; created_at?: string }
+        Update: { endpoint?: string; user_id?: string; p256dh?: string; auth?: string; created_at?: string }
+        Relationships: []
+      }
       orders: {
         Row: {
           payment_status: string

@@ -114,6 +114,11 @@
     "rehearsal": {
       "type": "boolean"
     },
+    "pushUrl": {
+      "type": ["string", "null"],
+      "pattern": "^https://[a-z0-9]+\\.supabase\\.co/functions/v1/kitchen-push$",
+      "description": "The kitchen-push Edge Function URL. Set it to send lock-screen alerts to opted-in staff phones when an order is paid; null or absent switches them off."
+    },
     "kitchen": {
       "type": "object",
       "required": [

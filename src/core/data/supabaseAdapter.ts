@@ -62,6 +62,20 @@ export const supabaseAdapter: DataAdapter = {
     if (!response.ok || !body.fields) throw new Error(typeof body.error === 'string' ? body.error : 'TEMPORARY_FAILURE');
     return { action: body.action, fields: body.fields };
   },
+  async pushPublicKey() {
+    const response = await withTimeout(fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kitchen-push`));
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || typeof body.publicKey !== 'string') throw new Error('PUSH_UNAVAILABLE');
+    return body.publicKey;
+  },
+  async savePushSubscription(subscription) {
+    const { error } = await withTimeout(Promise.resolve(supabase.from('staff_push_subscriptions').upsert(subscription)));
+    if (error) throw error;
+  },
+  async deletePushSubscription(endpoint) {
+    const { error } = await withTimeout(Promise.resolve(supabase.from('staff_push_subscriptions').delete().eq('endpoint', endpoint)));
+    if (error) throw error;
+  },
   async orderingState() {
     const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('ordering_state')));
     if (error) throw error;

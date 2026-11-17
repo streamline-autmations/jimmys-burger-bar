@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bell, BellOff, Maximize, Phone, RefreshCw, WifiOff } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, BellRing, Maximize, Phone, RefreshCw, WifiOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { config } from '../../config';
 import { ConflictError, data as db } from '../../core/data';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { formatTimeOnly } from './adminUtils';
 import { chime, enableSound, soundReady } from './kitchenAlert';
+import { disablePush, enablePush, pushState, type PushState } from './kitchenPush';
 import { useAdminResource } from './useAdminResource';
 import type { OrderStatus, OrderWithItems } from './types';
 
@@ -154,6 +155,22 @@ export const AdminKitchen: React.FC = () => {
   const [now, setNow] = useState(() => Date.now());
   const [saving, setSaving] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Lock-screen alerts. 'unavailable' (unsupported, blocked, demo) renders nothing: the sound alert carries on.
+  const [push, setPush] = useState<PushState>('unavailable');
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => { void pushState().then(setPush, () => setPush('unavailable')); }, []);
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      setPush(await (push === 'on' ? disablePush() : enablePush()));
+    } catch {
+      setNotice(push === 'on'
+        ? 'Lock-screen alerts could not be switched off. Check the connection and tap again.'
+        : 'Lock-screen alerts could not be switched on. Check the connection and tap again. Sound alerts still work.');
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   // Newest first: if a backlog of never-closed orders ever passes the cap, the
   // oldest drop off the screen, never a new paid order.
@@ -289,6 +306,12 @@ export const AdminKitchen: React.FC = () => {
               <button type="button" onClick={() => void enableSound().then((on) => { if (on) chime(); })} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 font-display font-bold text-ink">
                 <BellOff size={17} aria-hidden="true" />
                 Enable sound
+              </button>
+            )}
+            {push !== 'unavailable' && (
+              <button type="button" onClick={() => void togglePush()} disabled={pushBusy} aria-pressed={push === 'on'} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 font-bold disabled:opacity-60 ${push === 'on' ? 'bg-surface text-primary' : 'bg-surface/[0.12] hover:bg-surface/20'}`}>
+                <BellRing size={17} aria-hidden="true" />
+                {push === 'on' ? 'Lock-screen alerts on' : 'Lock-screen alerts'}
               </button>
             )}
             <button type="button" onClick={() => void refresh()} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-surface/[0.12] px-3.5 font-bold hover:bg-surface/20 disabled:opacity-60">

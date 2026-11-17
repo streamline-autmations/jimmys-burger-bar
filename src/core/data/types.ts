@@ -171,6 +171,16 @@ export interface DataAdapter {
    */
   subscribe?(listener: () => void, onLive?: (live: boolean) => void): () => void;
 
+  /**
+   * Lock-screen alerts (20261117140000, the kitchen-push function). Pay-first
+   * Supabase tenants only; the demo leaves them out, so it never offers them.
+   * The public key comes from the function, so it cannot drift from its secret.
+   */
+  pushPublicKey?(): Promise<string>;
+  /** Saves this browser's subscription for the signed-in staff member. Idempotent. */
+  savePushSubscription?(subscription: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
+  deletePushSubscription?(endpoint: string): Promise<void>;
+
   // Pay-first tenants only (ordering.payment = 'payfast'). Absent elsewhere, so
   // a tenant without the payments migration never calls a function it lacks.
   /**

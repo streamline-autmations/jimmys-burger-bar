@@ -68,6 +68,9 @@ export function validateTenant(infra, config) {
   if (infra.payfastSecretNames) {
     try { paymentSecretNames(infra); } catch (error) { problems.push(error.message); }
   }
+  // A push URL on another project would send this restaurant's alerts to someone else's staff.
+  if (infra.pushUrl && infra.pushUrl !== `https://${infra.supabaseProjectRef}.supabase.co/functions/v1/kitchen-push`) problems.push('pushUrl must be this project\'s kitchen-push function URL, or null');
+  if (infra.pushUrl && payment !== 'payfast') problems.push('pushUrl needs ordering.payment "payfast": the alert fires when an order is paid');
   if (infra.kitchen && JSON.stringify(infra.kitchen.escalation) !== JSON.stringify(config.ordering?.escalation)) problems.push('kitchen.escalation disagrees with ordering.escalation');
   return problems;
 }
@@ -123,6 +126,7 @@ export function settingsSql(infra, config) {
     ['webhook.review', infra.webhooks.review, 'n8n webhook for review request emails'],
     ['trading_hours', hours.json, 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'],
   ];
+  if ('pushUrl' in infra) rows.push(['push.url', infra.pushUrl, 'kitchen-push Edge Function: lock-screen alerts for paid orders']);
   if (infra.kitchen) rows.push(['kitchen.escalation', JSON.stringify(infra.kitchen.escalation), 'Tenant kitchen escalation contact']);
   if (infra.payfastSecretNames) rows.push(['payments.secret_names', JSON.stringify(paymentSecretNames(infra)), 'Environment variable names only, never credentials']);
   if (infra.payments) rows.push(

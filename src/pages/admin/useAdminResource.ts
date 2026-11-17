@@ -16,6 +16,8 @@ export function useAdminResource<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  // null: this adapter has no push channel, so polling is all there is.
+  const [live, setLive] = useState<boolean | null>(null);
   const generation = useRef(0);
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
@@ -64,11 +66,14 @@ export function useAdminResource<T>(
     const interval = window.setInterval(poll, pollMs);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
+    // A POS window brought back in front of the till re-reads at once.
+    window.addEventListener('focus', handleOnline);
 
     return () => {
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('focus', handleOnline);
     };
   }, [pollMs, refreshSilently]);
 
@@ -77,8 +82,8 @@ export function useAdminResource<T>(
     if (!db.subscribe) return;
     return db.subscribe(() => {
       if (!pausedRef.current) void refreshSilently();
-    });
+    }, setLive);
   }, [refreshSilently]);
 
-  return { data, setData, loading, error, updatedAt, refresh };
+  return { data, setData, loading, error, updatedAt, refresh, live };
 }

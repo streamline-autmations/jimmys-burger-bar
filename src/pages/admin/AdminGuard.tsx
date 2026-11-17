@@ -6,7 +6,8 @@ import { AdminLayout } from './AdminLayout';
 import { AdminLoading } from './AdminStates';
 import { MfaChallenge, useAal } from './AdminMfa';
 
-export const AdminGuard: React.FC<React.PropsWithChildren> = ({ children }) => {
+// `bare` drops the console chrome, for the full-screen kitchen view.
+export const AdminGuard: React.FC<React.PropsWithChildren<{ bare?: boolean }>> = ({ children, bare = false }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const aal = useAal(session);
@@ -44,5 +45,5 @@ export const AdminGuard: React.FC<React.PropsWithChildren> = ({ children }) => {
   if (aal.loading) return <AdminLoading label="Checking your session…" fullPage />;
   if (aal.needsChallenge) return <MfaChallenge onVerified={aal.refresh} />;
 
-  return <AdminLayout>{children}</AdminLayout>;
+  return bare ? <>{children}</> : <AdminLayout>{children}</AdminLayout>;
 };

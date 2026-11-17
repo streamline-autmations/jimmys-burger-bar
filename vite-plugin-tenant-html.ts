@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { build } from 'esbuild';
 import type { Plugin } from 'vite';
 
@@ -36,9 +37,44 @@ async function loadTenant(slug: string, entry = `src/tenants/${slug}/config.ts`)
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+type ManifestSource = { venue: { name: string }; seo: { themeColor: string }; theme: { colors: Record<string, string> } };
+
+/**
+ * The staff console's web app manifest, so the kitchen screen can be pinned as
+ * a window on the POS and added to a phone's Home Screen. Linked only from
+ * /admin (AdminApp), so the public site never offers to install the console.
+ * Icons are listed only when the tenant has them in its public folder.
+ */
+export function staffManifest(config: ManifestSource, publicDir: string): string {
+  const icon = (size: number, purpose: string) => ({ src: `/images/app/icon-${size}.png`, sizes: `${size}x${size}`, type: 'image/png', purpose });
+  return JSON.stringify({
+    id: '/admin/kitchen',
+    name: `${config.venue.name} Kitchen`,
+    short_name: 'Kitchen',
+    start_url: '/admin/kitchen',
+    scope: '/admin/',
+    display: 'standalone',
+    background_color: config.theme.colors.paper,
+    theme_color: config.seo.themeColor,
+    icons: fs.existsSync(`${publicDir}/images/app/icon-512.png`)
+      ? [icon(192, 'any'), icon(512, 'any'), icon(512, 'maskable')]
+      : [],
+  }, null, 2);
+}
+
 export function tenantHtml({ slug, entry }: { slug: string; entry?: string }): Plugin {
+  const publicDir = fs.existsSync(`src/tenants/${slug}/public`) ? `src/tenants/${slug}/public` : 'public';
+  const manifest = async () => staffManifest(await loadTenant(slug, entry) as never as ManifestSource, publicDir);
   return {
     name: 'restaurant-direct:tenant-html',
+    configureServer(server) {
+      server.middlewares.use('/staff.webmanifest', (_req, res) => {
+        void manifest().then((body) => { res.setHeader('Content-Type', 'application/manifest+json'); res.end(body); });
+      });
+    },
+    async generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'staff.webmanifest', source: await manifest() });
+    },
     async transformIndexHtml(html) {
       const config = await loadTenant(slug, entry) as never as {
         seo: { title: string; description: string; themeColor: string };

@@ -62,12 +62,12 @@
   {
     "kind": "column_grant",
     "name": "orders anon",
-    "fingerprint": "e4bc25678e0f189d2c49b99dc57adc57"
+    "fingerprint": "3278f3f4114dea655feecbc2e225f2c3"
   },
   {
     "kind": "column_grant",
     "name": "orders authenticated",
-    "fingerprint": "1373c9ddce3fcc082b75457c0b7575ad"
+    "fingerprint": "04cb3e1b5e70a63930991b7c77d68903"
   },
   {
     "kind": "column_grant",
@@ -157,7 +157,7 @@
   {
     "kind": "function",
     "name": "lookup_request(p_reference text, p_contact text)",
-    "fingerprint": "fe858178709b7ea8da45bbf5aaa5374d"
+    "fingerprint": "f17f5cb3e832813946ea3af06fa4fc16"
   },
   {
     "kind": "function",
@@ -228,6 +228,11 @@
     "kind": "function",
     "name": "setting(p_key text)",
     "fingerprint": "314d595931a9b4a27372629c42a228ef"
+  },
+  {
+    "kind": "function",
+    "name": "signal_order_change()",
+    "fingerprint": "8364ed11115519228fbf7c57eab72974"
   },
   {
     "kind": "function",
@@ -501,6 +506,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "signal_order_change() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "signal_order_change() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "throttle_booking_inserts() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -602,7 +617,7 @@
   {
     "kind": "table",
     "name": "orders",
-    "fingerprint": "1a2652ecff67d0770d573b1cdc7172f9"
+    "fingerprint": "8bdfad08bbf47e6acb5bc7c2e290a119"
   },
   {
     "kind": "table",
@@ -788,5 +803,10 @@
     "kind": "trigger",
     "name": "orders.orders_set_updated_at",
     "fingerprint": "58a4911dccde7406bbd843c99c261c11"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_signal_change",
+    "fingerprint": "7e8a1345a107d4f687fa086fb48806aa"
   }
 ]

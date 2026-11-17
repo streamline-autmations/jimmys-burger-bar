@@ -20,6 +20,8 @@ export type ListView = 'active' | 'today' | 'history' | 'all';
 export interface ListOptions {
   view: ListView;
   limit: number;
+  /** Newest first even for the open queue, so a capped list always holds the latest order (kitchen screen). */
+  newestFirst?: boolean;
 }
 
 export interface NewOrder {
@@ -57,6 +59,8 @@ export type LookupResult =
       kind: 'order';
       payment_status?: string;
       paid_at?: string | null;
+      /** When the kitchen said it would be ready. Set on accept. */
+      eta?: string | null;
       reference: string;
       status: OrderStatus;
       order_type: 'collection' | 'delivery' | 'table';
@@ -152,18 +156,20 @@ export interface DataAdapter {
 
   /**
    * Compare-and-set. Resolves only when exactly one row moved from `from` to
-   * `to`; anything else means another staff member got there first.
+   * `to`. Rejects with ConflictError when another staff member got there first,
+   * and with the underlying error when the write itself failed. `eta`, when
+   * given, is written in the same update.
    */
-  advanceOrderStatus(id: string, from: string, to: OrderStatus): Promise<void>;
+  advanceOrderStatus(id: string, from: string, to: OrderStatus, eta?: string | null): Promise<void>;
   advanceBookingStatus(id: string, from: string, to: BookingStatus): Promise<void>;
 
   /**
    * Optional push notification that records changed. Staff lists refresh
-   * immediately instead of waiting for their next poll. The demo store
-   * implements it (so an order placed on the phone appears in the queue at
-   * once); a Supabase realtime channel could later implement it the same way.
+   * immediately instead of waiting for their next poll. The demo store and a
+   * Supabase Realtime channel implement it. `onLive` reports whether the push
+   * connection is currently up; it is never called where there is no push.
    */
-  subscribe?(listener: () => void): () => void;
+  subscribe?(listener: () => void, onLive?: (live: boolean) => void): () => void;
 
   // Pay-first tenants only (ordering.payment = 'payfast'). Absent elsewhere, so
   // a tenant without the payments migration never calls a function it lacks.

@@ -11,13 +11,45 @@ import type {
 
 import { ConflictError } from './errors';
 
+// One private channel per page, shared by every staff list on it. realtime-js
+// hands back the same channel object for a repeated topic, so each list cannot
+// own its own. Only staff can join it (20261117130000); the payload is an order
+// id that is never read, only taken as "re-read now".
+type Subscriber = { listener: () => void; onLive?: (live: boolean) => void };
+const subscribers = new Set<Subscriber>();
+let orderSignal: ReturnType<typeof supabase.channel> | null = null;
+let signalLive = false;
+
+function joinOrderSignal() {
+  orderSignal = supabase.channel('staff:orders', { config: { private: true } })
+    .on('broadcast', { event: 'changed' }, () => subscribers.forEach((s) => s.listener()))
+    // SUBSCRIBED fires again after every automatic rejoin, so a reconnect re-reads too.
+    .subscribe((status) => {
+      signalLive = status === 'SUBSCRIBED';
+      subscribers.forEach((s) => {
+        s.onLive?.(signalLive);
+        if (signalLive) s.listener();
+      });
+    });
+}
+
 export const supabaseAdapter: DataAdapter = {
-  subscribe(listener) {
+  subscribe(listener, onLive) {
+    // Only pay-first projects have the order signal; elsewhere the console keeps
+    // polling and says so.
     if (config.ordering.payment !== 'payfast') return () => {};
-    const channel = supabase.channel('paid-order-refresh')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, listener)
-      .subscribe((status) => { if (status === 'SUBSCRIBED') listener(); });
-    return () => { void supabase.removeChannel(channel); };
+    const subscriber = { listener, onLive };
+    subscribers.add(subscriber);
+    if (orderSignal) onLive?.(signalLive);
+    else joinOrderSignal();
+    return () => {
+      subscribers.delete(subscriber);
+      if (subscribers.size === 0 && orderSignal) {
+        void supabase.removeChannel(orderSignal);
+        orderSignal = null;
+        signalLive = false;
+      }
+    };
   },
   async beginPayment(reference, email) {
     // Plain fetch: the function checks the Origin itself and takes no Supabase JWT.
@@ -113,14 +145,14 @@ export const supabaseAdapter: DataAdapter = {
     if (outcome !== 'saved') throw outcome;
   },
 
-  async listOrders({ view, limit }: ListOptions): Promise<OrderWithItems[]> {
+  async listOrders({ view, limit, newestFirst = false }: ListOptions): Promise<OrderWithItems[]> {
     // Open work reads oldest-first so the queue is in service order; everything
     // else newest-first. The id is a deterministic tiebreak so the limit window
     // is stable between refreshes.
     let query = supabase
       .from('orders')
       .select('*, order_items(*)')
-      .order('created_at', { ascending: view === 'active' })
+      .order('created_at', { ascending: view === 'active' && !newestFirst })
       .order('id')
       .limit(limit);
 
@@ -258,16 +290,19 @@ export const supabaseAdapter: DataAdapter = {
     };
   },
 
-  async advanceOrderStatus(id, from, to) {
+  async advanceOrderStatus(id, from, to, eta) {
     // .eq('status', from) is the compare-and-set predicate; .select('id') forces
-    // PostgREST to report affected rows so zero can be told from one.
+    // PostgREST to report affected rows so zero can be told from one. The ETA
+    // rides in the same update, so the screen that wins also sets the time.
     const { data, error } = await withTimeout(
       Promise.resolve(
-        supabase.from('orders').update({ status: to })
+        supabase.from('orders').update(eta === undefined ? { status: to } : { status: to, eta })
           .eq('id', id).eq('status', from).select('id'),
       ),
     );
-    if (error || data?.length !== 1) throw new ConflictError();
+    // A refused or failed write is not "someone else got there first".
+    if (error) throw error;
+    if (data?.length !== 1) throw new ConflictError();
   },
 
   async advanceBookingStatus(id, from, to) {

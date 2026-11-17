@@ -125,6 +125,12 @@ export interface OrderingConfig {
   maxDaysAhead: number;
   /** Minutes the kitchen needs before the earliest collection slot. Pay-first checkout only; defaults to 0. */
   leadMinutes?: number;
+  /**
+   * Who the kitchen screen tells staff to call when an order sits unaccepted.
+   * Omitted: it says "the manager on duty" after 5 minutes. Agree the real
+   * person at the staff rehearsal; never guess a number.
+   */
+  escalation?: { afterMinutes: number; name: string; phone?: string };
   nonAlcoholicDrinks: MenuItem[];
 }
 

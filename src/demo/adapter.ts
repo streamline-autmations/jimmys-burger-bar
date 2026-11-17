@@ -87,12 +87,12 @@ function upsertCustomer(records: ReturnType<typeof readRecords>, name: string, e
 }
 
 /** Compare-and-set, checked inside the write so a stale tab cannot also succeed. */
-function advance(table: 'orders' | 'bookings', id: string, from: string, to: string): void {
+function advance(table: 'orders' | 'bookings', id: string, from: string, to: string, patch: Record<string, unknown> = {}): void {
   let moved = false;
   updateRecords((next) => {
     const row = next[table].find((item) => item.id === id);
     if (!row || row.status !== from || !nextStatuses(from).includes(to)) return false;
-    row.status = to;
+    Object.assign(row, patch, { status: to });
     row.updated_at = new Date().toISOString();
     moved = true;
     return true;
@@ -140,7 +140,7 @@ export const adapter: DataAdapter = {
       }
       const customerId = upsertCustomer(next, order.customerName, contact.email, contact.phone, now);
       next.orders.push({
-        payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0,
+        payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null,
         id,
         order_no: order.orderNo,
         customer_id: customerId,
@@ -192,10 +192,13 @@ export const adapter: DataAdapter = {
     });
   },
 
-  async listOrders({ view, limit }: ListOptions) {
+  async listOrders({ view, limit, newestFirst = false }: ListOptions) {
     await settle();
     let rows = readRecords().orders;
-    if (view === 'active') rows = rows.filter((row) => !['completed', 'cancelled'].includes(row.status)).sort(byCreated);
+    if (view === 'active') {
+      rows = rows.filter((row) => !['completed', 'cancelled'].includes(row.status)).sort(byCreated);
+      if (newestFirst) rows.reverse();
+    }
     else if (view === 'history') rows = rows.filter((row) => ['completed', 'cancelled'].includes(row.status)).sort(byCreated).reverse();
     else if (view === 'today') {
       const { start, end } = restaurantDayBounds();
@@ -243,7 +246,7 @@ export const adapter: DataAdapter = {
       return {
         kind: 'order', reference: order.order_no, status: order.status as OrderStatus,
         order_type: order.order_type as 'collection' | 'delivery' | 'table',
-        requested_time: order.requested_time, total: order.total,
+        requested_time: order.requested_time, total: order.total, eta: order.eta,
         created_at: order.created_at, updated_at: order.updated_at,
         items: order.order_items.map((item) => ({ name: item.name, qty: item.qty })),
       };
@@ -281,9 +284,9 @@ export const adapter: DataAdapter = {
     });
   },
 
-  async advanceOrderStatus(id, from, to) {
+  async advanceOrderStatus(id, from, to, eta) {
     await settle();
-    advance('orders', id, from, to);
+    advance('orders', id, from, to, eta === undefined ? {} : { eta });
   },
 
   async advanceBookingStatus(id, from, to) {
@@ -291,5 +294,8 @@ export const adapter: DataAdapter = {
     advance('bookings', id, from, to);
   },
 
-  subscribe: subscribeRecords,
+  subscribe(listener, onLive) {
+    onLive?.(true);
+    return subscribeRecords(listener);
+  },
 };

@@ -347,6 +347,7 @@ const PaidOrder: React.FC<{
       <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
         <div><dt className="text-ink/60">Collection time</dt><dd className="font-display font-bold text-ink">{order.requested_time ? dateTime.format(new Date(order.requested_time)) : 'Not set'}</dd></div>
         <div><dt className="text-ink/60">{unpaid ? 'Total' : 'Paid'}</dt><dd className="font-display font-bold text-ink">{formatMoney(toMinor(order.total))}</dd></div>
+        {order.eta && !cancelled && order.status !== 'completed' && <div className="col-span-2"><dt className="text-ink/60">Kitchen expects it ready</dt><dd className="font-display font-bold text-ink">{checkedTime.format(new Date(order.eta))}</dd></div>}
         <div className="col-span-2"><dt className="text-ink/60">Collect from</dt><dd className="font-display font-bold text-ink">{venue}, {config.venue.address}</dd></div>
       </dl>
       {order.items.length > 0 && (
@@ -439,6 +440,7 @@ const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: bool
       <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
         <div><dt className="text-ink/60">Requested for</dt><dd className="font-display font-bold text-ink">{result.requested_time ? dateTime.format(new Date(result.requested_time)) : 'Not set'}</dd></div>
         <div><dt className="text-ink/60">Total</dt><dd className="font-display font-bold text-ink">{formatMoney(toMinor(result.total))}</dd></div>
+        {result.eta && !cancelled && result.status !== 'completed' && <div className="col-span-2"><dt className="text-ink/60">Kitchen expects it ready</dt><dd className="font-display font-bold text-ink">{checkedTime.format(new Date(result.eta))}</dd></div>}
       </dl>
       {result.items.length > 0 && (
         <ul className="mt-4 rounded-xl bg-paper/70 px-4 py-3 text-sm text-ink/80">

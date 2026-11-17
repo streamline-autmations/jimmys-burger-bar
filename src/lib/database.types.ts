@@ -138,6 +138,7 @@ export type Database = {
           provider_payment_id: string | null
           payment_review_required: boolean
           refund_amount: number
+          eta: string | null
           created_at: string
           customer_id: string | null
           customer_name: string
@@ -162,6 +163,7 @@ export type Database = {
           provider_payment_id?: string | null
           payment_review_required?: boolean
           refund_amount?: number
+          eta?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name: string
@@ -186,6 +188,7 @@ export type Database = {
           provider_payment_id?: string | null
           payment_review_required?: boolean
           refund_amount?: number
+          eta?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string

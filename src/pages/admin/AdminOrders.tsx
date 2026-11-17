@@ -2,11 +2,11 @@ import { useAdminResource } from './useAdminResource';
 import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bike, History, Mail, MapPin, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { Bike, ChefHat, History, Mail, MapPin, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatCartMoney } from '../../lib/cartStore';
 import { toMinor } from '../../core/domain/money';
-import { data as db, type ListView } from '../../core/data';
+import { ConflictError, data as db, type ListView } from '../../core/data';
 import { useIsDesktop } from '../../lib/useDesktop';
 import { formatDayTime, isActionable, isClosed, titleCase } from './adminUtils';
 import { AdminEmpty, AdminError, AdminSkeleton } from './AdminStates';
@@ -245,8 +245,11 @@ export const AdminOrders: React.FC = () => {
       setOrders((current) => current.map((item) => (item.id === order.id ? { ...item, status: next } : item)));
       setSaved({ id: order.id, status: next, at: new Date() });
       await fetchOrders();
-    } catch {
-      setUpdateErrors((current) => ({ ...current, [order.id]: 'Could not verify this change. Refresh before trying again; another staff member may have updated it.' }));
+    } catch (failure) {
+      setUpdateErrors((current) => ({ ...current, [order.id]: failure instanceof ConflictError
+        ? 'Another screen already moved this order on. Nothing was changed here; it now shows where it is.'
+        : 'Could not save this change. Check the connection, then try again.' }));
+      void fetchOrders();
     } finally {
       mutation.current = false;
       setSaving(null);
@@ -354,7 +357,13 @@ export const AdminOrders: React.FC = () => {
         queue={
           <>
             <AdminPageHeader title="Orders" count={summary}>
+              <div className="flex flex-wrap items-center gap-3">
+              <Link to="/admin/kitchen" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-3.5 font-bold text-surface hover:bg-primary/90">
+                <ChefHat size={16} aria-hidden="true" />
+                Kitchen screen
+              </Link>
               <AdminRefresh compact className="" disabled={saving !== null} loading={loading} updatedAt={updatedAt} onRefresh={() => void fetchOrders()} />
+              </div>
             </AdminPageHeader>
 
             <QueueToolbar

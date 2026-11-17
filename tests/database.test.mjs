@@ -209,6 +209,45 @@ test('a guest can check a request with the reference and their own contact only'
   assert.ok(!('email' in (await lookup('lookup@example.com'))), 'returns no contact details');
 });
 
+test('only staff can accept an order with an ETA, once, and the guest sees it', async () => {
+  const o = order({ email: 'eta@example.com' });
+  const { id } = (await createOrder(o)).rows[0];
+  const eta = tomorrowAt('18:20');
+  const accept = (userId) => asRole(db, 'authenticated', async () =>
+    (await db.query(`update public.orders set status = 'accepted', eta = $2 where id = $1 and status = 'new' returning id`, [id, eta])).rows.length,
+  { userId });
+  assert.equal(await accept(STRANGER_ID), 0, 'a signed-in non-staff user moves nothing');
+  await db.exec('begin');
+  try {
+    await db.query(`select set_config('request.jwt.claim.sub', $1, true)`, [STAFF_ID]);
+    await db.exec('set local role authenticated');
+    const first = await db.query(`update public.orders set status = 'accepted', eta = $2 where id = $1 and status = 'new' returning id`, [id, eta]);
+    const second = await db.query(`update public.orders set status = 'accepted', eta = now() where id = $1 and status = 'new' returning id`, [id]);
+    assert.equal(first.rows.length, 1);
+    assert.equal(second.rows.length, 0, 'the second screen loses the compare-and-set');
+    await db.exec('set local role anon');
+    const seen = (await one(`select public.lookup_request($1, $2) r`, [o.ref, o.email])).r;
+    assert.equal(new Date(seen.eta).toISOString(), eta);
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
+test('a failing or timed-out live signal never loses the order', async () => {
+  await db.exec('begin');
+  try {
+    // Stand-in for Supabase's realtime.send, failing the way a statement timeout does.
+    await db.exec(`create schema realtime;
+      create function realtime.send(jsonb, text, text, boolean) returns void language plpgsql as $$
+      begin raise exception using errcode = 'query_canceled'; end $$;`);
+    const placed = (await createOrder(order({ email: 'signal@example.com' }))).rows[0];
+    assert.ok(placed.id, 'the order is saved');
+    await db.query(`update public.orders set status = 'accepted' where id = $1`, [placed.id]);
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
 test('booking spam from one contact is throttled', async () => {
   await asRole(db, 'anon', async () => {
     const insert = () => db.query(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time)

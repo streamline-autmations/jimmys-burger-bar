@@ -61,8 +61,19 @@ If you tapped **Block** by mistake, the button disappears and the screen keeps u
 chime only. To undo it: Chrome menu ⋮ → *Settings → Site settings → Notifications*, find
 the site, set it to **Allow**, then reopen the kitchen screen and tap the button again.
 
+If it says **"This account is not on the staff list"**, the phone is signed in with a
+personal login. Log out and sign in with the chef's staff login. Any other failure ends
+with a code such as "(Code: AbortError)". Read that code out when asking for help.
+
+Installing the kitchen as an app does not change the alerts. The app and Chrome share
+one sign-up, so there is no need to switch it on twice. Check that the button still says
+**on** after installing.
+
 To stop alerts on a phone (it changed hands, say), tap **Lock-screen alerts on** once. It
 switches off for that phone only.
+
+Proven on staging, 2026-11-17: Android 10 phone, Chrome 157, chef login. The alert left the
+server 0.6 seconds after a sandbox payment and Google's push service accepted it.
 
 ## Start of every shift
 

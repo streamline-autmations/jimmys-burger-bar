@@ -1,3 +1,7 @@
+// A fictional fixture must never become a hosted tenant.
+if (process.env.VERCEL && process.env.VITE_TENANT === 'rehearsal-grill') {
+  throw new Error('Fictional rehearsal tenant is local-only');
+}
 // Runs after every build. Fails the build if demo code reached a restaurant's
 // production output, or if a demo build could reach a real database.
 //

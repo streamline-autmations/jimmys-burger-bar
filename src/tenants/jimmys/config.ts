@@ -210,6 +210,7 @@ export const jimmys = defineRestaurant({
   // ---- Food menu ----------------------------------------------------------
   // Jimmy's real in-store menu, straight off their printed menu boards.
   menu: {
+    extrasNote: 'Kitchen extras: bacon R17, egg R15, cheese R10, extra patty R28.',
     categories: [
       {
         name: "Breakfast",

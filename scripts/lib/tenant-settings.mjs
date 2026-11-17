@@ -32,6 +32,14 @@ export function dailyCronUtc(localTime, timeZone, year = new Date().getUTCFullYe
   };
 }
 
+export function paymentSecretNames(infra) {
+  const names = infra.payfastSecretNames;
+  if (!names || ['merchant_id', 'merchant_key', 'passphrase', 'mode'].some(key => !/^[A-Z][A-Z0-9_]+$/.test(names[key] ?? ''))) {
+    throw new Error('payfastSecretNames must supply four environment variable NAMES');
+  }
+  return names;
+}
+
 export function validateTenant(infra, config) {
   const problems = [];
   if (infra.slug !== config.slug) problems.push(`supabase/tenants/${infra.slug}.json slug does not match the site config slug "${config.slug}"`);
@@ -57,6 +65,10 @@ export function validateTenant(infra, config) {
   const payment = config.ordering?.payment ?? 'on_collection';
   if ((infra.payments?.provider ?? 'on_collection') !== payment) problems.push('ordering.payment disagrees with infrastructure payments.provider');
   if (infra.payments && (!['sandbox', 'live'].includes(infra.payments.mode) || !/^https:\/\/[^/?#]+$/.test(infra.payments.siteUrl ?? ''))) problems.push('payments needs mode sandbox/live and an HTTPS site origin');
+  if (infra.payfastSecretNames) {
+    try { paymentSecretNames(infra); } catch (error) { problems.push(error.message); }
+  }
+  if (infra.kitchen && JSON.stringify(infra.kitchen.escalation) !== JSON.stringify(config.ordering?.escalation)) problems.push('kitchen.escalation disagrees with ordering.escalation');
   return problems;
 }
 
@@ -111,6 +123,8 @@ export function settingsSql(infra, config) {
     ['webhook.review', infra.webhooks.review, 'n8n webhook for review request emails'],
     ['trading_hours', hours.json, 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'],
   ];
+  if (infra.kitchen) rows.push(['kitchen.escalation', JSON.stringify(infra.kitchen.escalation), 'Tenant kitchen escalation contact']);
+  if (infra.payfastSecretNames) rows.push(['payments.secret_names', JSON.stringify(paymentSecretNames(infra)), 'Environment variable names only, never credentials']);
   if (infra.payments) rows.push(
     ['payments.provider', infra.payments.provider, 'Hosted payment provider'],
     ['payments.mode', infra.payments.mode, 'Must match Edge Function PAYFAST_MODE'],

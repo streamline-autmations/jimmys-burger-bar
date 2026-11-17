@@ -108,6 +108,7 @@ export function checkTenant(slug) {
     problems.push(`${infraFile} does not exist`);
   } else {
     const infra = JSON.parse(fs.readFileSync(infraFile, 'utf8'));
+    if (infra.rehearsal) warnings.push('FICTIONAL LOCAL REHEARSAL: project ref is synthetic; this is not deployment approval');
     problems.push(...validateTenant(infra, config).map((problem) => `${infraFile}: ${problem}`));
     for (const kind of ['order', 'booking', 'review']) {
       if (infra.webhooks?.[kind] === null) warnings.push(`${kind} notifications are switched off (webhooks.${kind} is null)`);

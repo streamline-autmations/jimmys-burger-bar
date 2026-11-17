@@ -364,9 +364,9 @@ export const FoodDrinks: React.FC = () => {
           ))}
         </div>
 
-        {board === 'food' && (
+        {board === 'food' && config.menu.extrasNote && (
           <p className="text-center text-ink/45 text-sm mt-6">
-            Kitchen extras: bacon R17, egg R15, cheese R10, extra patty R28.
+            {config.menu.extrasNote}
           </p>
         )}
       </div>

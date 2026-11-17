@@ -110,6 +110,66 @@
     },
     "$comment": {
       "type": "string"
+    },
+    "rehearsal": {
+      "type": "boolean"
+    },
+    "kitchen": {
+      "type": "object",
+      "required": [
+        "escalation"
+      ],
+      "properties": {
+        "escalation": {
+          "type": "object",
+          "required": [
+            "afterMinutes",
+            "name"
+          ],
+          "properties": {
+            "afterMinutes": {
+              "type": "number",
+              "minimum": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "payfastSecretNames": {
+      "type": "object",
+      "required": [
+        "merchant_id",
+        "merchant_key",
+        "passphrase",
+        "mode"
+      ],
+      "properties": {
+        "merchant_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "merchant_key": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "passphrase": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "mode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

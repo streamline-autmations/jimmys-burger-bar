@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { load, loadWithEnv } from '../scripts/lib/load-ts.mjs';
 import { checkTenant, SECTION_ASSETS } from '../scripts/lib/check-tenant.mjs';
-import { dailyCronUtc, validateTenant } from '../scripts/lib/tenant-settings.mjs';
+import { dailyCronUtc, validateTenant, settingsSql, paymentSecretNames } from '../scripts/lib/tenant-settings.mjs';
 
 // This workspace's process sandbox suppresses piped output when a spawned
 // process exits non-zero. Capture it in a uniquely named temporary file and
@@ -122,7 +122,7 @@ test('no shared component hardcodes a restaurant name', () => {
         // Blank out block comments (keeping line breaks so line numbers hold), then line comments.
         const code = fs.readFileSync(full, 'utf8').replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '));
         code.split('\n').forEach((line, index) => {
-          if (/Jimmy|Meyerton|Loch Street/.test(line.replace(/\/\/.*$/, ''))) offenders.push(`${full}:${index + 1}`);
+          if (/Jimmy|Meyerton|Loch Street|Rehearsal Grill/.test(line.replace(/\/\/.*$/, ''))) offenders.push(`${full}:${index + 1}`);
         });
       }
     }
@@ -193,5 +193,46 @@ test('Vercel build guards: browser key must be publishable or an anon JWT for th
     const result = checkBuild({ ...base, VITE_SUPABASE_PUBLISHABLE_KEY: key });
     assert.notEqual(result.status, 0, key);
     assert.match(result.stderr, message, key);
+  }
+});
+
+
+test('rehearsal settings, secret names and kitchen contacts are tenant isolated', () => {
+  const read = slug => JSON.parse(fs.readFileSync(`supabase/tenants/${slug}.json`, 'utf8'));
+  const rehearsal = read('rehearsal-grill');
+  const staging = read('jimmys-staging');
+  const { rehearsalGrill: config } = load('src/tenants/rehearsal-grill/config.ts');
+  assert.notEqual(rehearsal.supabaseProjectRef, staging.supabaseProjectRef);
+  assert.notEqual(rehearsal.vercelProject, staging.vercelProject);
+  assert.equal(rehearsal.payments, null);
+  assert.equal(staging.payments.provider, 'payfast');
+  assert.deepEqual(rehearsal.webhooks, { order: null, booking: null, review: null });
+  assert.equal(rehearsal.kitchen.escalation.phone, config.ordering.escalation.phone);
+  for (const key of Object.keys(paymentSecretNames(rehearsal))) {
+    assert.notEqual(paymentSecretNames(rehearsal)[key], paymentSecretNames(staging)[key]);
+    const environment = { [paymentSecretNames(rehearsal)[key]]: 'fictional-a', [paymentSecretNames(staging)[key]]: 'fictional-b' };
+    assert.equal(environment[paymentSecretNames(rehearsal)[key]], 'fictional-a');
+    assert.equal(environment[paymentSecretNames(staging)[key]], 'fictional-b');
+  }
+  const sql = settingsSql(rehearsal, config);
+  assert.ok(!sql.includes(staging.supabaseProjectRef));
+  assert.ok(!sql.includes('jimmys'));
+  assert.match(sql, /delete from public.app_settings where key in \('webhook.order'/);
+  const changed = structuredClone(rehearsal);
+  changed.webhooks.order = 'https://n8n.example.com/webhook/rehearsal-order';
+  assert.match(settingsSql(changed, config), /rehearsal-order/);
+  assert.equal(staging.webhooks.order, null);
+  assert.equal(rehearsal.webhooks.order, null);
+  assert.throws(() => paymentSecretNames({ payfastSecretNames: { mode: 'secret value' } }));
+  assert.match(fs.readFileSync('supabase/functions/payfast/index.ts', 'utf8'), /secret\('merchant_key'\)/);
+});
+
+test('shared menu and PDF cannot inherit another restaurant extras prices', () => {
+  const { rehearsalGrill } = load('src/tenants/rehearsal-grill/config.ts');
+  assert.equal(rehearsalGrill.menu.extrasNote, undefined);
+  for (const file of ['src/pages/FoodDrinks.tsx', 'src/lib/generateMenuPdf.ts']) {
+    const source = fs.readFileSync(file, 'utf8');
+    assert.ok(!source.includes('bacon R17'));
+    assert.match(source, /config.menu.extrasNote/);
   }
 });

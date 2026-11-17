@@ -116,7 +116,7 @@ export function generateMenuPdf() {
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(9.5);
   doc.setTextColor(...accent);
-  doc.text('Kitchen extras: bacon R17, egg R15, cheese R10, extra patty R28.', margin, y);
+  if (config.menu.extrasNote) doc.text(config.menu.extrasNote, margin, y);
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {

@@ -7,12 +7,14 @@
 
 import { jimmys } from './tenants/jimmys/config';
 import { config as jimmysStaging } from './tenants/jimmys-staging/config';
+import { rehearsalGrill } from './tenants/rehearsal-grill/config';
 // new-tenant:import (scripts/new-tenant.mjs adds imports above this line)
 import type { RestaurantConfig } from './core/config/types';
 
 const tenants: Record<string, RestaurantConfig> = {
   jimmys,
   'jimmys-staging': jimmysStaging,
+  'rehearsal-grill': rehearsalGrill,
   // new-tenant:register (scripts/new-tenant.mjs adds entries above this line)
 };
 

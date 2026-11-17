@@ -196,7 +196,7 @@ export interface RestaurantConfig {
     fridays: Special[];
     event: { title: string; schedule: string; description: string; image: string };
   };
-  menu: { categories: MenuCategory[]; featured: MenuItem[] };
+  menu: { categories: MenuCategory[]; featured: MenuItem[]; extrasNote?: string };
   drinks: { intro: string; categories: MenuCategory[] };
   testimonials: Testimonial[];
   pages: PagesConfig;

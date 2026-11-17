@@ -13,18 +13,25 @@ Deno.serve(async (request: Request) => {
   try {
     const base = env('SUPABASE_URL');
     if (new URL(base).hostname !== `${STAGING}.supabase.co`) throw Error('STAGING_ONLY');
-    const mode = env('PAYFAST_MODE');
-    if (mode !== 'sandbox') throw Error('SANDBOX_ONLY');
-    const merchantId = env('PAYFAST_MERCHANT_ID');
-    const passphrase = env('PAYFAST_PASSPHRASE');
     const db = createClient(base, env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: settings, error: settingsError } = await db.from('app_settings').select('key,value').in('key', ['payments.provider','payments.mode','payments.restaurant','payments.site_url']);
+    const { data: settings, error: settingsError } = await db.from('app_settings').select('key,value').in('key', ['payments.provider','payments.mode','payments.restaurant','payments.site_url','payments.secret_names']);
     if (settingsError) throw Error('DATABASE_UNAVAILABLE');
     const settingsMap = Object.fromEntries((settings ?? []).map(({key,value}) => [key,value]));
+    const names = settingsMap['payments.secret_names'] ? JSON.parse(settingsMap['payments.secret_names']) : {
+      mode: 'PAYFAST_MODE', merchant_id: 'PAYFAST_MERCHANT_ID', merchant_key: 'PAYFAST_MERCHANT_KEY', passphrase: 'PAYFAST_PASSPHRASE',
+    };
+    const secret = (key: string) => {
+      if (!/^[A-Z][A-Z0-9_]+$/.test(names[key] ?? '')) throw Error('SERVER_CONFIGURATION');
+      return env(names[key]);
+    };
+    const mode = secret('mode');
+    if (mode !== 'sandbox') throw Error('SANDBOX_ONLY');
+    const merchantId = secret('merchant_id');
+    const passphrase = secret('passphrase');
     const url = new URL(request.url);
     route = url.pathname.split('/').pop();
     if (route === 'checkout') {
-      const site = new URL(settingsMap['payments.site_url']);
+      const site = new URL(settingsMap['payments.site_url','payments.secret_names']);
       if (site.protocol !== 'https:' || site.hostname.endsWith('.invalid') || site.origin !== settingsMap['payments.site_url']) throw Error('SERVER_CONFIGURATION');
       origin = site.origin;
       if (request.headers.get('origin') !== origin) return json({error:'BAD_ORIGIN'},403);
@@ -45,7 +52,7 @@ Deno.serve(async (request: Request) => {
       const {data,error} = await db.rpc('begin_payment', {p_reference:input.reference,p_contact:input.contact,p_restaurant:input.restaurant,p_mode:mode});
       if (error) throw Error(error.message.match(/PAYMENT_[A-Z_]+|PAYMENTS_DISABLED|ORDERING_PAUSED/)?.[0] ?? 'DATABASE_UNAVAILABLE');
       const fields: Record<string,string> = {
-        merchant_id:merchantId, merchant_key:env('PAYFAST_MERCHANT_KEY'),
+        merchant_id:merchantId, merchant_key:secret('merchant_key'),
         // Payfast adds nothing to these, so the page it returns to must be told which order.
         return_url:`${origin}/track?ref=${encodeURIComponent(data.reference)}&pay=return`, cancel_url:`${origin}/track?ref=${encodeURIComponent(data.reference)}&pay=cancelled`,
         notify_url:`${base}/functions/v1/payfast/itn`,

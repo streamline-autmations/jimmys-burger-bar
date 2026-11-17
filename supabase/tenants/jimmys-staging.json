@@ -16,5 +16,11 @@
     "provider": "payfast",
     "mode": "sandbox",
     "siteUrl": "https://jimmys-staging.vercel.app"
+  },
+  "payfastSecretNames": {
+    "merchant_id": "PAYFAST_MERCHANT_ID",
+    "merchant_key": "PAYFAST_MERCHANT_KEY",
+    "passphrase": "PAYFAST_PASSPHRASE",
+    "mode": "PAYFAST_MODE"
   }
 }

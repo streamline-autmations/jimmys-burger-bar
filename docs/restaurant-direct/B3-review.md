@@ -1,0 +1,7 @@
+One verified defect:
+
+- **P2 — Signature encoding differs from Payfast’s required encoding.** [supabase/functions/payfast/verification.mjs:7](/mnt/c/Users/chris/Desktop/Streamline/jimmys-burger-bar/supabase/functions/payfast/verification.mjs:7) leaves `~` unescaped, whereas PHP `urlencode` encodes it as `%7E`. A configured passphrase containing `~` therefore produces incorrect checkout signatures and rejects correctly signed ITNs with `BAD_SIGNATURE`. Reproduced locally using a fictional passphrase. Line 10 also trims ITN values, contrary to Payfast’s notification-signing example, causing another mismatch when posted values contain surrounding whitespace. Use PHP-compatible encoding and preserve ITN values. Sources: [Payfast signature specification](https://developers.payfast.co.za/documentation/), [PHP encoding rules](https://www.php.net/manual/en/function.urlencode.php).
+
+No verified forgery bypass, double fulfilment, expired-payment activation, client-price trust, unauthorized payment access, secret exposure or flag-off regression survived review.
+
+`node --test tests/payments.test.mjs` passed. Gateway header trust and a real sandbox round trip remain unverified. No files changed.

@@ -122,6 +122,8 @@ const entries=[...fixture,['signature',fixtureSignature]];
 const options={passphrase:'fixture salt',merchantId:'test-merchant',reference:'JB-TEST-1',amount:'100.00',sourceIp:'192.0.2.1',allowedIps:['192.0.2.1']};
 test('ITN fixture signature, field order, plus encoding and exact cents pass',()=>{
  assert.equal(parameterString(fixture),fixtureString);assert.equal(sign(fixture,options.passphrase),fixtureSignature);
+ // PHP urlencode escapes ~, and ITN values are signed untrimmed (checkout values are trimmed).
+ assert.equal(parameterString([['a',' b~ ']]),'a=+b%7E+');assert.equal(parameterString([['a',' b~ ']],true),'a=b%7E');
  assert.equal(verifyItn(parseItn(new URLSearchParams(entries).toString()),options).payment_status,'COMPLETE');
 });
 for(const [name,changed,opts,pattern] of [

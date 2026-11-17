@@ -967,7 +967,7 @@ const CartPanel: React.FC<{
       <p className="text-ink/45 text-sm py-6 text-center">Add something from the menu to get started.</p>
     ) : (
       <>
-        <div className="space-y-3 mb-5 max-h-[280px] overflow-y-auto pr-1">
+        <div className="space-y-3 mb-4 max-h-[280px] overflow-y-auto pr-1 pb-1">
           {lines.map((line) => (
             <div key={line.name} className="flex items-baseline gap-2 text-sm">
               <span className="font-display font-bold text-ink shrink-0">{line.qty}x</span>

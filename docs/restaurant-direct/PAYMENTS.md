@@ -1,8 +1,25 @@
 # Collection payment API, staging Slice 1
 
-Implementation is local only. No migrations, seeds, functions, infrastructure or secrets
-have been applied remotely. PHASE0 section 4 governs architecture. The backend scope in
-the implementation brief adds pause and a report; UI work in Slice 1 is deferred.
+**Staging status, 2026-11-17.** Applied to the staging project `cagcpwlzqpolojpgewtw` only:
+all five migrations, `settings.jimmys-staging.sql`, `menu.jimmys-staging.sql`, and the
+`payfast` function (version 4). The site is at https://jimmys-staging.vercel.app (noindex).
+It does not deploy on push: redeploy the branch to the `jimmys-staging` Vercel project by hand.
+Nothing here has touched production. PHASE0 section 4 governs architecture.
+
+Proven on staging: order saved, signed checkout fields issued, hand-off to the Payfast
+sandbox, and every refusal (closed hours, sold out, paused, tampered price, repeated
+submit, forged notification). **Not yet proven: a real Payfast notification.** The sandbox
+refused the hand-off because the stored `PAYFAST_MERCHANT_ID` is not an 8-digit ID. The
+paid, failed and late-payment paths were exercised by calling `mark_order_paid` in SQL,
+which is the database half only. Until a sandbox payment completes, the notification
+source check (sender address is one Payfast's hosts resolve to) is untested against a
+real sender.
+
+Found by running on the real runtime, fixed in this branch: `Buffer` is not a global in
+the Edge runtime, so every notification crashed with a 503 (Node tests could not see it);
+the gateway sends `x-forwarded-for` as "sender, sender, edge", so the single-address check
+refused everyone; `~` was not escaped and notification values were trimmed in the
+signature string (Codex review, `B3-review.md`).
 
 One Edge Function `payfast`, gateway JWT verification off (`supabase/config.toml`).
 It refuses all projects except `cagcpwlzqpolojpgewtw` and all modes except sandbox.
@@ -80,28 +97,23 @@ an owner/manager. Pending/confirmed events preserve partial amounts, actor and t
 retries are no-ops, changed amounts are refused, sums cannot exceed the order total.
 No UI or automatic refund API is provided.
 
-Before staging deploy: replace the intentional `https://jimmys-staging.invalid` origin
-in staging infrastructure with the actual isolated staging origin and regenerate only
-staging SQL; the handler deliberately refuses `.invalid`. Validate that Supabase's
-gateway overwrites x-forwarded-for with one trustworthy sender IP. Lists, missing
-headers and DNS failures fail closed. If the gateway provides a chain, establish a
-trusted-proxy extraction rule before changing this check. Exercise the deployed Deno
-runtime's DNS and outbound TLS in a real sandbox ITN. Nothing in this branch proves
-that gateway configuration or a real sandbox round trip.
+Sender address rule (measured on staging 2026-11-17 with spoofed requests): the gateway
+discards a client-supplied `x-forwarded-for` and sends "sender, sender, edge"; Cloudflare
+sets `cf-connecting-ip` and rejects requests that supply one. The function trusts the
+first forwarded address only when it equals `cf-connecting-ip`. Anything else, a missing
+header or a DNS failure fails closed. Re-measure before reusing this on another host.
 
-Then, in a separately authorised staging step, apply migrations to the empty staging
-project, apply staging menu/settings, set Function secrets by name, deploy the function,
-create test staff, configure staging hosting and rehearse payment/expiry/refund on two
-devices. Staging webhooks/review emails are off. Do not change n8n. Never apply
-20260915130000_harden_public_writes.sql or settings.jimmys.sql to production under this task.
-No live enablement or production deploy is authorised. No checkout UI is included.
+Still to do on staging: correct the merchant ID secret, complete one sandbox payment and
+read its notification in the function logs, create two staff logins, rehearse
+payment/expiry/refund on two devices. Staging webhooks and review emails are off. Do not
+change n8n. Never apply 20260915130000_harden_public_writes.sql or settings.jimmys.sql to
+production under this task. No live enablement or production deploy is authorised.
 
-Local verification: `npm run check`, `npm test` (108 tests), `npm run build`,
+Local verification: `npm run check`, `npm test` (111 tests), `npm run build`,
 `npm run db:fingerprint`, and `deno check supabase/functions/payfast/index.ts`.
 Payment tests cover paid once, duplicate/out-of-order ITNs, changed totals, expiry,
 explicit cancellation, provider-ID reuse, repeated checkout, pause (including settings
 regeneration), partial/full refunds, access controls and flag-off compatibility without
 the gated migration. Fixture tests cover signature/encoding/order, source, merchant,
-reference, exact amount and server confirmation failures. The existing order screen
-was visually checked from the production build at 1440 and 390 pixels with Supabase
-requests blocked. No UI or styling files were changed.
+reference, exact amount and server confirmation failures. Home, menu, cart, checkout,
+return and tracking were checked on staging at 1440, 768 and 390 pixels on 2026-11-17.

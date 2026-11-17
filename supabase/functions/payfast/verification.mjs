@@ -1,13 +1,15 @@
 // Payfast Custom Integration steps 2 and 4, retrieved 2026-11-16:
 // https://developers.payfast.co.za/docs#step_4_confirm_payment
+import { Buffer } from 'node:buffer'; // not a global in the Edge runtime
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 export const validHosts = ['www.payfast.co.za', 'w1w.payfast.co.za', 'w2w.payfast.co.za', 'sandbox.payfast.co.za'];
-// PHP urlencode: uppercase hex, spaces as +, including ! ' ( ) * encoding.
-const encode = (s) => encodeURIComponent(s).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase()).replace(/%20/g, '+');
+// PHP urlencode: uppercase hex, spaces as +, including ! ' ( ) * ~ encoding.
+const encode = (s) => encodeURIComponent(s).replace(/[!'()*~]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase()).replace(/%20/g, '+');
+// Payfast trims checkout values before signing but signs ITN values exactly as posted.
 export function parameterString(entries, checkout = false) {
   return entries.filter(([k, v]) => k !== 'signature' && (!checkout || v.trim() !== ''))
-    .map(([k, v]) => `${k}=${encode(v.trim())}`).join('&');
+    .map(([k, v]) => `${k}=${encode(checkout ? v.trim() : v)}`).join('&');
 }
 export function sign(entries, passphrase, checkout = false) {
   return createHash('md5').update(parameterString(entries, checkout) + '&passphrase=' + encode(passphrase.trim())).digest('hex');

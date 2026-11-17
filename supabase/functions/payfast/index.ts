@@ -58,10 +58,13 @@ Deno.serve(async (request: Request) => {
     if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')) throw Error('INVALID_PAYLOAD');
     const entries = parseItn(body);
     const fields = Object.fromEntries(entries);
-    // Gateway must overwrite x-forwarded-for. Reject lists rather than trusting
-    // an attacker-controlled first hop. Verify gateway behaviour before deploy.
-    const sourceIp = request.headers.get('x-forwarded-for')?.trim() ?? '';
-    note = `forwarded hops ${sourceIp ? sourceIp.split(',').length : 0}`;
+    // Measured on staging 2026-11-17: the gateway discards a client-supplied
+    // x-forwarded-for and sends "sender, sender, edge", and Cloudflare sets
+    // cf-connecting-ip itself (it refuses requests that supply one). The sender is
+    // trusted only when both agree; anything else fails closed as BAD_SOURCE.
+    const forwarded = (request.headers.get('x-forwarded-for') ?? '').split(',').map((hop) => hop.trim());
+    const sourceIp = forwarded[0] && forwarded[0] === request.headers.get('cf-connecting-ip') ? forwarded[0] : '';
+    note = `forwarded hops ${forwarded.length}`;
     const ips = (await Promise.all(validHosts.map(host => Deno.resolveDns(host,'A')))).flat();
     const {data:order,error:orderError} = await db.from('orders').select('order_no,total').eq('order_no',fields.m_payment_id ?? '').maybeSingle();
     if (orderError) throw Error('DATABASE_UNAVAILABLE');

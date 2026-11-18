@@ -1,6 +1,7 @@
 import { useAdminResource } from './useAdminResource';
 import { AdminRefresh } from './AdminRefresh';
 import { matchesSearch, nextStatuses } from './operations';
+import { deliveryRun } from '../../core/tenant';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bike, ChefHat, History, Mail, MapPin, Phone, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -32,6 +33,7 @@ const timeLabel = (type: string) =>
   type === 'collection' ? 'Requested collection' : type === 'delivery' ? 'Requested delivery' : 'Requested time';
 
 const PROGRESS = ['new', 'accepted', 'preparing', 'ready', 'completed'] as const;
+const DELIVERY_PROGRESS = ['new', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'completed'] as const;
 
 // One sentence on what the next step means. "Accepted" in particular must not
 // read as paid or ready: nothing in the product takes payment.
@@ -40,6 +42,7 @@ const HINTS: Record<string, string> = {
   accepted: 'Start preparing when the kitchen begins on it.',
   preparing: 'Mark ready once it is packed or plated.',
   ready: 'Complete the order once the guest has it.',
+  out_for_delivery: 'Complete the order once the rider has handed it over.',
 };
 
 const VIEWS = [
@@ -110,17 +113,19 @@ const OrderTicket: React.FC<{ order: OrderWithItems; actions: React.ReactNode; d
           </p>
         ) : (
           <div className="px-4 pt-5 sm:px-5">
-            <ProgressRail steps={PROGRESS} current={order.status} />
+            <ProgressRail steps={order.order_type === 'delivery' ? DELIVERY_PROGRESS : PROGRESS} current={order.status} labels={{ out_for_delivery: 'On the way' }} />
           </div>
         )}
 
-        {order.order_type === 'delivery' && (order.delivery_address || order.delivery_notes) && (
+        {order.order_type === 'delivery' && (order.delivery_address || order.delivery_notes || order.delivery_suburb) && (
           <section className="mx-5 mt-5 rounded-xl bg-paper px-4 py-3 ring-1 ring-ink/10 sm:mx-6">
             <h3 className="flex items-center gap-1.5 text-xs font-bold text-ink/65">
               <MapPin size={14} aria-hidden="true" />
               Deliver to
             </h3>
             {order.delivery_address && <p className="mt-1 font-semibold leading-snug text-ink">{order.delivery_address}</p>}
+            {order.delivery_suburb && <p className="font-semibold leading-snug text-ink">{order.delivery_suburb}</p>}
+            {order.delivery_fee > 0 && <p className="mt-1.5 text-sm text-ink/75">Delivery fee {money(order.delivery_fee)}, included in the total</p>}
             {order.delivery_notes && <p className="mt-1.5 text-sm leading-relaxed text-ink/75">Guest note: {order.delivery_notes}</p>}
           </section>
         )}
@@ -230,7 +235,7 @@ export const AdminOrders: React.FC = () => {
   }, [desktop, updatedAt, selected, filtered, select]);
 
   const updateStatus = async (order: OrderWithItems, next: OrderStatus) => {
-    if (mutation.current || !nextStatuses(order.status).includes(next)) return;
+    if (mutation.current || !nextStatuses(order.status, deliveryRun ? order.order_type : undefined).includes(next)) return;
     mutation.current = true;
     setSaved(null);
     setSaving({ id: order.id, to: next });
@@ -264,6 +269,7 @@ export const AdminOrders: React.FC = () => {
       actions={
         <TicketActions
           status={order.status}
+          orderType={order.order_type}
           cancelLabel="Cancel order"
           describedAs={`Order ${order.order_no} for ${order.customer_name}`}
           disabled={saving !== null || (loading && !updatedAt)}

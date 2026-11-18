@@ -10,6 +10,7 @@ values
   ('trading_hours', '{"weekly":{"0":null,"1":["09:00","20:00"],"2":["09:00","20:00"],"3":["09:00","21:00"],"4":["09:00","21:00"],"5":["09:00","24:00"],"6":["09:00","24:00"]},"exceptions":{}}', 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'),
   ('push.url', 'https://cagcpwlzqpolojpgewtw.supabase.co/functions/v1/kitchen-push', 'kitchen-push Edge Function: lock-screen alerts for paid orders'),
   ('payments.secret_names', '{"merchant_id":"PAYFAST_MERCHANT_ID","merchant_key":"PAYFAST_MERCHANT_KEY","passphrase":"PAYFAST_PASSPHRASE","mode":"PAYFAST_MODE"}', 'Environment variable names only, never credentials'),
+  ('delivery.zone', '{"bands":[{"fee":39,"suburbs":["Meyerton central","Meyerton Park","Riversdale","Kookrus"]},{"fee":49,"suburbs":["Rothdene","Henley on Klip","Daleside"]}],"hours":["11:00","19:30"],"minimum":null}', 'Delivery preview: suburbs, example fees and hours create_delivery_order prices from'),
   ('payments.provider', 'payfast', 'Hosted payment provider'),
   ('payments.mode', 'sandbox', 'Must match Edge Function PAYFAST_MODE'),
   ('payments.restaurant', 'jimmys-staging', 'Expected checkout restaurant'),

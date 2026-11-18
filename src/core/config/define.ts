@@ -82,6 +82,20 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
     problems.push('venue.whatsapp must be digits only, with no plus sign or spaces');
   }
 
+  const delivery = config.ordering?.deliveryPreview;
+  if (config.ordering?.payment === 'payfast' && config.ordering.fulfilment?.includes('delivery') && !delivery) {
+    problems.push('ordering.fulfilment offers delivery with payfast, so ordering.deliveryPreview must say where and at what fee');
+  }
+  if (delivery) {
+    const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const suburbs = delivery.bands.flatMap((band) => band.suburbs);
+    if (!delivery.bands.length || delivery.bands.some((band) => !(band.fee >= 0) || !band.suburbs.length)) problems.push('ordering.deliveryPreview.bands each need a fee of 0 or more and at least one suburb');
+    if (new Set(suburbs).size !== suburbs.length) problems.push('ordering.deliveryPreview lists a suburb in more than one band');
+    if (!hhmm.test(delivery.hours.from) || !hhmm.test(delivery.hours.until) || delivery.hours.from >= delivery.hours.until) problems.push('ordering.deliveryPreview.hours must be "HH:MM" with from before until');
+    if (!delivery.feeNote.trim()) problems.push('ordering.deliveryPreview.feeNote must say the fees are examples');
+    if (!/^\+?[\d ]{9,20}$/.test(delivery.dispatcher.whatsapp)) problems.push('ordering.deliveryPreview.dispatcher.whatsapp must be a phone number');
+  }
+
   const rate = config.reporting?.appCommissionRate;
   if (rate !== undefined && !(typeof rate === 'number' && rate > 0 && rate < 1)) {
     // 25 instead of 0.25 would report commission at 25 times the order value.

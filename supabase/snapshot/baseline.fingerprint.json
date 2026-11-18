@@ -72,12 +72,12 @@
   {
     "kind": "column_grant",
     "name": "orders anon",
-    "fingerprint": "3278f3f4114dea655feecbc2e225f2c3"
+    "fingerprint": "60e53b6ac5a61bb5b9b0902c88b672d8"
   },
   {
     "kind": "column_grant",
     "name": "orders authenticated",
-    "fingerprint": "04cb3e1b5e70a63930991b7c77d68903"
+    "fingerprint": "371e9b47e2b5270d80ac41c554e0873d"
   },
   {
     "kind": "column_grant",
@@ -122,7 +122,7 @@
   {
     "kind": "function",
     "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text)",
-    "fingerprint": "2d4e4be9e2667547591795e5dd8d22ee"
+    "fingerprint": "40efb895f5c6ccbcdabb02cc13222d52"
   },
   {
     "kind": "function",
@@ -132,12 +132,22 @@
   {
     "kind": "function",
     "name": "collection_commission_report()",
-    "fingerprint": "67526a114695f780c0e004de53be604a"
+    "fingerprint": "310b23d2beb814358da016bee3d42dce"
+  },
+  {
+    "kind": "function",
+    "name": "create_delivery_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb, p_delivery_suburb text)",
+    "fingerprint": "b86a5125f192ce4b45f462657d126b87"
   },
   {
     "kind": "function",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb)",
     "fingerprint": "94973d5bf79cd593b0210a48e1a06a7d"
+  },
+  {
+    "kind": "function",
+    "name": "delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric)",
+    "fingerprint": "ba6abb8b76617dcaa0c180000a55668c"
   },
   {
     "kind": "function",
@@ -147,7 +157,7 @@
   {
     "kind": "function",
     "name": "enforce_order_status_transition()",
-    "fingerprint": "d3373bcf1e38226138d1a32f3a079869"
+    "fingerprint": "4d1db4ceb1b51c86b92124bec46255a2"
   },
   {
     "kind": "function",
@@ -162,7 +172,7 @@
   {
     "kind": "function",
     "name": "guard_payment_update()",
-    "fingerprint": "854dc5a47ee8c033bfbd98626e7c61c7"
+    "fingerprint": "9d339714ee2cd0dc4ae7da0495c409f1"
   },
   {
     "kind": "function",
@@ -177,7 +187,12 @@
   {
     "kind": "function",
     "name": "lookup_request(p_reference text, p_contact text)",
-    "fingerprint": "f17f5cb3e832813946ea3af06fa4fc16"
+    "fingerprint": "e1df84efcba037997c97657b73cea05e"
+  },
+  {
+    "kind": "function",
+    "name": "mark_delivery_failed(p_order_id uuid)",
+    "fingerprint": "bea0faa6fee9335394f593cb0a35d853"
   },
   {
     "kind": "function",
@@ -207,7 +222,7 @@
   {
     "kind": "function",
     "name": "prepare_order_payment()",
-    "fingerprint": "2da176d743c4a9d0c86518020647a6d3"
+    "fingerprint": "e319037fd7dc34a56573e9cd1bcffa81"
   },
   {
     "kind": "function",
@@ -301,6 +316,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "create_delivery_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb, p_delivery_suburb text) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "create_delivery_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb, p_delivery_suburb text) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb) anon",
     "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
@@ -308,6 +333,16 @@
     "kind": "function_exec",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb) authenticated",
     "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
     "kind": "function_exec",
@@ -387,6 +422,16 @@
   {
     "kind": "function_exec",
     "name": "lookup_request(p_reference text, p_contact text) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "mark_delivery_failed(p_order_id uuid) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "mark_delivery_failed(p_order_id uuid) authenticated",
     "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
   {
@@ -662,7 +707,7 @@
   {
     "kind": "table",
     "name": "orders",
-    "fingerprint": "8bdfad08bbf47e6acb5bc7c2e290a119"
+    "fingerprint": "b9dc32cfbf264b58167cc692ef959d53"
   },
   {
     "kind": "table",

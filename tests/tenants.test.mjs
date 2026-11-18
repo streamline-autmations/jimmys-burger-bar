@@ -227,6 +227,22 @@ test('rehearsal settings, secret names and kitchen contacts are tenant isolated'
   assert.match(fs.readFileSync('supabase/functions/payfast/index.ts', 'utf8'), /secret\('merchant_key'\)/);
 });
 
+// No test runs the Deno handler, so a comma expression such as
+// settingsMap['payments.site_url','payments.secret_names'] once shipped and broke every checkout.
+test('payfast handler reads each setting by a single key', () => {
+  const source = fs.readFileSync('supabase/functions/payfast/index.ts', 'utf8');
+  assert.doesNotMatch(source, /settingsMap\[[^\]]*,[^\]]*\]/);
+});
+
+// The live database refuses ready -> out_for_delivery, so a live delivery must still close as completed.
+test('the rider step exists only on a pay-first tenant with a delivery preview', () => {
+  const ops = load('src/pages/admin/operations.ts');
+  assert.equal(loadWithEnv('src/core/tenant.ts', { VITE_TENANT: 'jimmys' }).deliveryRun, false);
+  assert.equal(loadWithEnv('src/core/tenant.ts', { VITE_TENANT: 'jimmys-staging' }).deliveryRun, true);
+  assert.deepEqual(ops.nextStatuses('ready'), ['completed', 'cancelled']);
+  assert.deepEqual(ops.nextStatuses('ready', 'delivery'), ['out_for_delivery', 'cancelled']);
+});
+
 test('shared menu and PDF cannot inherit another restaurant extras prices', () => {
   const { rehearsalGrill } = load('src/tenants/rehearsal-grill/config.ts');
   assert.equal(rehearsalGrill.menu.extrasNote, undefined);

@@ -84,12 +84,29 @@ ordering.payment is payfast. A server trigger blocks fulfilment of unpaid orders
 even if a client bypasses the queue. Realtime only signals a re-read; polling stays.
 Flag-off queries never name new columns, allowing the existing production schema.
 
-Staff-only `collection_commission_report()` returns completed collection orders:
-reference, restaurant-local month, food_subtotal, delivery (zero), confirmed refunds,
+Staff-only `collection_commission_report()` returns completed collection (and, since the
+delivery preview, delivery) orders: reference, restaurant-local month, food_subtotal,
+delivery (the fee, zero for collection), confirmed refunds,
 payment/fulfilment state and commission_base. Base is food total less confirmed
 refunds, floored at zero. Cancelled orders are excluded and fully refunded rows have
 zero base. No rate, minimum invoice or VAT adjustment is assumed. This is reconciliation
 input pending commercial approval, not an approved invoice calculation.
+
+**Delivery preview (staging only, migration `20261117150000_delivery_preview.sql`).** A
+tenant with `ordering.deliveryPreview` gets a generated `delivery.zone` setting (suburbs
+per fee band, delivery hours, optional minimum). Guests order through
+`create_delivery_order`, which passes the suburb to the unchanged `create_order`; the
+payment trigger refuses an unlisted suburb (DELIVERY_OUT_OF_ZONE), a time outside
+delivery hours (DELIVERY_CLOSED) or a small order (DELIVERY_MINIMUM), then stores the
+zone's fee in `orders.delivery_fee` and adds it to `total`. Any fee a client sends is
+overwritten. `begin_payment` re-checks zone and hours (PAYMENT_DELIVERY_*), so Payfast
+charges and the ITN check verifies food + fee with no change of their own. A delivery
+moves ready → `out_for_delivery` → completed (a check constraint keeps that status off
+other orders). A manager's `mark_delivery_failed(order_id)` cancels a paid delivery and
+sets refund_pending with an audit event; the refund itself still goes through the
+dashboard and `record_payment_refund`. The commission report now covers delivery orders,
+with food (`total - delivery_fee`) and `delivery` in separate columns; the base is food
+less confirmed refunds, refunds taken off food first. All fees are examples, to be agreed.
 
 `record_payment_refund(reference, refund_id, amount, confirmed, reviewer)` is service-role
 only, records evidence of a dashboard refund and never sends money. Reviewer must be

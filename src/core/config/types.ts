@@ -153,6 +153,8 @@ export interface DeliveryPreviewConfig {
   minimumOrder?: number;
   /** Who "Send to rider" messages on WhatsApp. Never a real number on a preview. */
   dispatcher: { name: string; whatsapp: string };
+  /** Where to centre street address suggestions (the restaurant). Unset = a plain text field. */
+  addressSearch?: { lat: number; lon: number };
 }
 
 export interface BookingConfig {

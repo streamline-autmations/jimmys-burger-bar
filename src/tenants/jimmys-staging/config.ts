@@ -28,6 +28,8 @@ export const config = defineRestaurant({
       ],
       hours: { from: '11:00', until: '19:30' },
       dispatcher: { name: 'Example rider (test number)', whatsapp: '+27 00 000 0042' },
+      // 57 Loch Street, from the Google Maps link in venue.googleReviews.
+      addressSearch: { lat: -26.5615, lon: 28.0216 },
     },
     // leadMinutes is deliberately unset: Jimmy's has not said how long the kitchen
     // needs (PHASE0 decision 7), so the earliest slot is simply the next quarter hour.

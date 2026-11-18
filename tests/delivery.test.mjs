@@ -182,3 +182,24 @@ test('without the delivery.zone setting a paid delivery is refused as before', a
       [at('12:00'), burger]), /PAYMENT_COLLECTION_ONLY/);
   } finally { await db.exec('rollback'); }
 });
+
+test('address suggestions keep the typed house number and match a listed suburb', async () => {
+  const { load } = await import('../scripts/lib/load-ts.mjs');
+  const a = load('src/lib/addressSearch.ts');
+  assert.deepEqual(a.splitHouseNumber('28 loch'), { number: '28', street: 'loch' });
+  assert.deepEqual(a.splitHouseNumber('12B, Loch St'), { number: '12B', street: 'Loch St' });
+  assert.deepEqual(a.splitHouseNumber('28th Street'), { number: '', street: '28th Street' });
+  const [street, house] = a.toSuggestions([
+    { properties: { type: 'street', name: 'Loch Street', locality: 'Riversdale', city: 'Midvaal Local Municipality', postcode: '1960' } },
+    { properties: { type: 'house', name: 'Shop', street: 'Loch Street', housenumber: '57', district: 'Golf Park' } },
+    { properties: { type: 'street', name: 'Loch Street', locality: 'Riversdale' } },
+    { properties: { type: 'house', name: 'No street here' } },
+  ], '28');
+  assert.equal(street.label, '28 Loch Street, Riversdale');
+  assert.equal(street.detail, 'Midvaal, 1960');
+  assert.equal(house.label, '28 Loch Street, Golf Park', 'the typed number wins over OSM');
+  assert.equal(a.toSuggestions([{ properties: { type: 'house', street: 'Loch Street', housenumber: '57' } }], '')[0].label, '57 Loch Street');
+  assert.equal(a.matchSuburb(street, ['Meyerton Park', 'riversdale']), 'riversdale');
+  assert.equal(a.matchSuburb(house, ['Meyerton Park']), undefined);
+  assert.match(a.searchUrl('loch', { lat: -26.5, lon: 28 }), /layer=house&layer=street/);
+});

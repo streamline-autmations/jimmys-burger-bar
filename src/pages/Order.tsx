@@ -21,6 +21,8 @@ import { collectionSlots, contactFieldErrors, latestTime, openDates, restaurantD
 import { data as db, SubmissionError, type NewOrder, type OrderingState, type RefusalReason, type SubmissionFailure } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 import { FormField } from '../components/forms/FormField';
+import { AddressSearch } from '../components/forms/AddressSearch';
+import { matchSuburb } from '../lib/addressSearch';
 import { ErrorSummary } from '../components/forms/ErrorSummary';
 import { SubmissionNotice, UnconfirmedRequest } from '../components/forms/SubmissionNotice';
 import { useFormErrors } from '../lib/useFormErrors';
@@ -94,6 +96,7 @@ export const Order: React.FC = () => {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [deliverySuburb, setDeliverySuburb] = useState('');
+  const autoSuburb = useRef('');
   // Recomputed every render: at most a week or two of days, and it must notice
   // when today's last slot passes while the page sits open.
   // Pay-first offers quarter-hour slots, so a day with none left is not offered either.
@@ -781,8 +784,25 @@ export const Order: React.FC = () => {
                           </div>
                         ) : (
                           <>
-                            <FormField id={FIELD_IDS.address} label="Street address" required error={form.visible.address}>
-                              {(control) => <input {...control} type="text" autoComplete="address-line1" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="House number and street" className="form-input" />}
+                            <FormField id={FIELD_IDS.address} label="Street address" required error={form.visible.address} hint={DELIVERY.addressSearch ? 'Type your house number and street, then tap the match.' : undefined}>
+                              {(control) => DELIVERY.addressSearch ? (
+                                <AddressSearch
+                                  control={control}
+                                  near={DELIVERY.addressSearch}
+                                  value={deliveryAddress}
+                                  onChange={setDeliveryAddress}
+                                  onBlur={() => form.blur('address')}
+                                  onPick={(picked) => {
+                                    setDeliveryAddress(picked.label);
+                                    const suburb = matchSuburb(picked, DELIVERY.bands.flatMap((zone) => zone.suburbs));
+                                    // Undo a suburb an earlier pick chose, so a new address never keeps the old fee.
+                                    if (suburb) setDeliverySuburb(suburb);
+                                    else if (autoSuburb.current === deliverySuburb) setDeliverySuburb('');
+                                    autoSuburb.current = suburb ?? '';
+                                  }}
+                                  placeholder="House number and street"
+                                />
+                              ) : <input {...control} type="text" autoComplete="address-line1" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="House number and street" className="form-input" />}
                             </FormField>
                             <FormField label="Notes for the rider" required={false}>
                               {(control) => <input {...control} type="text" maxLength={250} value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="form-input" />}

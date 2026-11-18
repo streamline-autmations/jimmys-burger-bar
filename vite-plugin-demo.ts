@@ -34,9 +34,15 @@ export function demoMode(root: string = process.cwd()): Plugin {
     Object.entries(SWAPS).map(([from, to]) => [path.resolve(root, from), path.resolve(root, to)]),
   );
 
+  let serving = false;
+
   return {
     name: 'restaurant-direct:demo-mode',
     enforce: 'pre',
+
+    configResolved(resolved) {
+      serving = resolved.command === 'serve';
+    },
 
     async resolveId(source, importer, options) {
       if (!importer) return null;
@@ -54,7 +60,11 @@ export function demoMode(root: string = process.cwd()): Plugin {
         return swaps.get(file) ?? null;
       }
 
-      if (file.includes(DEMO_DIR)) {
+      // Dev only: Vite resolves Tailwind's content files (all of src, demo
+      // included) to watch them as CSS dependencies without loading them, so
+      // refusing here broke `npm run dev`. load() below still refuses any demo
+      // module the dev server actually serves; a build keeps both checks.
+      if (file.includes(DEMO_DIR) && !serving) {
         this.error(`Demo code imported into a production build: ${path.relative(root, file)} (from ${path.relative(root, importer)}). Demo modules are only reachable with VITE_DEMO=1.`);
       }
       return null;

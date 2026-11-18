@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Facebook, Instagram, Phone, Mail, MapPin, Clock, MessageCircle } from 'lucide-react';
 import { config } from '../config';
 import { hours as schedule, copy } from '../core/tenant';
 import { Logo } from './Logo';
@@ -54,14 +54,18 @@ export const Footer: React.FC = () => {
               <MapPin className="text-secondary mt-0.5 flex-shrink-0" size={18} />
               <span>{config.venue.address}</span>
             </div>
-            <div className="flex items-center gap-3">
+            <a href={`tel:${config.venue.phone.replace(/[^\d+]/g, '')}`} className="flex items-center gap-3 py-1 hover:text-paper transition-colors">
               <Phone className="text-secondary flex-shrink-0" size={18} />
               <span>{config.venue.phone}</span>
-            </div>
-            <div className="flex items-center gap-3">
+            </a>
+            <a href={`https://wa.me/${config.venue.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 py-1 hover:text-paper transition-colors">
+              <MessageCircle className="text-secondary flex-shrink-0" size={18} />
+              <span>WhatsApp us</span>
+            </a>
+            <a href={`mailto:${config.venue.email}`} className="flex items-center gap-3 py-1 hover:text-paper transition-colors break-all">
               <Mail className="text-secondary flex-shrink-0" size={18} />
               <span>{config.venue.email}</span>
-            </div>
+            </a>
             <div className="pt-5 border-t border-paper/15">
               <h4 className="text-paper font-medium mb-3 flex items-center gap-2 text-sm">
                 <Clock size={16} className="text-secondary" />
@@ -80,7 +84,7 @@ export const Footer: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-paper/15 text-center text-sm text-paper/40">
+      <div className="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-paper/15 text-center text-sm text-paper/70">
         <p>© {new Date().getFullYear()} {config.venue.name} {config.venue.nameSuffix}. {copy.brand.builtBy}</p>
       </div>
     </footer>

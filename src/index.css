@@ -13,6 +13,10 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
   }
+  /* Keeps a lone word off the last line of body copy and review quotes. */
+  p {
+    text-wrap: pretty;
+  }
   ::selection {
     @apply bg-secondary/50 text-ink;
   }

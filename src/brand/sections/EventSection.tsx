@@ -68,9 +68,9 @@ export const EventSection: React.FC<{ content: EventContent }> = ({ content }) =
         </motion.div>
 
         <motion.div {...fadeInUp}>
-          <span className="font-script text-2xl text-primary">{content.script}</span>
-          <RevealHeading text={specials.event.title} className="font-display text-4xl md:text-5xl font-extrabold text-ink mt-1 mb-5" />
-          <p className="text-ink/65 text-lg leading-relaxed max-w-md mb-7">{specials.event.description}</p>
+          {content.script && <span className="block font-script text-2xl text-primary mb-1">{content.script}</span>}
+          <RevealHeading text={specials.event.title} className="font-display text-4xl md:text-5xl font-extrabold text-ink mb-5" />
+          <p className="text-ink/85 text-lg leading-relaxed max-w-md mb-7">{specials.event.description}</p>
           <div className="inline-flex items-center gap-2.5 bg-ink text-paper px-5 py-2.5 rounded-full text-sm font-bold">
             <Clock size={16} className="text-secondary" />
             <span>{specials.event.schedule}</span>

@@ -45,7 +45,7 @@ export const GoogleBadge: React.FC<{
             <Star key={i} size={11} fill={i < stars ? 'currentColor' : 'none'} strokeWidth={i < stars ? 0 : 1.5} />
           ))}
         </span>
-        <span className="text-xs font-semibold text-ink/60">
+        <span className="text-xs font-semibold text-ink/75">
           ({reviewCount} reviews)
         </span>
       </span>

@@ -14,10 +14,10 @@ export const FoodChoiceSection: React.FC<{ content: FoodChoiceContent }> = ({ co
     <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
       <motion.div {...fadeInUp} className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10 md:mb-14">
         <div className="max-w-xl">
-          <span className="text-xs font-bold tracking-[0.16em] uppercase text-accent">{content.eyebrow}</span>
-          <RevealHeading text={content.heading} className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.96] mt-3" />
+          {content.eyebrow && <span className="block text-xs font-bold tracking-[0.16em] uppercase text-accent mb-3">{content.eyebrow}</span>}
+          <RevealHeading text={content.heading} className="font-display text-4xl md:text-6xl font-extrabold text-surface leading-[0.96]" />
         </div>
-        <p className="text-paper/70 max-w-sm leading-relaxed">{content.intro}</p>
+        <p className="text-paper/80 max-w-sm leading-relaxed">{content.intro}</p>
       </motion.div>
 
       <motion.div {...fadeInUp} className="flex flex-wrap gap-x-8 gap-y-2 border-y border-surface/15 py-4 mb-7 text-xs md:text-sm font-bold tracking-[0.12em] uppercase text-accent">

@@ -102,7 +102,12 @@
   <body>
     <div id="boot" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
     <script>
-      if (location.pathname.indexOf('/admin') === 0) {
+      // The staff tool, and a visitor who has already seen the intro this
+      // session (App.tsx skips it for them), get the plain ground instead of
+      // a strip assembly that would be cut off part-way through.
+      var seenIntro = false;
+      try { seenIntro = sessionStorage.getItem('%TENANT_INTRO_SEEN_KEY%') === '1'; } catch (e) {}
+      if (seenIntro || location.pathname.indexOf('/admin') === 0) {
         document.getElementById('boot').className = 'plain';
       }
     </script>

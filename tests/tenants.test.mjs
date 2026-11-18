@@ -289,3 +289,12 @@ test('shared menu and PDF cannot inherit another restaurant extras prices', () =
     assert.match(source, /config.menu.extrasNote/);
   }
 });
+
+test("todayHoursLabel reads Jimmy's hours in the restaurant's own timezone", async () => {
+  const tenant = await load('src/core/tenant.ts');
+  const at = (iso) => tenant.todayHoursLabel(new Date(iso));
+  assert.equal(at('2026-11-16T10:00:00+02:00'), 'Open today 09:00 – 20:00'); // Monday
+  assert.equal(at('2026-11-20T10:00:00+02:00'), 'Open today 09:00 – midnight'); // Friday closes "00:00"
+  assert.equal(at('2026-11-22T10:00:00+02:00'), 'Closed today'); // Sunday
+  assert.equal(at('2026-11-20T23:30:00Z'), 'Open today 09:00 – midnight'); // already Saturday in Meyerton
+});

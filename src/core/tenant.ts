@@ -27,6 +27,13 @@ export const { restaurantDate, restaurantInstant, restaurantDayBounds } = create
 
 export const hours = createHours(config.venue.hours, config.venue.closures);
 
+/** "Open today 09:00 – 21:00" or "Closed today", from the same schedule the footer lists. */
+export const todayHoursLabel = (now: Date = new Date()): string => {
+  const today = hours.hoursFor(restaurantDate(now));
+  if (!today) return 'Closed today';
+  return `Open today ${today.open} – ${today.close === '24:00' ? 'midnight' : today.close}`;
+};
+
 /** Tenant copy, merged over the product's generic English defaults. */
 export const copy = resolveCopy(config.copy);
 

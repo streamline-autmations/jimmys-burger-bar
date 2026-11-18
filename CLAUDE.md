@@ -216,6 +216,12 @@ browser reports `prefers-reduced-motion: reduce`, so under the global
   and the route curtain overlays (`App.tsx`). Those components read
   `useReducedMotionConfig()`, not `useReducedMotion()`, so the wrappers are the single
   place this policy lives.
+- **Intro once per session (client decision, 2026-11-18):** every visitor still sees the
+  intro, but only once per browser session. Customers arrive by tapping WhatsApp links,
+  so every tap is a hard load and replayed a 3s wait. `App.tsx` stores
+  `<slug>-intro-seen` in sessionStorage when the intro finishes; `index.html` reads the
+  same key (token `%TENANT_INTRO_SEEN_KEY%`) and shows the plain boot ground instead of
+  starting the strip assembly.
 - **Still respects the setting:** Lenis smooth scroll, the pinned gallery, hero scroll
   parallax, cursor tilt, steam/halo loops, the marquee and other infinite loops, rail
   lean, and every in-page entrance outside the hero.
@@ -262,10 +268,15 @@ as the strips begin to lift (it had been on screen for ~1s after landing).
 ## Design guardrails
 
 - No em-dashes anywhere in visible copy.
-- No eyebrow-label spam (max ~1 per 3 sections).
+- No eyebrow-label spam (max ~1 per 3 sections). On Home (2026-11-18) the uppercase
+  eyebrows are gone and only three Pacifico script lines remain: specials, Coffee & Cars
+  and the closing. The section types keep `eyebrow`/`script` optional for other tenants.
 - No 3-equal-card cliché rows.
-- CTA intent is deduplicated: **"Book a Table"** (WhatsApp deep-link) is THE conversion
-  action, everywhere.
+- CTA intent is deduplicated: **ordering is THE conversion action** (client decision
+  2026-11-18, replacing "Book a Table"). Every order button reads `orderCtaLabel` /
+  "Order online"; the overlay has one order button and no separate "Order" link. Booking
+  still lives on `/visit#book`. The closing section's visit card carries one-tap WhatsApp
+  and Call buttons plus today's hours from `venue.hours`.
 - `Fraunces` and `Instrument Serif` are banned display fonts.
 
 ---
@@ -276,8 +287,10 @@ as the strips begin to lift (it had been on screen for ~1s after landing).
   no inline links or CTA buttons) that auto-hides on scroll-down and returns on scroll-up
   at ALL widths — the old desktop-only restriction was removed at client direction. All
   navigation lives in a full-screen overlay: blurred real-photo backdrop + a navy card
-  that stamps in with `STAMP_EASE`. "Book a Table" is the only CTA, inside the overlay
-  only (never in the persistent bar) — this still satisfies the CTA-dedup rule below.
+  that stamps in with `STAMP_EASE`. The order button is the only CTA, inside the overlay
+  only (never in the persistent bar). The overlay is a modal dialog (2026-11-18): while
+  open, the bar's siblings are `inert`, focus moves to the first link, and Escape closes
+  it and returns focus to the toggle.
   The overlay is portaled to `document.body` because the nav's `backdrop-filter` traps
   `fixed` descendants.
 - **Hero layout (fixed 2026-07-22):** badge row and heading block used to be independently

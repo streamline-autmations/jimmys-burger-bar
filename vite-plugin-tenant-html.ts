@@ -180,6 +180,7 @@ export function tenantHtml({ slug, entry }: { slug: string; entry?: string }): P
     },
     async transformIndexHtml(html) {
       const config = await loadTenant(slug, entry) as never as {
+        slug: string;
         seo: { title: string; description: string; themeColor: string };
         assets: { favicon: string; ogImage: string; siteUrl: string };
         venue: { name: string; nameSuffix: string };
@@ -204,6 +205,8 @@ export function tenantHtml({ slug, entry }: { slug: string; entry?: string }): P
         // read a CSS variable set later by ThemeProvider.
         '%TENANT_PAPER%': config.theme.colors.paper,
         '%TENANT_INK%': config.theme.colors.ink,
+        // Same key as storageKey('intro-seen') in App.tsx.
+        '%TENANT_INTRO_SEEN_KEY%': `${config.slug}-intro-seen`,
         '%TENANT_FONT_LINK%': fontHref
           ? `<link rel="preconnect" href="https://fonts.googleapis.com" />\n    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />\n    <link rel="stylesheet" href="${fontHref}" />`
           : '',

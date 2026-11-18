@@ -62,11 +62,13 @@ export const HeroSection: React.FC<{ content: HeroContent }> = ({ content }) => 
     <section ref={sectionRef} className="relative min-h-[100dvh] w-full overflow-hidden bg-ink text-surface">
       <div className="relative z-10 max-w-7xl mx-auto min-h-[100dvh] px-4 md:px-8 pt-24 md:pt-28 pb-10 grid grid-cols-1 lg:grid-cols-[minmax(0,0.82fr)_minmax(440px,1.18fr)] gap-4 lg:gap-10 items-center">
         <motion.div style={{ y: copyY, opacity: copyOpacity }} className="order-2 lg:order-1 max-w-xl pb-3 lg:pb-0">
-          <motion.div {...item(0.1, BEAT.badge)} className="flex flex-wrap items-center gap-3 mb-7">
+          <motion.div {...item(0.1, BEAT.badge)} className="flex flex-wrap items-center gap-3 mb-7 [@media(max-width:639px)_and_(max-height:700px)]:mb-4">
             <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} href={venue.googleReviews} />
             <span className="text-xs md:text-sm font-bold tracking-[0.08em] uppercase text-accent">{content.locationLabel}</span>
           </motion.div>
-          <motion.p {...item(0.18, BEAT.eyebrow)} className="text-xs font-bold tracking-[0.18em] uppercase text-secondary mb-4">{content.eyebrow}</motion.p>
+          {content.eyebrow && (
+            <motion.p {...item(0.18, BEAT.eyebrow)} className="text-xs font-bold tracking-[0.18em] uppercase text-secondary mb-4">{content.eyebrow}</motion.p>
+          )}
           <motion.h1
             {...(choreograph ? {} : heroItem(0.28))}
             className="font-display text-[2.85rem] sm:text-6xl md:text-7xl lg:text-[clamp(5.4rem,6.6vw,7rem)] leading-[0.92] font-extrabold mb-5 md:mb-6 lg:mb-8"
@@ -115,7 +117,9 @@ export const HeroSection: React.FC<{ content: HeroContent }> = ({ content }) => 
             <Link to={content.secondaryCta.to} className="w-full sm:w-auto text-center border border-surface/35 text-surface px-7 py-3.5 rounded-full font-display font-bold hover:bg-surface hover:text-ink hover:border-surface transition-colors duration-200">{content.secondaryCta.label}</Link>
           </motion.div>
         </motion.div>
-        <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[310px] sm:max-w-[480px] md:max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0">
+        {/* Short phones (under 700px tall) shrink the burger so the order button
+            still lands on the first screen. */}
+        <motion.div {...heroItem(0.16)} className="order-1 lg:order-2 w-full max-w-[310px] [@media(max-width:639px)_and_(max-height:700px)]:max-w-[200px] sm:max-w-[480px] md:max-w-[620px] mx-auto lg:max-w-none -mt-4 lg:mt-0">
           <motion.div style={{ y: burgerY, scale: burgerScale }}>
             <BurgerAssembly trackRef={scrollFx ? sectionRef : undefined} ticket={content.ticket} alt={content.imageAlt} />
           </motion.div>

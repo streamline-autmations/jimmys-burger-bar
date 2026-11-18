@@ -82,7 +82,10 @@ fs.writeFileSync(`${dir}/config.ts`, fill(fs.readFileSync('src/tenants/_template
 // ============================================================================
 `));
 fs.writeFileSync(`${dir}/sections.ts`, fill(fs.readFileSync('src/tenants/_template/sections.ts', 'utf8')));
-fs.writeFileSync(infraFile, fill(fs.readFileSync('supabase/tenants/_template.json', 'utf8')));
+const infra = JSON.parse(fill(fs.readFileSync('supabase/tenants/_template.json', 'utf8')));
+const prefix = slug.replace(/-/g, '_').toUpperCase();
+infra.payfastSecretNames = Object.fromEntries(['merchant_id', 'merchant_key', 'passphrase', 'mode'].map(key => [key, `${prefix}_PAYFAST_${key.toUpperCase()}`]));
+fs.writeFileSync(infraFile, JSON.stringify(infra, null, 2) + '\n');
 
 fs.writeFileSync('src/config.ts', registry
   .replace(importMarker, `import { ${identifier} } from './tenants/${slug}/config';\n${importMarker}`)

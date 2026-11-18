@@ -130,8 +130,29 @@ export type Database = {
           },
         ]
       }
+      staff_push_subscriptions: {
+        Row: { endpoint: string; user_id: string; p256dh: string; auth: string; created_at: string }
+        Insert: { endpoint: string; user_id?: string; p256dh: string; auth: string; created_at?: string }
+        Update: { endpoint?: string; user_id?: string; p256dh?: string; auth?: string; created_at?: string }
+        Relationships: []
+      }
+      staff: {
+        Row: { user_id: string; email: string; role: string; created_at: string }
+        Insert: { user_id: string; email: string; role?: string; created_at?: string }
+        Update: { user_id?: string; email?: string; role?: string; created_at?: string }
+        Relationships: []
+      }
       orders: {
         Row: {
+          payment_status: string
+          paid_at: string | null
+          payment_expires_at: string | null
+          provider_payment_id: string | null
+          payment_review_required: boolean
+          refund_amount: number
+          eta: string | null
+          delivery_fee: number
+          delivery_suburb: string | null
           created_at: string
           customer_id: string | null
           customer_name: string
@@ -150,6 +171,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          payment_status?: string
+          paid_at?: string | null
+          payment_expires_at?: string | null
+          provider_payment_id?: string | null
+          payment_review_required?: boolean
+          refund_amount?: number
+          eta?: string | null
+          delivery_fee?: number
+          delivery_suburb?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name: string
@@ -168,6 +198,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          payment_status?: string
+          paid_at?: string | null
+          payment_expires_at?: string | null
+          provider_payment_id?: string | null
+          payment_review_required?: boolean
+          refund_amount?: number
+          eta?: string | null
+          delivery_fee?: number
+          delivery_suburb?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -192,6 +231,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ordering_state: { Args: Record<PropertyKey, never>; Returns: Json }
+      set_ordering_paused: { Args: { p_paused: boolean }; Returns: undefined }
+      set_menu_item_available: { Args: { p_name: string; p_available: boolean }; Returns: undefined }
+      begin_payment: {
+        Args: { p_reference: string; p_contact: string; p_restaurant: string; p_mode: string }
+        Returns: Json
+      }
+      mark_order_paid: {
+        Args: { p_reference: string; p_transaction: string; p_status: string; p_amount: number; p_raw: Json }
+        Returns: Json
+      }
+      record_payment_refund: {
+        Args: { p_reference: string; p_refund_id: string; p_amount: number; p_confirmed: boolean; p_reviewer: string }
+        Returns: undefined
+      }
+      collection_commission_report: {
+        Args: Record<PropertyKey, never>
+        Returns: { reference: string; month: string; food_subtotal: number; delivery: number; refunds: number; payment_state: string; fulfilment_state: string; commission_base: number }[]
+      }
+      mark_delivery_failed: { Args: { p_order_id: string }; Returns: undefined }
+      create_delivery_order: {
+        Args: {
+          p_order_no: string
+          p_customer_name: string
+          p_email: string
+          p_phone: string
+          p_delivery_address: string
+          p_delivery_notes: string
+          p_requested_time: string
+          p_total: number
+          p_marketing_consent: boolean
+          p_items: Json
+          p_delivery_suburb: string
+        }
+        Returns: { id: string; order_no: string; created_at: string }[]
+      }
       create_order: {
         Args: {
           p_customer_name: string

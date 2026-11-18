@@ -167,3 +167,61 @@ project, run `npm run db:fingerprint`, commit, and check each project with `comp
 - **One build per restaurant.** Tenancy is decided at build time (`VITE_TENANT`), so each
   restaurant is its own Vercel project.
 - **No menu editor.** Menu and price changes go through the repo (above), by design for V1.
+
+Restaurant Direct sandbox payments (Slice 1): see [PAYMENTS.md](restaurant-direct/PAYMENTS.md).
+The optional infrastructure `payments` block mirrors `ordering.payment`; missing/null
+means pay on collection. The template stays off. Edge Function secrets are named
+`PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`, `PAYFAST_MODE`.
+Set them directly in the isolated project's Function secrets, never in tenant JSON,
+tracked env files, Vercel, browser code or any `VITE_` variable. No real credentials
+are needed for repository checks. This slice is restricted in code to project
+`cagcpwlzqpolojpgewtw` and `sandbox`; a live enablement needs a separate reviewed change.
+Do not run its migration or seeds on Jimmy's production under this brief.
+
+
+## Hold back a release for other tenants
+
+A master push fans out to every connected project. Before merging, record each
+project's current known-good deployment/commit and environment. For tenants that
+must wait, change their Vercel Production Branch to a dedicated hold branch at that
+commit and ensure preview builds cannot promote to production. Verify the branch
+setting in each dashboard before any master push. Alternatively keep the release
+on its feature branch and manually deploy only the intended staging project.
+Do not rely on VITE_TENANT alone to isolate a shared code release. Restore each
+project's release branch only after its own checks and compatible additive database
+migrations pass. This rehearsal performs no dashboard changes, pushes or merges.
+
+## Checkout rollback without losing paid tickets
+
+To stop NEW checkout immediately use the runtime ordering pause first. Do not remove
+the Payfast function or its secrets: issued checkouts still need verified ITN settlement.
+Then set only that tenant's infrastructure payments to null and site ordering.payment
+to on_collection, regenerate settings and run check-tenant. Review/apply that tenant's
+settings SQL and deploy its matching site together after approval. This enables unpaid
+collection ordering; keep ordering paused/closed operationally if that is unwanted.
+Keep payment columns, events, orders, reconciliation RPCs and ITN handling intact.
+Flag-off staff queries use the existing fulfilment columns and still include previously
+paid active orders; they must not hide orders by payment mode. Reconcile pending,
+late-paid and cancelled payments in the manager report until all attempts settle.
+Never roll back payment migrations or delete paid orders. Test the queue with both a
+paid active order and a new not_required order before reopening.
+
+## Per-tenant operational settings and local rehearsal
+
+supabase/tenants/<slug>.json owns payments (null means checkout off),
+payfastSecretNames (environment variable NAMES only), kitchen.escalation and webhooks.
+Mirror kitchen.escalation in ordering.escalation for the browser's call link;
+check-tenant rejects disagreement. Webhooks null and reviewRequests.localTime null
+mean no n8n sends. The scaffold now creates distinct secret names automatically.
+The SQL generator records these names in payments.secret_names and the Edge Function
+resolves them in its project environment; missing metadata keeps the existing staging
+secret names for compatibility. The staging-only project and sandbox restrictions
+still apply: a second restaurant cannot take payments until a separately reviewed
+provider enablement. Never copy credential values or another restaurant's project ref.
+
+For the explicitly fictional rehearsal only, use rehearsal-grill: its synthetic ref,
+example.com contacts and original SVG are local fixtures. Its checker can pass local
+consistency while no infrastructure exists. Vercel builds for it are refused.
+External runbook steps (project creation, SQL application, workflow duplication,
+activation, deployment and live smoke tests) remain manual and were not performed.
+See restaurant-direct/REHEARSAL.md for measurements and unverified cost estimates.

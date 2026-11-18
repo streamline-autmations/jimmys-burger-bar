@@ -95,3 +95,20 @@ export function openDates(daysAhead: number, now = new Date()): string[] {
   }
   return dates;
 }
+
+/**
+ * Quarter-hour collection slots for a date, earliest first, leaving the kitchen
+ * `leadMinutes` from `now`. Empty when the day is closed or too little of it is left.
+ */
+export function collectionSlots(date: string, leadMinutes = 0, now = new Date()): string[] {
+  const window = tradingHours(date);
+  if (!window) return [];
+  const minutes = (time: string) => { const [h, m] = time.split(':').map(Number); return h * 60 + m; };
+  const earliest = now.getTime() + leadMinutes * 60_000;
+  const slots: string[] = [];
+  for (let at = minutes(window.open); at < minutes(window.close); at += 15) {
+    const time = `${String(Math.floor(at / 60)).padStart(2, '0')}:${String(at % 60).padStart(2, '0')}`;
+    if (restaurantInstant(date, time).getTime() > earliest) slots.push(time);
+  }
+  return slots;
+}

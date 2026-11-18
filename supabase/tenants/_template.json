@@ -11,5 +11,7 @@
   },
   "reviewRequests": {
     "localTime": null
-  }
+  },
+  "payments": null,
+  "$comment": "Edge Function secrets only: PAYFAST_MERCHANT_ID, PAYFAST_MERCHANT_KEY, PAYFAST_PASSPHRASE, PAYFAST_MODE. Never place their values in this file or VITE_ variables."
 }

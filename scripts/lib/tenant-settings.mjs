@@ -32,6 +32,14 @@ export function dailyCronUtc(localTime, timeZone, year = new Date().getUTCFullYe
   };
 }
 
+export function paymentSecretNames(infra) {
+  const names = infra.payfastSecretNames;
+  if (!names || ['merchant_id', 'merchant_key', 'passphrase', 'mode'].some(key => !/^[A-Z][A-Z0-9_]+$/.test(names[key] ?? ''))) {
+    throw new Error('payfastSecretNames must supply four environment variable NAMES');
+  }
+  return names;
+}
+
 export function validateTenant(infra, config) {
   const problems = [];
   if (infra.slug !== config.slug) problems.push(`supabase/tenants/${infra.slug}.json slug does not match the site config slug "${config.slug}"`);
@@ -54,6 +62,16 @@ export function validateTenant(infra, config) {
   const localTime = infra.reviewRequests?.localTime;
   if (localTime !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(localTime ?? '')) problems.push('reviewRequests.localTime must be "HH:MM" or null');
   if (localTime && !infra.webhooks?.review) problems.push('reviewRequests.localTime is set but webhooks.review is null');
+  const payment = config.ordering?.payment ?? 'on_collection';
+  if ((infra.payments?.provider ?? 'on_collection') !== payment) problems.push('ordering.payment disagrees with infrastructure payments.provider');
+  if (infra.payments && (!['sandbox', 'live'].includes(infra.payments.mode) || !/^https:\/\/[^/?#]+$/.test(infra.payments.siteUrl ?? ''))) problems.push('payments needs mode sandbox/live and an HTTPS site origin');
+  if (infra.payfastSecretNames) {
+    try { paymentSecretNames(infra); } catch (error) { problems.push(error.message); }
+  }
+  // A push URL on another project would send this restaurant's alerts to someone else's staff.
+  if (infra.pushUrl && infra.pushUrl !== `https://${infra.supabaseProjectRef}.supabase.co/functions/v1/kitchen-push`) problems.push('pushUrl must be this project\'s kitchen-push function URL, or null');
+  if (infra.pushUrl && payment !== 'payfast') problems.push('pushUrl needs ordering.payment "payfast": the alert fires when an order is paid');
+  if (infra.kitchen && JSON.stringify(infra.kitchen.escalation) !== JSON.stringify(config.ordering?.escalation)) problems.push('kitchen.escalation disagrees with ordering.escalation');
   return problems;
 }
 
@@ -108,8 +126,25 @@ export function settingsSql(infra, config) {
     ['webhook.review', infra.webhooks.review, 'n8n webhook for review request emails'],
     ['trading_hours', hours.json, 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'],
   ];
+  if ('pushUrl' in infra) rows.push(['push.url', infra.pushUrl, 'kitchen-push Edge Function: lock-screen alerts for paid orders']);
+  if (infra.kitchen) rows.push(['kitchen.escalation', JSON.stringify(infra.kitchen.escalation), 'Tenant kitchen escalation contact']);
+  if (infra.payfastSecretNames) rows.push(['payments.secret_names', JSON.stringify(paymentSecretNames(infra)), 'Environment variable names only, never credentials']);
+  const delivery = config.ordering?.deliveryPreview;
+  // Only pay-first tenants can have it, and only they get the delete when it is switched off.
+  if (infra.payments) rows.push(['delivery.zone', delivery ? JSON.stringify({
+    bands: delivery.bands.map(({ fee, suburbs }) => ({ fee, suburbs })),
+    hours: [delivery.hours.from, delivery.hours.until],
+    minimum: delivery.minimumOrder ?? null,
+  }) : null, 'Delivery preview: suburbs, example fees and hours create_delivery_order prices from']);
+  if (infra.payments) rows.push(
+    ['payments.provider', infra.payments.provider, 'Hosted payment provider'],
+    ['payments.mode', infra.payments.mode, 'Must match Edge Function PAYFAST_MODE'],
+    ['payments.restaurant', infra.slug, 'Expected checkout restaurant'],
+    ['payments.site_url', infra.payments.siteUrl, 'Trusted return/cancel origin'],
+  );
   const set = rows.filter(([, value]) => value !== null);
   const unset = rows.filter(([, value]) => value === null).map(([key]) => key);
+  if (infra.payments === null) unset.push('payments.provider', 'payments.mode', 'payments.restaurant', 'payments.site_url');
 
   const review = infra.reviewRequests.localTime ? dailyCronUtc(infra.reviewRequests.localTime, config.timezone) : null;
   const cron = review
@@ -135,5 +170,5 @@ delete from public.app_settings where key in (${unset.map(sqlText).join(', ')});
 -- One review job per project, whatever it was named before${review ? ` (${infra.reviewRequests.localTime} ${config.timezone} is ${review.expression} UTC)` : ''}.
 select cron.unschedule(jobid) from cron.job where command ~* 'send_review_requests';
 ${cron}
-`;
+${infra.payments ? "-- Preserve a manager's runtime pause when regenerating settings.\ninsert into public.app_settings(key,value,description) values('ordering.paused','false','Pause new online payments') on conflict(key) do nothing;\nselect cron.schedule('restaurant-direct-payment-expiry', '*/5 * * * *', 'select public.expire_pending_payments()');\n" : ''}`;
 }

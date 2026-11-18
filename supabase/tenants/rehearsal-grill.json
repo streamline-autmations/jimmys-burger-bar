@@ -1,0 +1,30 @@
+{
+  "$schema": "./tenant.schema.json",
+  "slug": "rehearsal-grill",
+  "supabaseProjectRef": "rehearsalgrillxxxxxx",
+  "vercelProject": "rehearsal-grill",
+  "phoneCountryCode": "27",
+  "webhooks": {
+    "order": null,
+    "booking": null,
+    "review": null
+  },
+  "reviewRequests": {
+    "localTime": null
+  },
+  "payments": null,
+  "rehearsal": true,
+  "kitchen": {
+    "escalation": {
+      "afterMinutes": 7,
+      "name": "Rehearsal manager",
+      "phone": "+27 00 000 0003"
+    }
+  },
+  "payfastSecretNames": {
+    "merchant_id": "REHEARSAL_GRILL_PAYFAST_MERCHANT_ID",
+    "merchant_key": "REHEARSAL_GRILL_PAYFAST_MERCHANT_KEY",
+    "passphrase": "REHEARSAL_GRILL_PAYFAST_PASSPHRASE",
+    "mode": "REHEARSAL_GRILL_PAYFAST_MODE"
+  }
+}

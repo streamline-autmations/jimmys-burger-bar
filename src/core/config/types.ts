@@ -112,6 +112,8 @@ export interface SeoConfig {
 }
 
 export interface OrderingConfig {
+  /** Defaults to on_collection when omitted. */
+  payment?: 'on_collection' | 'payfast';
   orderPrefix: string;
   /** Enabled fulfilment modes. A venue with no delivery simply omits it. */
   fulfilment: ('collection' | 'delivery' | 'table')[];
@@ -121,7 +123,38 @@ export interface OrderingConfig {
   closedDayNote: string;
   /** How many days ahead an order can be requested for. 0 means today only. */
   maxDaysAhead: number;
+  /** Minutes the kitchen needs before the earliest collection slot. Pay-first checkout only; defaults to 0. */
+  leadMinutes?: number;
+  /**
+   * Who the kitchen screen tells staff to call when an order sits unaccepted.
+   * Omitted: it says "the manager on duty" after 5 minutes. Agree the real
+   * person at the staff rehearsal; never guess a number.
+   */
+  escalation?: { afterMinutes: number; name: string; phone?: string };
+  /**
+   * Paid delivery, as a showcase on a staging tenant. Omitted means off, which
+   * is the default for every restaurant. `npm run tenant:sql` turns it into the
+   * `delivery.zone` setting the database prices orders from, so the fees here
+   * and the fees charged come from one place. Every fee is an example until the
+   * restaurant agrees real prices with a rider or courier.
+   */
+  deliveryPreview?: DeliveryPreviewConfig;
   nonAlcoholicDrinks: MenuItem[];
+}
+
+export interface DeliveryPreviewConfig {
+  /** Shown beside every fee, e.g. "Example delivery fee for this preview, to be agreed". */
+  feeNote: string;
+  /** Fee bands, nearest first. A suburb belongs to exactly one band. Fees in whole currency units, like menu prices. */
+  bands: { label: string; fee: number; suburbs: string[] }[];
+  /** Daily delivery window, restaurant-local "HH:MM", from <= time < until. Trading hours still apply. */
+  hours: { from: string; until: string };
+  /** Smallest food subtotal for delivery, in whole currency units. */
+  minimumOrder?: number;
+  /** Who "Send to rider" messages on WhatsApp. Never a real number on a preview. */
+  dispatcher: { name: string; whatsapp: string };
+  /** Where to centre street address suggestions (the restaurant). Unset = a plain text field. */
+  addressSearch?: { lat: number; lon: number };
 }
 
 export interface BookingConfig {
@@ -180,13 +213,18 @@ export interface RestaurantConfig {
   venue: VenueConfig;
   nav: { links: { name: string; path: string }[] };
   ordering: OrderingConfig;
+  /** The installable app. Unset: Android guests get Chrome's own Install button only. */
+  app?: {
+    /** Public path of the signed Android app file, e.g. "/downloads/jimmys.apk" (see docs/restaurant-direct/APP.md). */
+    androidApk?: string;
+  };
   booking: BookingConfig;
   specials: {
     intro: string;
     fridays: Special[];
     event: { title: string; schedule: string; description: string; image: string };
   };
-  menu: { categories: MenuCategory[]; featured: MenuItem[] };
+  menu: { categories: MenuCategory[]; featured: MenuItem[]; extrasNote?: string };
   drinks: { intro: string; categories: MenuCategory[] };
   testimonials: Testimonial[];
   pages: PagesConfig;

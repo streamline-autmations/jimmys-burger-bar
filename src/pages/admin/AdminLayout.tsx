@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, LogOut, ShieldCheck, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
+import { LayoutDashboard, LogOut, Power, ShieldCheck, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { config } from '../../config';
 import { eyebrowClass } from './adminUtils';
+import { payFirst } from '../../core/tenant';
 
 const navItems = [
   { to: '/admin', label: 'Today', icon: LayoutDashboard, end: true },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingBag, end: false },
   { to: '/admin/bookings', label: 'Bookings', icon: UtensilsCrossed, end: false },
   { to: '/admin/customers', label: 'Customers', icon: Users, end: false },
+  // Pause and sold-out switches exist only where the server enforces them.
+  ...(payFirst ? [{ to: '/admin/ordering', label: 'Ordering', icon: Power, end: false }] : []),
 ];
 
 // Three postures. A desktop back office gets a navy sidebar, so the workspace
@@ -165,7 +168,7 @@ export const AdminLayout: React.FC<React.PropsWithChildren> = ({ children }) => 
         className="fixed inset-x-0 bottom-0 z-30 border-t border-ink/10 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         aria-label="Admin navigation"
       >
-        <div className="grid grid-cols-4">
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}>
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}

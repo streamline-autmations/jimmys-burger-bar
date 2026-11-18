@@ -88,7 +88,7 @@ export const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 /** Statuses that still need a decision, as opposed to a finished record. */
-export const ACTIONABLE_STATUSES = new Set(['pending', 'new', 'accepted', 'preparing', 'ready']);
+export const ACTIONABLE_STATUSES = new Set(['pending', 'new', 'accepted', 'preparing', 'ready', 'out_for_delivery']);
 export const CLOSED_STATUSES = new Set(['completed', 'cancelled']);
 
 export const isActionable = (status: string): boolean => ACTIONABLE_STATUSES.has(status);

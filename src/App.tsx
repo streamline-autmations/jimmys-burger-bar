@@ -18,6 +18,21 @@ import { closeIntroGate, openIntroGate } from './lib/introGate';
 import { BuildOverlay } from './components/BuildOverlay';
 import { config } from './config';
 import { copy } from './core/tenant';
+import { InstallApp } from './components/InstallApp';
+import { countVisit, isStandalone } from './lib/installApp';
+import { useHeadTags, type HeadTag } from './lib/useHeadTags';
+
+// The customer app: app.webmanifest and sw.js are emitted by the tenant HTML
+// plugin. Opened from the home screen it starts on the order page.
+const APP_TAGS: HeadTag[] = [
+  ['link', { rel: 'manifest', href: '/app.webmanifest' }],
+  ['link', { rel: 'apple-touch-icon', href: '/images/app/apple-touch-icon.png' }],
+  ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
+  ['meta', { name: 'mobile-web-app-capable', content: 'yes' }],
+  ['meta', { name: 'apple-mobile-web-app-title', content: config.venue.name }],
+];
+// Pages with their own "get the app" placement, or a fixed bar the floating card would cover.
+const OWN_PLACEMENT = ['/order', '/track'];
 
 // Set only when the first-load intro has actually finished. Reading it is
 // idempotent, so React 18's StrictMode double-invoked state initialiser cannot
@@ -217,12 +232,16 @@ const AnimatedRoutes: React.FC = () => {
 // surface, and none of this chrome belongs on it.
 const PublicApp: React.FC = () => {
   useLenis();
+  useHeadTags(APP_TAGS);
+  const { pathname } = useLocation();
+  // Opened from the home screen, the guest came to order: no few-second brand intro on every launch.
+  const [standalone] = useState(isStandalone);
   // Idempotent read, so StrictMode's double-invoked initialiser is harmless.
   // Closing the gate here rather than in an effect matters: this initialiser
   // runs before the page's own components render, so hero motion is held back
   // from its very first frame instead of a beat later.
   const [introActive, setIntroActive] = useState(() => {
-    const playing = !introCompleted && config.motion.intro !== 'off';
+    const playing = !introCompleted && config.motion.intro !== 'off' && !standalone;
     if (playing) closeIntroGate();
     return playing;
   });
@@ -230,7 +249,13 @@ const PublicApp: React.FC = () => {
   // With the intro switched off nothing else would clear the pre-paint boot
   // poster, so take it down before first paint.
   useLayoutEffect(() => {
-    if (config.motion.intro === 'off') document.getElementById('boot')?.remove();
+    if (config.motion.intro === 'off' || standalone) document.getElementById('boot')?.remove();
+  }, [standalone]);
+
+  useEffect(() => {
+    countVisit();
+    // Production only: the worker serves an offline page, and Chrome offers one-tap install only with one.
+    if (import.meta.env.PROD && 'serviceWorker' in navigator) void navigator.serviceWorker.register('/sw.js').catch(() => {});
   }, []);
 
   const handleIntroDone = React.useCallback(() => {
@@ -254,6 +279,7 @@ const PublicApp: React.FC = () => {
         <AnimatedRoutes />
         <Footer />
       </div>
+      {!introActive && !OWN_PLACEMENT.includes(pathname.replace(/\/+$/, '')) && <InstallApp key="return-visit" placement="return-visit" />}
       {/* The first-load intro is a one-time, few-second brand moment, so it plays
           for every visitor. Windows ships with animation effects switched off on
           many machines, and under the global "user" setting those visitors got

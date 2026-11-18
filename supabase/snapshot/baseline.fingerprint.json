@@ -61,13 +61,43 @@
   },
   {
     "kind": "column_grant",
+    "name": "order_push anon",
+    "fingerprint": "fddc0ae65dc6652d445e77ebb6884974"
+  },
+  {
+    "kind": "column_grant",
+    "name": "order_push authenticated",
+    "fingerprint": "fddc0ae65dc6652d445e77ebb6884974"
+  },
+  {
+    "kind": "column_grant",
     "name": "orders anon",
-    "fingerprint": "7e2d0c843a35427d7166ef9cf34d51b1"
+    "fingerprint": "60e53b6ac5a61bb5b9b0902c88b672d8"
   },
   {
     "kind": "column_grant",
     "name": "orders authenticated",
-    "fingerprint": "5156ef1bfcc4073b30e66d718ce2a99a"
+    "fingerprint": "371e9b47e2b5270d80ac41c554e0873d"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_events anon",
+    "fingerprint": "bf4e4da8d6493f984e74672d869dc506"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_events authenticated",
+    "fingerprint": "2ac8bc516c1d76d7d81aee0b2781452b"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_transactions anon",
+    "fingerprint": "2c9b62cc5def5ad432c7487b8be410a2"
+  },
+  {
+    "kind": "column_grant",
+    "name": "payment_transactions authenticated",
+    "fingerprint": "2c9b62cc5def5ad432c7487b8be410a2"
   },
   {
     "kind": "column_grant",
@@ -80,14 +110,44 @@
     "fingerprint": "db0f1fc245cd88be9bc281a32f1ec9cc"
   },
   {
+    "kind": "column_grant",
+    "name": "staff_push_subscriptions anon",
+    "fingerprint": "a894c9d4e886be66ad71fd72ee72b446"
+  },
+  {
+    "kind": "column_grant",
+    "name": "staff_push_subscriptions authenticated",
+    "fingerprint": "79e8e222d777ebf5ea0e305bef0c1dba"
+  },
+  {
+    "kind": "function",
+    "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text)",
+    "fingerprint": "40efb895f5c6ccbcdabb02cc13222d52"
+  },
+  {
     "kind": "function",
     "name": "bookings_upsert_customer()",
     "fingerprint": "e52ac4d5c2bb9d4624757a420bc4f0fb"
   },
   {
     "kind": "function",
+    "name": "collection_commission_report()",
+    "fingerprint": "310b23d2beb814358da016bee3d42dce"
+  },
+  {
+    "kind": "function",
+    "name": "create_delivery_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb, p_delivery_suburb text)",
+    "fingerprint": "b86a5125f192ce4b45f462657d126b87"
+  },
+  {
+    "kind": "function",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb)",
-    "fingerprint": "b54782c2148ef727e166e44b52d6f935"
+    "fingerprint": "94973d5bf79cd593b0210a48e1a06a7d"
+  },
+  {
+    "kind": "function",
+    "name": "delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric)",
+    "fingerprint": "ba6abb8b76617dcaa0c180000a55668c"
   },
   {
     "kind": "function",
@@ -97,12 +157,22 @@
   {
     "kind": "function",
     "name": "enforce_order_status_transition()",
-    "fingerprint": "d3373bcf1e38226138d1a32f3a079869"
+    "fingerprint": "4d1db4ceb1b51c86b92124bec46255a2"
   },
   {
     "kind": "function",
     "name": "enforce_trading_hours()",
     "fingerprint": "010a4ce2335d47af41ee97cfcc2259a8"
+  },
+  {
+    "kind": "function",
+    "name": "expire_pending_payments()",
+    "fingerprint": "c3d9549d1f71647b39fde8d0da8723e9"
+  },
+  {
+    "kind": "function",
+    "name": "guard_payment_update()",
+    "fingerprint": "9d339714ee2cd0dc4ae7da0495c409f1"
   },
   {
     "kind": "function",
@@ -117,7 +187,17 @@
   {
     "kind": "function",
     "name": "lookup_request(p_reference text, p_contact text)",
-    "fingerprint": "1e99e9f6977dfea442112126b19e3161"
+    "fingerprint": "e1df84efcba037997c97657b73cea05e"
+  },
+  {
+    "kind": "function",
+    "name": "mark_delivery_failed(p_order_id uuid)",
+    "fingerprint": "bea0faa6fee9335394f593cb0a35d853"
+  },
+  {
+    "kind": "function",
+    "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb)",
+    "fingerprint": "72417d5b940475bbcb71f4b4c5c0bfed"
   },
   {
     "kind": "function",
@@ -131,8 +211,28 @@
   },
   {
     "kind": "function",
+    "name": "ordering_state()",
+    "fingerprint": "9014cfaac5a293b03f6b23beb4978907"
+  },
+  {
+    "kind": "function",
     "name": "orders_upsert_customer()",
     "fingerprint": "ee484d885ce2e38c7b046b04707c58b1"
+  },
+  {
+    "kind": "function",
+    "name": "prepare_order_payment()",
+    "fingerprint": "e319037fd7dc34a56573e9cd1bcffa81"
+  },
+  {
+    "kind": "function",
+    "name": "queue_order_push()",
+    "fingerprint": "9bfa8b40e8ca22d084850299ab115b26"
+  },
+  {
+    "kind": "function",
+    "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid)",
+    "fingerprint": "269c2c2afc55e8c6394a5d160f5ae497"
   },
   {
     "kind": "function",
@@ -151,6 +251,16 @@
   },
   {
     "kind": "function",
+    "name": "set_menu_item_available(p_name text, p_available boolean)",
+    "fingerprint": "3532f6d5d5b43df27859ee71b043e24e"
+  },
+  {
+    "kind": "function",
+    "name": "set_ordering_paused(p_paused boolean)",
+    "fingerprint": "b32abbc19309696e45af83c51289aca2"
+  },
+  {
+    "kind": "function",
     "name": "set_updated_at()",
     "fingerprint": "63f977f8e2e3db6a119fcbe248bf3314"
   },
@@ -158,6 +268,11 @@
     "kind": "function",
     "name": "setting(p_key text)",
     "fingerprint": "314d595931a9b4a27372629c42a228ef"
+  },
+  {
+    "kind": "function",
+    "name": "signal_order_change()",
+    "fingerprint": "8364ed11115519228fbf7c57eab72974"
   },
   {
     "kind": "function",
@@ -171,6 +286,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "bookings_upsert_customer() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -181,6 +306,26 @@
   },
   {
     "kind": "function_exec",
+    "name": "collection_commission_report() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "collection_commission_report() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "create_delivery_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb, p_delivery_suburb text) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "create_delivery_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb, p_delivery_suburb text) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb) anon",
     "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
@@ -188,6 +333,16 @@
     "kind": "function_exec",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb) authenticated",
     "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "delivery_refusal(p_suburb text, p_local timestamp without time zone, p_food numeric) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
     "kind": "function_exec",
@@ -217,6 +372,26 @@
   {
     "kind": "function_exec",
     "name": "enforce_trading_hours() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "expire_pending_payments() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "expire_pending_payments() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "guard_payment_update() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "guard_payment_update() authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -251,6 +426,26 @@
   },
   {
     "kind": "function_exec",
+    "name": "mark_delivery_failed(p_order_id uuid) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "mark_delivery_failed(p_order_id uuid) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "normalise_phone(p_phone text) anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -271,12 +466,52 @@
   },
   {
     "kind": "function_exec",
+    "name": "ordering_state() anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "ordering_state() authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
     "name": "orders_upsert_customer() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
     "kind": "function_exec",
     "name": "orders_upsert_customer() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "prepare_order_payment() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "prepare_order_payment() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "queue_order_push() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "queue_order_push() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid) authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -311,6 +546,26 @@
   },
   {
     "kind": "function_exec",
+    "name": "set_menu_item_available(p_name text, p_available boolean) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_menu_item_available(p_name text, p_available boolean) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_ordering_paused(p_paused boolean) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "set_ordering_paused(p_paused boolean) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
     "name": "set_updated_at() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -327,6 +582,16 @@
   {
     "kind": "function_exec",
     "name": "setting(p_key text) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "signal_order_change() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "signal_order_change() authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -391,8 +656,18 @@
   },
   {
     "kind": "policy",
+    "name": "payment_events.payment_events_staff_read",
+    "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
     "name": "staff.staff can read staff",
     "fingerprint": "01b0c0ed877988322b8cd32d4ff2d3b6"
+  },
+  {
+    "kind": "policy",
+    "name": "staff_push_subscriptions.staff manage their own push subscriptions",
+    "fingerprint": "8f22c936d26333c0facb57831c4831c8"
   },
   {
     "kind": "table",
@@ -426,13 +701,33 @@
   },
   {
     "kind": "table",
+    "name": "order_push",
+    "fingerprint": "438c756e1255a699ba024da602a36b55"
+  },
+  {
+    "kind": "table",
     "name": "orders",
-    "fingerprint": "a39268ece90e1d49ec5701a04a22a0ad"
+    "fingerprint": "b9dc32cfbf264b58167cc692ef959d53"
+  },
+  {
+    "kind": "table",
+    "name": "payment_events",
+    "fingerprint": "71a96c0bd93db49bc4161efdce528126"
+  },
+  {
+    "kind": "table",
+    "name": "payment_transactions",
+    "fingerprint": "3711fc7d0735873f5c524ac78ad6fce0"
   },
   {
     "kind": "table",
     "name": "staff",
     "fingerprint": "6917c0a5c6d5442251abdddbc41dab92"
+  },
+  {
+    "kind": "table",
+    "name": "staff_push_subscriptions",
+    "fingerprint": "2f67a862a99b38a3b9cb68b3c70c43dd"
   },
   {
     "kind": "table_grant",
@@ -496,6 +791,16 @@
   },
   {
     "kind": "table_grant",
+    "name": "order_push anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "order_push authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
     "name": "orders anon",
     "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
   },
@@ -506,6 +811,26 @@
   },
   {
     "kind": "table_grant",
+    "name": "payment_events anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "payment_events authenticated",
+    "fingerprint": "99938282f04071859941e18f16efcf42"
+  },
+  {
+    "kind": "table_grant",
+    "name": "payment_transactions anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "payment_transactions authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
     "name": "staff anon",
     "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
   },
@@ -513,6 +838,16 @@
     "kind": "table_grant",
     "name": "staff authenticated",
     "fingerprint": "99938282f04071859941e18f16efcf42"
+  },
+  {
+    "kind": "table_grant",
+    "name": "staff_push_subscriptions anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "staff_push_subscriptions authenticated",
+    "fingerprint": "471ee9fa1f70609105c16000a899deba"
   },
   {
     "kind": "trigger",
@@ -561,6 +896,21 @@
   },
   {
     "kind": "trigger",
+    "name": "orders.orders_guard_payment",
+    "fingerprint": "fd967c60d2c6e6c3951ff2ffe908e402"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_prepare_payment",
+    "fingerprint": "c4b7f518234ccb212e823ad0793fcdff"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_queue_push",
+    "fingerprint": "db8d4177771c87934f7a7f25f08d4d72"
+  },
+  {
+    "kind": "trigger",
     "name": "orders.orders_set_completed_at",
     "fingerprint": "e30ffaf02d14023c68a5969d0d0e8c94"
   },
@@ -573,5 +923,10 @@
     "kind": "trigger",
     "name": "orders.orders_set_updated_at",
     "fingerprint": "58a4911dccde7406bbd843c99c261c11"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_signal_change",
+    "fingerprint": "7e8a1345a107d4f687fa086fb48806aa"
   }
 ]

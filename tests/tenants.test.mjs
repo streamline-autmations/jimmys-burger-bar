@@ -227,6 +227,59 @@ test('rehearsal settings, secret names and kitchen contacts are tenant isolated'
   assert.match(fs.readFileSync('supabase/functions/payfast/index.ts', 'utf8'), /secret\('merchant_key'\)/);
 });
 
+// No test runs the Deno handler, so a comma expression such as
+// settingsMap['payments.site_url','payments.secret_names'] once shipped and broke every checkout.
+test('payfast handler reads each setting by a single key', () => {
+  const source = fs.readFileSync('supabase/functions/payfast/index.ts', 'utf8');
+  assert.doesNotMatch(source, /settingsMap\[[^\]]*,[^\]]*\]/);
+});
+
+// The live database refuses ready -> out_for_delivery, so a live delivery must still close as completed.
+test('the rider step exists only on a pay-first tenant with a delivery preview', () => {
+  const ops = load('src/pages/admin/operations.ts');
+  assert.equal(loadWithEnv('src/core/tenant.ts', { VITE_TENANT: 'jimmys' }).deliveryRun, false);
+  assert.equal(loadWithEnv('src/core/tenant.ts', { VITE_TENANT: 'jimmys-staging' }).deliveryRun, true);
+  assert.deepEqual(ops.nextStatuses('ready'), ['completed', 'cancelled']);
+  assert.deepEqual(ops.nextStatuses('ready', 'delivery'), ['out_for_delivery', 'cancelled']);
+});
+
+test('the get-the-app sticker encourages without nagging', () => {
+  const { shouldOffer, platformOf } = load('src/lib/installApp.ts');
+  const now = Date.UTC(2026, 10, 18);
+  const day = 86_400_000;
+  assert.equal(platformOf('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Safari', 5), 'ios');
+  assert.equal(platformOf('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari', 5), 'ios'); // iPadOS
+  assert.equal(platformOf('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari', 0), 'other');
+  assert.equal(platformOf('Mozilla/5.0 (Linux; Android 10; K) Chrome/157 Mobile', 5), 'android');
+  assert.equal(shouldOffer({ visits: 1 }, 'order', 'android', now), true);
+  assert.equal(shouldOffer({ visits: 1 }, 'after-order', 'ios', now), true);
+  assert.equal(shouldOffer({ visits: 1 }, 'return-visit', 'ios', now), false, 'first visit gets no floating card');
+  assert.equal(shouldOffer({ visits: 2 }, 'return-visit', 'ios', now), true);
+  assert.equal(shouldOffer({ visits: 5 }, 'order', 'other', now), false, 'desktop is never asked');
+  assert.equal(shouldOffer({ visits: 5, installed: true }, 'order', 'android', now), false);
+  assert.equal(shouldOffer({ visits: 5, dismissedAt: now - 13 * day }, 'after-order', 'android', now), false);
+  assert.equal(shouldOffer({ visits: 5, dismissedAt: now - 15 * day }, 'after-order', 'android', now), true);
+});
+
+test('the guest app opens on the order page and its worker caches only the offline page', () => {
+  const plugin = load('vite-plugin-tenant-html.ts');
+  const jimmys = loadWithEnv('src/config.ts', { VITE_TENANT: 'jimmys' }).config;
+  const manifest = JSON.parse(plugin.customerManifest(jimmys, 'public'));
+  assert.equal(manifest.start_url, '/order');
+  assert.equal(manifest.scope, '/');
+  assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.icons.length, 3);
+  assert.equal(JSON.parse(plugin.staffManifest(jimmys, 'public')).scope, '/admin/', 'the staff app stays separate');
+  const worker = plugin.customerServiceWorker();
+  assert.match(worker, /addEventListener\('fetch'/);
+  assert.match(worker, /mode !== 'navigate'/);
+  assert.doesNotMatch(worker, /\.put\(|addAll/, 'no menu, price or order is ever cached');
+  const offline = plugin.offlinePage({ ...jimmys, venue: { ...jimmys.venue, name: 'A <b> & Co' } });
+  assert.match(offline, /A &lt;b&gt; &amp; Co/);
+  assert.match(plugin.offlinePage(jimmys, false), /href="tel:/);
+  assert.doesNotMatch(plugin.offlinePage(jimmys, true), /href=/, 'the demo offline page links nowhere');
+});
+
 test('shared menu and PDF cannot inherit another restaurant extras prices', () => {
   const { rehearsalGrill } = load('src/tenants/rehearsal-grill/config.ts');
   assert.equal(rehearsalGrill.menu.extrasNote, undefined);

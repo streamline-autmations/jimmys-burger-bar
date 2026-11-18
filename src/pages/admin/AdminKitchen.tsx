@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bell, BellOff, Maximize, Phone, RefreshCw, WifiOff } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, BellRing, Bike, MapPin, Maximize, MessageCircle, Phone, RefreshCw, WifiOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { config } from '../../config';
 import { ConflictError, data as db } from '../../core/data';
+import { deliveryRun } from '../../core/tenant';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { formatTimeOnly } from './adminUtils';
+import { formatCartMoney } from '../../lib/cartStore';
+import { toMinor } from '../../core/domain/money';
 import { chime, enableSound, soundReady } from './kitchenAlert';
+import { disablePush, enablePush, errorCode, initialPushState, pushState, type PushState } from './kitchenPush';
 import { useAdminResource } from './useAdminResource';
 import type { OrderStatus, OrderWithItems } from './types';
 
@@ -25,12 +29,36 @@ const NEXT: Partial<Record<string, { to: OrderStatus; label: string }>> = {
   preparing: { to: 'ready', label: 'Mark ready' },
   ready: { to: 'completed', label: 'Collected' },
 };
+// A delivery leaves with the rider, then is closed once it is handed over.
+const DELIVERY_NEXT: Partial<Record<string, { to: OrderStatus; label: string }>> = {
+  ...NEXT,
+  ready: { to: 'out_for_delivery', label: 'Out for delivery' },
+  out_for_delivery: { to: 'completed', label: 'Delivered' },
+};
 
+const delivery = config.ordering.deliveryPreview;
 const LANES = [
   { key: 'new', title: 'To accept', empty: 'Nothing waiting. New paid orders land here with a sound.', statuses: ['new'] },
   { key: 'cooking', title: 'In the kitchen', empty: 'Nothing on the go.', statuses: ['accepted', 'preparing'] },
-  { key: 'ready', title: 'Ready to collect', empty: 'Nothing waiting at the counter.', statuses: ['ready'] },
+  delivery
+    ? { key: 'ready', title: 'Ready and out', empty: 'Nothing at the counter or on the road.', statuses: ['ready', 'out_for_delivery'] }
+    : { key: 'ready', title: 'Ready to collect', empty: 'Nothing waiting at the counter.', statuses: ['ready'] },
 ];
+
+const money = (amount: number) => formatCartMoney(toMinor(amount));
+
+/** WhatsApp to the dispatcher: what the rider needs to pick up and drop off. */
+const riderUrl = (order: OrderWithItems) => {
+  const text = [
+    `Delivery ${order.order_no} from ${config.venue.name}`,
+    `For: ${order.customer_name}`,
+    `Address: ${[order.delivery_address, order.delivery_suburb].filter(Boolean).join(', ')}`,
+    ...(order.delivery_notes ? [`Note: ${order.delivery_notes}`] : []),
+    'Items:',
+    ...order.order_items.map((item) => `${item.qty}x ${item.name}`),
+  ].join('\n');
+  return `https://wa.me/${(delivery?.dispatcher.whatsapp ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+};
 
 const clock = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -60,14 +88,19 @@ const Ticket: React.FC<{
   now: number;
   busy: boolean;
   saving: boolean;
+  manager: boolean;
   onMove: (to: OrderStatus, eta?: string) => void;
-}> = ({ order, now, busy, saving, onMove }) => {
+  onFailed: () => void;
+}> = ({ order, now, busy, saving, manager, onMove, onFailed }) => {
+  const [confirmFailed, setConfirmFailed] = useState(false);
+  const isDelivery = order.order_type === 'delivery';
+  const onTheRoad = deliveryRun && isDelivery && (order.status === 'ready' || order.status === 'out_for_delivery');
   const fresh = order.status === 'new';
   const waited = now - waitingSince(order);
   const escalate = fresh && waited >= escalation.afterMinutes * MINUTE;
   const ref = order.order_no.split('-');
   const tail = ref.pop();
-  const next = NEXT[order.status];
+  const next = (deliveryRun && isDelivery ? DELIVERY_NEXT : NEXT)[order.status];
   const button = 'min-h-14 rounded-xl px-4 font-display text-lg font-bold transition-colors duration-150 disabled:opacity-50';
 
   return (
@@ -84,10 +117,24 @@ const Ticket: React.FC<{
             <h3 className="mt-1 break-words font-display text-2xl font-bold leading-tight">{order.customer_name}</h3>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-xs font-bold uppercase tracking-wider opacity-70">{order.eta ? 'Promised' : 'Collect'}</p>
+            <p className="text-xs font-bold uppercase tracking-wider opacity-70">{order.eta ? 'Promised' : isDelivery ? 'Deliver' : 'Collect'}</p>
             <p className="font-display text-3xl font-bold leading-none tabular-nums">{formatTimeOnly(order.eta ?? order.requested_time)}</p>
           </div>
         </div>
+
+        {isDelivery && (
+          <div className={`mt-3 rounded-xl px-3 py-2.5 ${fresh ? 'bg-surface/70' : 'bg-paper'}`}>
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink/70">
+              <Bike size={14} aria-hidden="true" /> Delivery
+              {order.delivery_fee > 0 && <span className="ml-auto normal-case tracking-normal">Fee {money(order.delivery_fee)}</span>}
+            </p>
+            <p className="mt-1 flex gap-1.5 font-bold leading-snug">
+              <MapPin size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+              <span className="min-w-0 break-words">{[order.delivery_address, order.delivery_suburb].filter(Boolean).join(', ')}</span>
+            </p>
+            {order.delivery_notes && <p className="mt-1 text-sm font-semibold text-ink/75">Note: {order.delivery_notes}</p>}
+          </div>
+        )}
 
         <ul className="mt-3 space-y-1 text-lg font-semibold leading-snug lg:text-xl">
           {order.order_items.map((item) => (
@@ -103,7 +150,7 @@ const Ticket: React.FC<{
             Paid, waiting <span className="font-display text-xl tabular-nums">{clock(waited)}</span>
           </p>
         ) : (
-          <p className="mt-3 text-sm font-bold text-ink/65">{order.status === 'accepted' ? 'Accepted, not started' : order.status === 'preparing' ? 'Preparing' : 'Ready at the counter'}</p>
+          <p className="mt-3 text-sm font-bold text-ink/65">{order.status === 'accepted' ? 'Accepted, not started' : order.status === 'preparing' ? 'Preparing' : order.status === 'out_for_delivery' ? 'Out for delivery' : isDelivery ? 'Ready, waiting for the rider' : 'Ready at the counter'}</p>
         )}
       </div>
 
@@ -143,6 +190,25 @@ const Ticket: React.FC<{
             {next.label}
           </button>
         )}
+        {onTheRoad && delivery && (
+          <a href={riderUrl(order)} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center justify-center gap-2 bg-surface text-primary ring-1 ring-primary/25 hover:bg-paper`}>
+            <MessageCircle size={18} aria-hidden="true" />
+            Send to rider
+          </a>
+        )}
+        {onTheRoad && manager && (confirmFailed ? (
+          <div className="rounded-xl bg-accent/20 p-3 ring-1 ring-accent" role="group" aria-label="Confirm failed delivery">
+            <p className="text-sm font-bold">Delivery failed? The order closes and the {money(order.total)} payment goes to refund pending. Refund it in the Payfast dashboard.</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button type="button" disabled={busy} onClick={onFailed} className="min-h-11 rounded-lg bg-ink px-3 font-bold text-surface disabled:opacity-50">Yes, delivery failed</button>
+              <button type="button" onClick={() => setConfirmFailed(false)} className="min-h-11 rounded-lg bg-surface px-3 font-bold text-ink ring-1 ring-ink/20">Keep it</button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" disabled={busy} onClick={() => setConfirmFailed(true)} className="min-h-11 rounded-xl px-4 text-sm font-bold text-ink/75 underline underline-offset-2 hover:text-ink disabled:opacity-50">
+            Delivery failed
+          </button>
+        ))}
         {saving && <p className="px-1 text-sm font-bold" role="status">Saving…</p>}
       </div>
     </article>
@@ -154,6 +220,32 @@ export const AdminKitchen: React.FC = () => {
   const [now, setNow] = useState(() => Date.now());
   const [saving, setSaving] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Lock-screen alerts. 'unavailable' (unsupported, blocked, demo) renders nothing: the sound alert carries on.
+  const [push, setPush] = useState<PushState>(initialPushState);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => { void pushState().then(setPush, () => {}); }, []);
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      setPush(await (push === 'on' ? disablePush() : enablePush()));
+    } catch (failure) {
+      // 42501: the database refused this account (signed in, but not on the staff list).
+      setNotice((failure as { code?: string } | null)?.code === '42501'
+        ? 'This account is not on the staff list, so it cannot get lock-screen alerts. Sign in with a staff account.'
+        : push === 'on'
+        ? 'Lock-screen alerts could not be switched off. Check the connection and tap again.'
+        : `Lock-screen alerts could not be switched on. Check the connection and tap again. Sound alerts still work.${errorCode(failure)}`);
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  // "Delivery failed" is a manager's call; the database refuses anyone else too.
+  const [manager, setManager] = useState(false);
+  useEffect(() => {
+    if (!delivery || !db.staffRole) return;
+    void db.staffRole().then((role) => setManager(role === 'owner' || role === 'manager')).catch(() => setManager(false));
+  }, []);
 
   // Newest first: if a backlog of never-closed orders ever passes the cap, the
   // oldest drop off the screen, never a new paid order.
@@ -249,6 +341,22 @@ export const AdminKitchen: React.FC = () => {
     void refresh();
   };
 
+  const failDelivery = async (order: OrderWithItems) => {
+    if (saving || !db.markDeliveryFailed) return;
+    setSaving(order.id);
+    setNotice(null);
+    try {
+      await db.markDeliveryFailed(order.id);
+      setData((current) => current.filter((item) => item.id !== order.id));
+      setNotice(`Order ${order.order_no} closed as a failed delivery. Its payment is now refund pending: refund it in the Payfast dashboard and record it.`);
+    } catch {
+      setNotice(`Order ${order.order_no} was not marked failed. Check the connection, then tap again.`);
+    } finally {
+      setSaving(null);
+    }
+    void refresh();
+  };
+
   const age = updatedAt ? now - updatedAt.getTime() : Infinity;
   const connection: Connection = !online ? 'offline' : error && age > STALE_MS ? 'failing' : live === false ? 'reconnecting' : live ? 'live' : 'polling';
   const sound = soundReady();
@@ -289,6 +397,12 @@ export const AdminKitchen: React.FC = () => {
               <button type="button" onClick={() => void enableSound().then((on) => { if (on) chime(); })} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 font-display font-bold text-ink">
                 <BellOff size={17} aria-hidden="true" />
                 Enable sound
+              </button>
+            )}
+            {push !== 'unavailable' && (
+              <button type="button" onClick={() => void togglePush()} disabled={pushBusy} aria-pressed={push === 'on'} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 font-bold disabled:opacity-60 ${push === 'on' ? 'bg-surface text-primary' : 'bg-surface/[0.12] hover:bg-surface/20'}`}>
+                <BellRing size={17} aria-hidden="true" />
+                {push === 'on' ? 'Lock-screen alerts on' : 'Lock-screen alerts'}
               </button>
             )}
             <button type="button" onClick={() => void refresh()} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-surface/[0.12] px-3.5 font-bold hover:bg-surface/20 disabled:opacity-60">
@@ -339,7 +453,7 @@ export const AdminKitchen: React.FC = () => {
               <ul className="space-y-3">
                 {lane.orders.map((order) => (
                   <li key={order.id}>
-                    <Ticket order={order} now={now} busy={saving !== null} saving={saving === order.id} onMove={(to, eta) => void move(order, to, eta)} />
+                    <Ticket order={order} now={now} busy={saving !== null} saving={saving === order.id} manager={manager} onMove={(to, eta) => void move(order, to, eta)} onFailed={() => void failDelivery(order)} />
                   </li>
                 ))}
               </ul>

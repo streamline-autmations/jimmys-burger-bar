@@ -1,3 +1,8 @@
 # Payfast cannot attach a Supabase JWT. Both routes enforce their own checks.
 [functions.payfast]
 verify_jwt = false
+
+# Called by pg_net from queue_order_push, which cannot attach a JWT. It only
+# claims order_push rows the trigger queued, so an outside call sends nothing.
+[functions.kitchen-push]
+verify_jwt = false

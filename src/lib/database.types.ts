@@ -130,6 +130,18 @@ export type Database = {
           },
         ]
       }
+      staff_push_subscriptions: {
+        Row: { endpoint: string; user_id: string; p256dh: string; auth: string; created_at: string }
+        Insert: { endpoint: string; user_id?: string; p256dh: string; auth: string; created_at?: string }
+        Update: { endpoint?: string; user_id?: string; p256dh?: string; auth?: string; created_at?: string }
+        Relationships: []
+      }
+      staff: {
+        Row: { user_id: string; email: string; role: string; created_at: string }
+        Insert: { user_id: string; email: string; role?: string; created_at?: string }
+        Update: { user_id?: string; email?: string; role?: string; created_at?: string }
+        Relationships: []
+      }
       orders: {
         Row: {
           payment_status: string
@@ -139,6 +151,8 @@ export type Database = {
           payment_review_required: boolean
           refund_amount: number
           eta: string | null
+          delivery_fee: number
+          delivery_suburb: string | null
           created_at: string
           customer_id: string | null
           customer_name: string
@@ -164,6 +178,8 @@ export type Database = {
           payment_review_required?: boolean
           refund_amount?: number
           eta?: string | null
+          delivery_fee?: number
+          delivery_suburb?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name: string
@@ -189,6 +205,8 @@ export type Database = {
           payment_review_required?: boolean
           refund_amount?: number
           eta?: string | null
+          delivery_fee?: number
+          delivery_suburb?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -231,6 +249,23 @@ export type Database = {
       collection_commission_report: {
         Args: Record<PropertyKey, never>
         Returns: { reference: string; month: string; food_subtotal: number; delivery: number; refunds: number; payment_state: string; fulfilment_state: string; commission_base: number }[]
+      }
+      mark_delivery_failed: { Args: { p_order_id: string }; Returns: undefined }
+      create_delivery_order: {
+        Args: {
+          p_order_no: string
+          p_customer_name: string
+          p_email: string
+          p_phone: string
+          p_delivery_address: string
+          p_delivery_notes: string
+          p_requested_time: string
+          p_total: number
+          p_marketing_consent: boolean
+          p_items: Json
+          p_delivery_suburb: string
+        }
+        Returns: { id: string; order_no: string; created_at: string }[]
       }
       create_order: {
         Args: {

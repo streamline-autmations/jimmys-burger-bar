@@ -13,7 +13,7 @@ import type {
 import { ConflictError } from '../core/data/errors';
 import { SubmissionError } from '../core/data/submission';
 import { config } from './config';
-import { copy, restaurantDate, restaurantDayBounds } from '../core/tenant';
+import { copy, deliveryRun, restaurantDate, restaurantDayBounds } from '../core/tenant';
 import { orderableCategories, orderableItems } from '../core/menu/orderable';
 import { nextStatuses } from '../pages/admin/operations';
 import { readRecords, subscribeRecords, updateRecords } from './store';
@@ -91,7 +91,7 @@ function advance(table: 'orders' | 'bookings', id: string, from: string, to: str
   let moved = false;
   updateRecords((next) => {
     const row = next[table].find((item) => item.id === id);
-    if (!row || row.status !== from || !nextStatuses(from).includes(to)) return false;
+    if (!row || row.status !== from || !nextStatuses(from, deliveryRun && 'order_type' in row ? row.order_type : undefined).includes(to)) return false;
     Object.assign(row, patch, { status: to });
     row.updated_at = new Date().toISOString();
     moved = true;
@@ -140,7 +140,7 @@ export const adapter: DataAdapter = {
       }
       const customerId = upsertCustomer(next, order.customerName, contact.email, contact.phone, now);
       next.orders.push({
-        payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null,
+        payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null, delivery_fee: 0, delivery_suburb: null,
         id,
         order_no: order.orderNo,
         customer_id: customerId,

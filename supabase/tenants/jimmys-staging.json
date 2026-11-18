@@ -4,6 +4,7 @@
   "supabaseProjectRef": "cagcpwlzqpolojpgewtw",
   "vercelProject": "jimmys-staging",
   "phoneCountryCode": "27",
+  "pushUrl": "https://cagcpwlzqpolojpgewtw.supabase.co/functions/v1/kitchen-push",
   "webhooks": {
     "order": null,
     "booking": null,

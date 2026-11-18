@@ -21,16 +21,19 @@ import { collectionSlots, contactFieldErrors, latestTime, openDates, restaurantD
 import { data as db, SubmissionError, type NewOrder, type OrderingState, type RefusalReason, type SubmissionFailure } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 import { FormField } from '../components/forms/FormField';
+import { AddressSearch } from '../components/forms/AddressSearch';
+import { matchSuburb } from '../lib/addressSearch';
 import { ErrorSummary } from '../components/forms/ErrorSummary';
 import { SubmissionNotice, UnconfirmedRequest } from '../components/forms/SubmissionNotice';
 import { useFormErrors } from '../lib/useFormErrors';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { MenuThumb } from '../components/MenuThumb';
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
+import { InstallApp } from '../components/InstallApp';
 import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
-type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'address';
+type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'suburb' | 'address';
 
 const FIELD_IDS: Record<CheckoutField, string> = {
   cart: 'order-cart',
@@ -40,9 +43,10 @@ const FIELD_IDS: Record<CheckoutField, string> = {
   date: 'order-date',
   time: 'order-time',
   table: 'order-table',
+  suburb: 'order-suburb',
   address: 'order-address',
 };
-const FIELD_ORDER: CheckoutField[] = ['cart', 'name', 'phone', 'email', 'date', 'time', 'table', 'address'];
+const FIELD_ORDER: CheckoutField[] = ['cart', 'name', 'phone', 'email', 'date', 'time', 'table', 'suburb', 'address'];
 
 const PENDING_KEY = storageKey('order-reference');
 
@@ -63,6 +67,12 @@ const dayLabel = (date: string): string => {
 
 const ORDER_CATEGORIES = orderCategories;
 const LEAD_MINUTES = config.ordering.leadMinutes ?? 0;
+// Pay-first delivery (staging preview only). Fees are examples; the server prices
+// the real charge from the same config, so these only show it in advance.
+const DELIVERY = payFirst ? config.ordering.deliveryPreview : undefined;
+const NOT_LISTED = '__not_listed';
+const deliveryBand = (suburb: string) => DELIVERY?.bands.find((band) => band.suburbs.includes(suburb));
+const inDeliveryHours = (slot: string) => !!DELIVERY && slot >= DELIVERY.hours.from && slot < DELIVERY.hours.until;
 const panel = 'bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]';
 const noticeBox = 'rounded-2xl border-2 border-ink bg-accent/15 p-5 text-ink focus:outline-none';
 
@@ -85,6 +95,8 @@ export const Order: React.FC = () => {
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [deliverySuburb, setDeliverySuburb] = useState('');
+  const autoSuburb = useRef('');
   // Recomputed every render: at most a week or two of days, and it must notice
   // when today's last slot passes while the page sits open.
   // Pay-first offers quarter-hour slots, so a day with none left is not offered either.
@@ -141,6 +153,10 @@ export const Order: React.FC = () => {
 
   // A cart restored from an earlier session may hold a mode this venue has since switched off.
   const orderType: OrderType = fulfilmentModes.includes(storedOrderType) ? storedOrderType : fulfilmentModes[0];
+  const paidDelivery = !!DELIVERY && orderType === 'delivery';
+  const band = paidDelivery ? deliveryBand(deliverySuburb) : undefined;
+  const deliveryFee = band ? menuPrice(band.fee) : 0;
+  const payTotal = total + deliveryFee;
 
   // If today closes while the page is open, move the selection to the next open day.
   useEffect(() => {
@@ -150,7 +166,7 @@ export const Order: React.FC = () => {
 
   const selectedHours = tradingHours(requestedDate);
   const soldOut = new Set(shop.unavailable);
-  const slots = payFirst ? collectionSlots(requestedDate, LEAD_MINUTES) : [];
+  const slots = payFirst ? collectionSlots(requestedDate, LEAD_MINUTES).filter((slot) => !paidDelivery || inDeliveryHours(slot)) : [];
   const slotsKey = slots.join(',');
 
   // Validation reads the clock, so it is re-run at submit with a fresh time.
@@ -165,7 +181,13 @@ export const Order: React.FC = () => {
     const gone = lines.find((line) => soldOut.has(line.name));
     if (gone) found.cart = `${gone.name} is sold out. Remove it to continue.`;
     if (orderType === 'table' && !tableNumber.trim()) found.table = 'Enter your table number.';
-    if (orderType === 'delivery' && !deliveryAddress.trim()) found.address = 'Enter the delivery address.';
+    if (orderType === 'delivery' && !deliveryAddress.trim() && deliverySuburb !== NOT_LISTED) found.address = 'Enter the delivery address.';
+    if (paidDelivery && DELIVERY) {
+      if (!deliverySuburb) found.suburb = 'Choose your suburb.';
+      else if (deliverySuburb === NOT_LISTED) found.suburb = 'Choose a listed suburb, or collect instead.';
+      if (!found.date && slots.length === 0) found.time = `Delivery runs ${DELIVERY.hours.from} to ${DELIVERY.hours.until}, and there are no delivery times left on this day. Choose another day or collect instead.`;
+      if (DELIVERY.minimumOrder && total < menuPrice(DELIVERY.minimumOrder)) found.cart = `Delivery needs at least ${formatMoney(menuPrice(DELIVERY.minimumOrder))} of food. Add something or collect instead.`;
+    }
     if (!found.time && requestedTime) {
       const late = lines.find((line) => {
         const cutoff = itemCutoffs.get(line.name);
@@ -210,7 +232,7 @@ export const Order: React.FC = () => {
   // an uncertain send is not, because it may still exist on the server.
   useEffect(() => {
     setFailure((current) => (current && current.kind !== 'uncertain' ? null : current));
-  }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, deliveryAddress, tableNumber, count]);
+  }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, deliveryAddress, deliverySuburb, orderType, tableNumber, count]);
 
   const orderCategories = ORDER_CATEGORIES;
 
@@ -349,6 +371,9 @@ export const Order: React.FC = () => {
           : failed.reason === 'time' ? copy.order.timePassed
           : failed.reason === 'paused' ? `${config.venue.name} has paused online orders for now, so nothing was saved. Your cart is still here.`
           : failed.reason === 'hours' ? `${config.venue.name} is closed at the time you chose, so nothing was saved. Choose a time inside opening hours.`
+          : failed.reason === 'zone' ? 'We cannot deliver to that suburb, so nothing was saved. Your cart is still here, and you can collect instead.'
+          : failed.reason === 'deliveryHours' ? 'Delivery is not running at the time you chose, so nothing was saved. Choose another time or collect instead.'
+          : failed.reason === 'minimum' ? 'This order is below the delivery minimum, so nothing was saved. Add something or collect instead.'
           : failed.kind === 'rejected' ? copy.order.rejected
           : failed.offline ? 'The connection dropped while sending, so we could not confirm your order arrived.'
           : 'The connection timed out before we heard back, so we cannot tell whether your order arrived.',
@@ -374,6 +399,7 @@ export const Order: React.FC = () => {
       tableNumber: orderType === 'table' ? tableNumber.trim() : null,
       deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null,
       deliveryNotes: orderType === 'delivery' ? (deliveryNotes.trim() || null) : null,
+      ...(paidDelivery ? { deliverySuburb } : {}),
       requestedTime: restaurantInstant(requestedDate, requestedTime).toISOString(),
       // The cart holds minor units; the orders table stores a decimal amount.
       total: toStoredAmount(total),
@@ -405,7 +431,7 @@ export const Order: React.FC = () => {
     setPreviousReference(null);
     setPlacedOrder(null);
     setCustomerName('');
-    setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes('');
+    setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes(''); setDeliverySuburb('');
     setRequestedTime('');
     form.reset();
     setStep('browse');
@@ -463,7 +489,12 @@ export const Order: React.FC = () => {
   const earliestSlot = earliestDate ? collectionSlots(earliestDate, LEAD_MINUTES)[0] : undefined;
   const slotFields = (
     <>
-      {earliestSlot && (
+      {paidDelivery && DELIVERY ? (
+        <p className="flex items-center gap-2.5 rounded-xl bg-accent/20 px-4 py-3 text-sm text-ink ring-1 ring-accent/60">
+          <Clock3 size={18} className="shrink-0" aria-hidden="true" />
+          <span>Delivery runs <strong className="font-display text-base">{DELIVERY.hours.from} to {DELIVERY.hours.until}</strong>, example hours for this preview.</span>
+        </p>
+      ) : earliestSlot && (
         <p className="flex items-center gap-2.5 rounded-xl bg-accent/20 px-4 py-3 text-sm text-ink ring-1 ring-accent/60">
           <Clock3 size={18} className="shrink-0" aria-hidden="true" />
           <span>Next collection slot: <strong className="font-display text-base">{dayLabel(earliestDate)}, {earliestSlot}</strong></span>
@@ -471,11 +502,11 @@ export const Order: React.FC = () => {
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {dayField}
-        <FormField id={FIELD_IDS.time} label="Collect at" required error={form.visible.time} hint={`${config.venue.timeLabel}. Pick a later time if that suits you better.`}>
+        <FormField id={FIELD_IDS.time} label={paidDelivery ? 'Deliver at' : 'Collect at'} required error={form.visible.time} hint={`${config.venue.timeLabel}. Pick a later time if that suits you better.`}>
           {(control) => (
             <select {...control} disabled={slots.length === 0} value={requestedTime} onChange={(e) => setRequestedTime(e.target.value)} onBlur={() => form.blur('time')} className="form-input">
               {slots.length === 0 && <option value="">No times left</option>}
-              {slots.map((slot) => <option key={slot} value={slot}>{slot}{requestedDate === earliestDate && slot === earliestSlot ? ' (earliest)' : ''}</option>)}
+              {slots.map((slot) => <option key={slot} value={slot}>{slot}{!paidDelivery && requestedDate === earliestDate && slot === earliestSlot ? ' (earliest)' : ''}</option>)}
             </select>
           )}
         </FormField>
@@ -508,11 +539,25 @@ export const Order: React.FC = () => {
           </li>
         ))}
       </ul>
+      {paidDelivery && DELIVERY && (
+        <div className="mt-4 flex flex-wrap items-baseline gap-2 border-t border-ink/10 pt-4">
+          <span className="font-display font-bold text-ink">Delivery fee</span>
+          <span className="rounded-full bg-accent/25 px-2.5 py-0.5 text-xs font-bold text-ink ring-1 ring-accent/60">{DELIVERY.feeNote}</span>
+          <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" aria-hidden="true" />
+          <span className="font-display font-bold text-ink whitespace-nowrap">{band ? formatCartMoney(deliveryFee) : 'Choose your suburb'}</span>
+        </div>
+      )}
       <div className="flex items-baseline justify-between mt-6 pt-4 border-t border-ink/10">
         <span className="font-display font-bold text-ink text-lg">Total</span>
-        <span className="font-display font-extrabold text-primary text-2xl">{formatCartMoney(total)}</span>
+        <span className="font-display font-extrabold text-primary text-2xl">{formatCartMoney(payTotal)}</span>
       </div>
     </section>
+  );
+
+  const collectInstead = (
+    <button type="button" onClick={() => { setOrderType('collection'); setFailure(null); }} className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 font-display text-sm font-bold text-surface">
+      Collect instead, keep my cart
+    </button>
   );
 
   return (
@@ -543,6 +588,7 @@ export const Order: React.FC = () => {
                 </p>
               )}
               {shop.paused && <PausedNotice lines={lines} total={total} className="mb-6 max-w-xl" />}
+              <InstallApp placement="order" className="mb-8 max-w-xl" />
             </div>
 
             {/* Category tabs */}
@@ -710,10 +756,68 @@ export const Order: React.FC = () => {
             {payFirst ? (
               <>
                 <div className="my-6">{orderSummary}</div>
+                {DELIVERY && fulfilmentModes.length > 1 && (
+                  <fieldset disabled={locked} className={`${panel} mb-6 space-y-5`}>
+                    <legend className="sr-only">Collection or delivery</legend>
+                    <p id="order-type-label" className="font-display text-lg font-extrabold text-primary">How would you like it?</p>
+                    <OrderTypeToggle value={orderType} onChange={setOrderType} labelledBy="order-type-label" />
+                    {paidDelivery && (
+                      <>
+                        <FormField id={FIELD_IDS.suburb} label="Suburb" required error={form.visible.suburb} hint="We deliver to a short list of nearby suburbs.">
+                          {(control) => (
+                            <select {...control} value={deliverySuburb} onChange={(e) => setDeliverySuburb(e.target.value)} onBlur={() => form.blur('suburb')} className="form-input">
+                              <option value="">Choose your suburb</option>
+                              {DELIVERY.bands.map((zone) => (
+                                <optgroup key={zone.label} label={`${zone.label}, ${formatMoney(menuPrice(zone.fee))} example fee`}>
+                                  {zone.suburbs.map((name) => <option key={name} value={name}>{name}</option>)}
+                                </optgroup>
+                              ))}
+                              <option value={NOT_LISTED}>My suburb is not listed</option>
+                            </select>
+                          )}
+                        </FormField>
+                        {deliverySuburb === NOT_LISTED ? (
+                          <div role="status" className={noticeBox}>
+                            <p className="font-display text-lg font-bold">We cannot deliver to your area</p>
+                            <p className="mt-2 text-sm">Delivery only covers the suburbs listed. Your cart is kept, so you can collect from {config.venue.address} instead.</p>
+                            <div className="mt-4">{collectInstead}</div>
+                          </div>
+                        ) : (
+                          <>
+                            <FormField id={FIELD_IDS.address} label="Street address" required error={form.visible.address} hint={DELIVERY.addressSearch ? 'Type your house number and street, then tap the match.' : undefined}>
+                              {(control) => DELIVERY.addressSearch ? (
+                                <AddressSearch
+                                  control={control}
+                                  near={DELIVERY.addressSearch}
+                                  value={deliveryAddress}
+                                  onChange={setDeliveryAddress}
+                                  onBlur={() => form.blur('address')}
+                                  onPick={(picked) => {
+                                    setDeliveryAddress(picked.label);
+                                    const suburb = matchSuburb(picked, DELIVERY.bands.flatMap((zone) => zone.suburbs));
+                                    // Undo a suburb an earlier pick chose, so a new address never keeps the old fee.
+                                    if (suburb) setDeliverySuburb(suburb);
+                                    else if (autoSuburb.current === deliverySuburb) setDeliverySuburb('');
+                                    autoSuburb.current = suburb ?? '';
+                                  }}
+                                  placeholder="House number and street"
+                                />
+                              ) : <input {...control} type="text" autoComplete="address-line1" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="House number and street" className="form-input" />}
+                            </FormField>
+                            <FormField label="Notes for the rider" required={false}>
+                              {(control) => <input {...control} type="text" maxLength={250} value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="form-input" />}
+                            </FormField>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </fieldset>
+                )}
                 <fieldset disabled={locked} className={`${panel} mb-6 space-y-5`}>
-                  <legend className="sr-only">Collection time</legend>
-                  <h2 className="font-display text-lg font-extrabold text-primary" aria-hidden="true">Collection time</h2>
+                  <legend className="sr-only">{paidDelivery ? 'Delivery time' : 'Collection time'}</legend>
+                  <h2 className="font-display text-lg font-extrabold text-primary" aria-hidden="true">{paidDelivery ? 'Delivery time' : 'Collection time'}</h2>
                   {slotFields}
+                  {paidDelivery && slots.length === 0 && <div>{collectInstead}</div>}
                 </fieldset>
                 <fieldset disabled={locked} className={`${panel} mb-6 space-y-5`}>
                   <legend className="sr-only">Your details</legend>
@@ -725,20 +829,34 @@ export const Order: React.FC = () => {
                   <h2 id="pay-summary-heading" className="font-display text-lg font-extrabold text-accent">Before you pay</h2>
                   <dl className="mt-4 space-y-3 text-sm">
                     <div className="flex justify-between gap-6">
-                      <dt className="shrink-0 text-paper/70">Collect from</dt>
-                      <dd className="text-right font-display font-bold">{config.venue.name}, {config.venue.address}</dd>
+                      <dt className="shrink-0 text-paper/70">{paidDelivery ? 'Deliver to' : 'Collect from'}</dt>
+                      <dd className="text-right font-display font-bold">{paidDelivery
+                        ? (band ? [deliveryAddress.trim(), deliverySuburb].filter(Boolean).join(', ') : 'Choose your suburb')
+                        : `${config.venue.name}, ${config.venue.address}`}</dd>
                     </div>
                     <div className="flex justify-between gap-6">
-                      <dt className="shrink-0 text-paper/70">Collection time</dt>
+                      <dt className="shrink-0 text-paper/70">{paidDelivery ? 'Delivery time' : 'Collection time'}</dt>
                       <dd className="text-right font-display font-bold">{requestedTime ? `${dayLabel(requestedDate)}, ${requestedTime}` : 'Not chosen yet'}</dd>
                     </div>
+                    {paidDelivery && DELIVERY && (
+                      <>
+                        <div className="flex justify-between gap-6 border-t border-paper/15 pt-3">
+                          <dt className="shrink-0 text-paper/70">Food</dt>
+                          <dd className="text-right font-display font-bold">{formatCartMoney(total)}</dd>
+                        </div>
+                        <div className="flex justify-between gap-6">
+                          <dt className="text-paper/70">Delivery fee<span className="block text-xs text-accent">{DELIVERY.feeNote}</span></dt>
+                          <dd className="text-right font-display font-bold">{band ? formatCartMoney(deliveryFee) : 'Not chosen yet'}</dd>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-baseline justify-between gap-6 border-t border-paper/15 pt-3">
                       <dt className="font-display text-base font-bold">Total to pay</dt>
-                      <dd className="font-display text-2xl font-extrabold text-accent">{formatCartMoney(total)}</dd>
+                      <dd className="font-display text-2xl font-extrabold text-accent">{formatCartMoney(payTotal)}</dd>
                     </div>
                   </dl>
                 </section>
-                <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. You pay now on Payfast, and your collection time is confirmed when {config.venue.name} accepts the order.</p>
+                <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. You pay now on Payfast, and your {paidDelivery ? 'delivery' : 'collection'} time is confirmed when {config.venue.name} accepts the order.</p>
               </>
             ) : (
               <>
@@ -808,6 +926,7 @@ export const Order: React.FC = () => {
                   onDiscard={discardAttempt}
                   onReload={failure.reason === 'menu' ? () => window.location.reload() : undefined}
                 />
+                {paidDelivery && (failure.reason === 'zone' || failure.reason === 'deliveryHours' || failure.reason === 'minimum') && <div className="mt-3">{collectInstead}</div>}
               </div>
             )}
 
@@ -834,7 +953,7 @@ export const Order: React.FC = () => {
                 >
                   {redirecting ? 'Taking you to Payfast…'
                     : isSubmitting ? (payFirst ? 'Saving your order…' : 'Placing order…')
-                    : payFirst ? `Pay ${formatCartMoney(total)} with Payfast`
+                    : payFirst ? `Pay ${formatCartMoney(payTotal)} with Payfast`
                     : `Place order · ${formatCartMoney(total)}`}
                 </button>
                 {payFirst && (

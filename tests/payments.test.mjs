@@ -88,7 +88,7 @@ test('report excludes cancelled and nets confirmed partial/full refunds; refund 
  await refund('refund-a',20,false); assert.equal((await state(o)).refund_amount,'0.00');
  await refund('refund-a',20,true);await refund('refund-a',20,true);
  let rows=await asRole(db,'authenticated',()=>db.query(`select * from public.collection_commission_report()`),{userId:reviewer});
- let r=rows.rows.find(r=>r.reference===o.ref);assert.equal(r.commission_base,'80.00');assert.equal(r.delivery,'0');
+ let r=rows.rows.find(r=>r.reference===o.ref);assert.equal(r.commission_base,'80.00');assert.equal(r.delivery,'0.00');
  await refund('refund-b',80,true);
  rows=await asRole(db,'authenticated',()=>db.query(`select * from public.collection_commission_report()`),{userId:reviewer});
  r=rows.rows.find(r=>r.reference===o.ref); assert.equal(r.commission_base,'0');

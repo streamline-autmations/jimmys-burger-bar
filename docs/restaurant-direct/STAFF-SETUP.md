@@ -27,8 +27,53 @@ you cannot see.
   Open it from the new icon. **The ring/silent switch must be on ring**: iPhone mutes the
   alert in silent mode.
 
-Keep the screen open and in front, on a charger. A locked phone or a closed app gets no
-alert; lock-screen notifications are a separate step that is not set up yet.
+Keep the screen open and in front, on a charger when you can. With the kitchen screen in
+front, the phone chimes. When the phone is locked or the app is closed, it only alerts if
+lock-screen alerts are switched on (next section).
+
+## Lock-screen alerts (chef's Android phone, Chrome)
+
+Set this up **only on the phone that should buzz**, usually the chef's. Each phone that
+switches it on gets its own alert, so leave it off on phones nobody watches.
+
+1. Open the kitchen screen from the installed icon (or in Chrome), signed in with the
+   chef's own login.
+2. Tap **Lock-screen alerts** in the top bar. Chrome asks "Allow notifications?" Tap
+   **Allow**. On Android 13 and newer the phone asks as well. Tap **Allow** again.
+3. The button turns white and reads **Lock-screen alerts on**.
+4. Android settings, one time only. Names differ by brand:
+   - *Settings → Apps → Chrome → Notifications*: allowed, with sound. If the kitchen
+     was installed as an app, check that app's entry too.
+   - *Settings → Apps → Chrome → Battery*: **Unrestricted** (Samsung: "Unrestricted" or
+     remove it from "Sleeping apps"; Xiaomi: "No restrictions"). Without this, some phones
+     hold alerts back until someone unlocks them.
+   - Do Not Disturb off during service, or Chrome allowed as an exception.
+5. Test it: lock the phone, place a test order on the staging site and pay it in the
+   sandbox. Within a few seconds the phone should buzz and show **"New order at
+   Jimmy's"**. Tapping it opens the kitchen screen.
+
+What the lock screen shows: always just "New order at Jimmy's" and "Open the kitchen
+screen to accept it". Never the guest's name, the food or the amount. Several orders
+while the phone is off show as one alert. The alert says something is waiting. It does
+not replace the kitchen screen: accept orders on the screen as usual.
+
+If you tapped **Block** by mistake, the button disappears and the screen keeps using the
+chime only. To undo it: Chrome menu ⋮ → *Settings → Site settings → Notifications*, find
+the site, set it to **Allow**, then reopen the kitchen screen and tap the button again.
+
+If it says **"This account is not on the staff list"**, the phone is signed in with a
+personal login. Log out and sign in with the chef's staff login. Any other failure ends
+with a code such as "(Code: AbortError)". Read that code out when asking for help.
+
+Installing the kitchen as an app does not change the alerts. The app and Chrome share
+one sign-up, so there is no need to switch it on twice. Check that the button still says
+**on** after installing.
+
+To stop alerts on a phone (it changed hands, say), tap **Lock-screen alerts on** once. It
+switches off for that phone only.
+
+Proven on staging, 2026-11-17: Android 10 phone, Chrome 157, chef login. The alert left the
+server 0.6 seconds after a sandbox payment and Google's push service accepted it.
 
 ## Start of every shift
 
@@ -48,6 +93,32 @@ alert; lock-screen notifications are a separate step that is not set up yet.
   order was already moved. Nothing is done twice.
 - Cancelling and refunds stay on the full Orders screen, not the kitchen screen.
 
+## Delivery orders (staging preview only)
+
+Only the staging site takes delivery orders, as a showcase. The zone, the fees (R39 and
+R49) and the rider number are examples until Jimmy's agrees real ones.
+
+- A delivery ticket has a **Delivery** panel: street address, suburb, the guest's note
+  for the rider and the delivery fee (already inside the paid total).
+- After **Mark ready**, tap **Send to rider**. It opens WhatsApp to the dispatcher with
+  the reference, the address and the items. Check the message, then send it. Nothing is
+  sent until you press send in WhatsApp.
+- When the rider leaves, tap **Out for delivery**. The guest's tracking page says
+  *Out for delivery*.
+- When the rider confirms the drop-off, tap **Delivered**. The order closes.
+
+### If a delivery fails
+
+Only a manager or owner sees **Delivery failed** (on a ready or out-for-delivery ticket).
+
+1. Phone the guest first. If they would rather collect, keep the order and do not
+   mark it failed.
+2. Otherwise tap **Delivery failed**, then **Yes, delivery failed**. The order leaves
+   the kitchen screen and its payment shows **refund pending**. The guest's tracking
+   page says *Not delivered, refund pending*.
+3. Refund the full amount in the Payfast dashboard, then record the refund as described
+   in PAYMENTS.md. Nothing on this screen sends money.
+
 ## If the screen says Offline or Not updating
 
 - **Offline (gold banner):** the device has lost Wi-Fi or data. Guests can still order and
@@ -62,4 +133,7 @@ alert; lock-screen notifications are a separate step that is not set up yet.
 ## What is stored on the device
 
 Nothing beyond the login session. The installed app has no offline cache, so no orders or
-guest details are kept on the PC or phone.
+guest details are kept on the PC or phone. A phone with lock-screen alerts on also keeps
+a small background script that only shows the alert. It stores nothing, and the alert
+itself carries no order details. A device that has opened the public website also keeps
+one "You are offline" page (the guest app's, see `APP.md`); it holds no orders or guest details.

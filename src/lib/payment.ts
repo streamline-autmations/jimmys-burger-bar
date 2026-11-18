@@ -51,6 +51,9 @@ export const paymentStartMessage = (code: string): string =>
   code === 'ORDERING_PAUSED' ? `${config.venue.name} has paused online orders for now, so payment did not start.`
   : code === 'PAYMENT_UNAVAILABLE' ? 'Something in this order has sold out or changed price, so payment did not start. Change your order and try again.'
   : code === 'PAYMENT_CLOSED' ? `The collection time on this order has passed or falls outside ${config.venue.name}'s hours, so payment did not start. Choose a new time.`
+  : code === 'PAYMENT_DELIVERY_CLOSED' ? 'Delivery is not running at the time on this order, so payment did not start. Choose another time or collect instead.'
+  : code === 'PAYMENT_DELIVERY_OUT_OF_ZONE' ? 'We cannot deliver to the suburb on this order, so payment did not start. You can collect instead.'
+  : code === 'PAYMENT_DELIVERY_MINIMUM' ? 'This order is below the delivery minimum, so payment did not start. Add something or collect instead.'
   : code === 'PAYMENT_NOT_PENDING' ? 'This order can no longer be paid for. It may have expired or already been paid. Check its status before ordering again.'
   : code === 'PAYMENT_NOT_FOUND' ? 'To pay, look this order up with the email address it was placed with.'
   : 'Payment could not start just now. Nothing has been charged. Try again in a moment.';

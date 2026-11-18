@@ -6,6 +6,11 @@ all five migrations, `settings.jimmys-staging.sql`, `menu.jimmys-staging.sql`, a
 It does not deploy on push: redeploy the branch to the `jimmys-staging` Vercel project by hand.
 Nothing here has touched production. PHASE0 section 4 governs architecture.
 
+**Update 2026-11-17, 09:49 SAST:** a full sandbox payment now completes. Order
+`JB-1117-VEJS26` (R90) was paid on the Payfast sandbox page and its notification was recorded
+COMPLETE (pf id 3523673) 2 s later; tracking showed "Payment received". The paragraph below
+is the earlier state.
+
 Proven on staging: order saved, signed checkout fields issued, hand-off to the Payfast
 sandbox, and every refusal (closed hours, sold out, paused, tampered price, repeated
 submit, forged notification). **Not yet proven: a real Payfast notification.** The sandbox

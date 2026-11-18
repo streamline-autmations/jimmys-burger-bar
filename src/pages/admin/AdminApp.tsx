@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useHeadTags, type HeadTag } from '../../lib/useHeadTags';
 import { AdminBookings } from './AdminBookings';
 import { AdminCustomers } from './AdminCustomers';
 import { AdminCustomerDetail } from './AdminCustomerDetail';
@@ -15,9 +16,9 @@ import { AdminSecurity } from './AdminMfa';
 const guarded = (page: React.ReactNode) => <AdminGuard>{page}</AdminGuard>;
 
 // Installable as "Kitchen" (staff.webmanifest, emitted by the tenant HTML
-// plugin). Added on /admin only. No service worker: Chrome, Edge and Safari
-// install without one, and it means no order or guest data is ever cached.
-const INSTALL_TAGS: [string, Record<string, string>][] = [
+// plugin). Added on /admin only; the public site adds its own app.webmanifest.
+// The staff worker (lock-screen alerts) fetches and caches nothing.
+const INSTALL_TAGS: HeadTag[] = [
   ['link', { rel: 'manifest', href: '/staff.webmanifest' }],
   ['link', { rel: 'apple-touch-icon', href: '/images/app/apple-touch-icon.png' }],
   ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
@@ -25,19 +26,8 @@ const INSTALL_TAGS: [string, Record<string, string>][] = [
   ['meta', { name: 'apple-mobile-web-app-title', content: 'Kitchen' }],
 ];
 
-function useInstallable() {
-  useEffect(() => {
-    const tags = INSTALL_TAGS.map(([tag, attributes]) => {
-      const element = document.createElement(tag);
-      Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
-      return document.head.appendChild(element);
-    });
-    return () => tags.forEach((element) => element.remove());
-  }, []);
-}
-
 export const AdminApp: React.FC = () => {
-  useInstallable();
+  useHeadTags(INSTALL_TAGS);
   return <AdminRoutes />;
 };
 

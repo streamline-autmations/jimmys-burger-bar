@@ -115,7 +115,7 @@ export function createSeed(now: Date = new Date()): DemoRecords {
     const items = lines.map(([name, qty]) => ({ id: idFor('i', ++itemCounter), order_id: id, name, qty, unit_price: price(name) }));
     return {
       id,
-      payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null,
+      payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null, delivery_fee: 0, delivery_suburb: null,
       order_no: `JB-DEMO-${String(n).padStart(4, '0')}`,
       customer_id: customerId(key),
       customer_name: who.name,

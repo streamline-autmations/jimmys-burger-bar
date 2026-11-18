@@ -40,6 +40,10 @@ export const copy = resolveCopy(config.copy);
 /** The guest pays online before the kitchen sees the order. Off means today's request-and-pay-on-collection flow. */
 export const payFirst = config.ordering.payment === 'payfast';
 
+/** Paid delivery with a rider step (ready -> out_for_delivery). Off, a delivery closes like a collection,
+ *  because the pre-payments database refuses out_for_delivery. Pass order types to nextStatuses only when on. */
+export const deliveryRun = payFirst && Boolean(config.ordering.deliveryPreview);
+
 /** What every order button says. A collection-only venue names it. */
 export const orderCtaLabel =
   config.ordering.fulfilment.length === 1 && config.ordering.fulfilment[0] === 'collection' ? 'Order for collection' : 'Order online';

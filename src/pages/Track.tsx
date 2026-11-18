@@ -14,6 +14,7 @@ import { useCartStore } from '../lib/cartStore';
 import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { Starburst } from '../components/Starburst';
+import { InstallApp } from '../components/InstallApp';
 
 type TrackField = 'reference' | 'contact';
 
@@ -225,6 +226,10 @@ export const Track: React.FC = () => {
           {state.phase === 'found' && (order && payment
             ? <PaidOrder order={order} payment={payment} arrival={arrival} paying={paying} payError={payError} onPay={() => void payNow()} checkedAt={state.checkedAt} live={pollMs > 0} onRefresh={() => void lookup()} />
             : <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup()} />)}
+          {/* Right after paying is when the app is worth most: next time it opens on the menu. */}
+          {order && payment && !['pending', 'failed', 'expired'].includes(payment) && order.status !== 'cancelled' && (
+            <InstallApp placement="after-order" className="mt-8" />
+          )}
         </div>
 
         <p className="mt-10 text-center text-sm text-ink/70">
@@ -265,6 +270,9 @@ const PaidOrder: React.FC<{
   const cancelled = order.status === 'cancelled';
   const unpaid = payment === 'pending' || payment === 'failed' || payment === 'expired';
   const awaiting = payment === 'pending' && arrival === 'return';
+  const delivery = order.order_type === 'delivery';
+  // Delivery adds a step between ready and done; collection keeps its five.
+  const at = delivery && order.status === 'completed' ? 5 : delivery && order.status === 'out_for_delivery' ? 4 : stage;
 
   const [heading, detail] =
     payment === 'pending' ? (awaiting
@@ -273,14 +281,25 @@ const PaidOrder: React.FC<{
     : payment === 'failed' ? ['Payment did not go through', `Payfast reported that this payment failed, so ${venue} has not received the order. Your cart is still saved.`]
     : payment === 'expired' ? ['Order released, not paid', `This order was not paid within 30 minutes, so it was released. ${venue} did not receive it.`]
     : payment === 'refunded' ? ['Refunded', `This order was refunded. Contact ${venue} if that is unexpected.`]
+    : payment === 'refund_pending' && cancelled && delivery ? ['Not delivered, refund pending', `This order could not be delivered, so ${venue} is refunding your payment. Contact ${venue} with your reference if you have questions.`]
+    : payment === 'refund_pending' && cancelled ? ['Refund pending', `This order is cancelled and ${venue} is refunding your payment. Contact ${venue} with your reference if you have questions.`]
     : cancelled ? ['Paid, but not going ahead', `Your payment was received, but this order is cancelled and will not be made. Contact ${venue} with your reference about a refund.`]
-    : stage <= 0 ? ['Payment received', `Waiting for ${venue} to accept your order.`]
-    : stage === 1 ? [`${venue} accepted your order`, 'The kitchen has it.']
-    : stage === 2 ? ['Preparing', 'Your food is being made.']
-    : stage === 3 ? ['Ready to collect', `Collect at ${config.venue.address}.`]
+    : at <= 0 ? ['Payment received', `Waiting for ${venue} to accept your order.`]
+    : at === 1 ? [`${venue} accepted your order`, 'The kitchen has it.']
+    : at === 2 ? ['Preparing', 'Your food is being made.']
+    : at === 3 ? (delivery ? ['Ready, waiting for the rider', 'Your food is packed and waiting to go out.'] : ['Ready to collect', `Collect at ${config.venue.address}.`])
+    : delivery && at === 4 ? ['Out for delivery', 'Your food is on its way.']
+    : delivery ? ['Delivered', 'Enjoy your meal.']
     : ['Collected', 'Enjoy your meal.'];
 
-  const steps: { label: string; state: 'done' | 'current' | 'todo' }[] = [
+  const steps: { label: string; state: 'done' | 'current' | 'todo' }[] = delivery ? [
+    { label: 'Payment received', state: unpaid ? 'current' : 'done' },
+    { label: `${venue} accepted your order`, state: at >= 1 ? 'done' : unpaid ? 'todo' : 'current' },
+    { label: 'Preparing', state: at > 2 ? 'done' : at === 2 ? 'current' : 'todo' },
+    { label: 'Ready', state: at > 3 ? 'done' : at === 3 ? 'current' : 'todo' },
+    { label: 'Out for delivery', state: at > 4 ? 'done' : at === 4 ? 'current' : 'todo' },
+    { label: 'Delivered', state: at === 5 ? 'done' : 'todo' },
+  ] : [
     { label: 'Payment received', state: unpaid ? 'current' : 'done' },
     { label: `${venue} accepted your order`, state: stage >= 1 ? 'done' : unpaid ? 'todo' : 'current' },
     { label: 'Preparing', state: stage > 2 ? 'done' : stage === 2 ? 'current' : 'todo' },
@@ -345,10 +364,11 @@ const PaidOrder: React.FC<{
       )}
 
       <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
-        <div><dt className="text-ink/60">Collection time</dt><dd className="font-display font-bold text-ink">{order.requested_time ? dateTime.format(new Date(order.requested_time)) : 'Not set'}</dd></div>
+        <div><dt className="text-ink/60">{delivery ? 'Delivery time' : 'Collection time'}</dt><dd className="font-display font-bold text-ink">{order.requested_time ? dateTime.format(new Date(order.requested_time)) : 'Not set'}</dd></div>
         <div><dt className="text-ink/60">{unpaid ? 'Total' : 'Paid'}</dt><dd className="font-display font-bold text-ink">{formatMoney(toMinor(order.total))}</dd></div>
+        {delivery && !!order.delivery_fee && <div className="col-span-2"><dt className="text-ink/60">Includes delivery fee</dt><dd className="font-display font-bold text-ink">{formatMoney(toMinor(order.delivery_fee))} <span className="font-body text-xs font-semibold text-ink/60">{config.ordering.deliveryPreview?.feeNote}</span></dd></div>}
         {order.eta && !cancelled && order.status !== 'completed' && <div className="col-span-2"><dt className="text-ink/60">Kitchen expects it ready</dt><dd className="font-display font-bold text-ink">{checkedTime.format(new Date(order.eta))}</dd></div>}
-        <div className="col-span-2"><dt className="text-ink/60">Collect from</dt><dd className="font-display font-bold text-ink">{venue}, {config.venue.address}</dd></div>
+        {!delivery && <div className="col-span-2"><dt className="text-ink/60">Collect from</dt><dd className="font-display font-bold text-ink">{venue}, {config.venue.address}</dd></div>}
       </dl>
       {order.items.length > 0 && (
         <ul className="mt-4 rounded-xl bg-paper/70 px-4 py-3 text-sm text-ink/80">

@@ -1,0 +1,7 @@
+Two verified defects:
+
+1. **P1 — Checkout always fails before payment handoff.** [supabase/functions/payfast/index.ts:34](/mnt/c/Users/chris/Desktop/Streamline/jimmys-burger-bar/supabase/functions/payfast/index.ts:34) uses `settingsMap['payments.site_url','payments.secret_names']`. The comma operator selects `payments.secret_names`, so `new URL()` receives JSON instead of the site URL. Local handler reproduction using staging settings returned `503 TEMPORARY_FAILURE` for both OPTIONS and POST, without calling `begin_payment`. Every customer is blocked from paying.
+
+2. **P2 — The new Kitchen screen cannot accept orders on unchanged Jimmy’s production schema.** [src/pages/admin/AdminApp.tsx:50](/mnt/c/Users/chris/Desktop/Streamline/jimmys-burger-bar/src/pages/admin/AdminApp.tsx:50) exposes Kitchen unconditionally, including on the live tenant. Accepting always supplies an ETA, which [src/core/data/supabaseAdapter.ts:299](/mnt/c/Users/chris/Desktop/Streamline/jimmys-burger-bar/src/core/data/supabaseAdapter.ts:299) writes alongside status. Production has not received that column. Reproduced against the pre-November schema: `42703: column "eta" of relation "orders" does not exist`. Staff following Orders → Kitchen screen cannot accept tickets; retries keep failing.
+
+The database, operations, and payment test files passed. B3’s encoding and whitespace defects are fixed and were not re-reported. No files changed.

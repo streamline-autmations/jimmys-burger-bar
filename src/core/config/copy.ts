@@ -65,6 +65,11 @@ export interface RestaurantCopy {
     intro: string;
     notFound: string;
   };
+  /** The "put us on your home screen" sticker (InstallApp). */
+  app: {
+    heading: string;
+    body: string;
+  };
   /** Shown when a page crashes, instead of a blank screen. */
   crash: {
     heading: string;
@@ -122,6 +127,10 @@ export const defaultCopy: RestaurantCopy = {
     heading: 'Check your request',
     intro: 'Enter the reference from your confirmation and the email or phone number you used.',
     notFound: 'We could not find a request matching those details. Check the reference, and use the same email or phone number you gave with the request.',
+  },
+  app: {
+    heading: 'Order in two taps next time',
+    body: 'Put us on your home screen. It opens straight to the menu, and there is no app store to go through.',
   },
   crash: {
     heading: 'Something went wrong on our side',

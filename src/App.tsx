@@ -17,7 +17,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { closeIntroGate, openIntroGate } from './lib/introGate';
 import { BuildOverlay } from './components/BuildOverlay';
 import { config } from './config';
-import { copy } from './core/tenant';
+import { copy, storageKey } from './core/tenant';
 
 // Set only when the first-load intro has actually finished. Reading it is
 // idempotent, so React 18's StrictMode double-invoked state initialiser cannot
@@ -25,9 +25,21 @@ import { copy } from './core/tenant';
 // the sequence never played at all in development, which is how it came to be
 // shipped without ever having been watched.
 //
-// A hard refresh re-evaluates the module and replays the intro; SPA navigation
-// never remounts this component, so everyday route changes never see it.
+// SPA navigation never remounts this component, so everyday route changes
+// never see it. A hard refresh or a fresh tap on a WhatsApp link would replay
+// it, so it is remembered for the browser session (client decision 2026-11-18:
+// every visitor sees it once per session, not on every load). index.html reads
+// the same key to keep the pre-paint strips from starting.
 let introCompleted = false;
+const INTRO_SEEN = storageKey('intro-seen');
+
+const introSeenThisSession = (): boolean => {
+  try {
+    return sessionStorage.getItem(INTRO_SEEN) === '1';
+  } catch {
+    return false;
+  }
+};
 
 const NotFound: React.FC = () => (
   <div className="pt-28 pb-24 min-h-[70dvh] flex flex-col items-center justify-center text-center px-4">
@@ -222,19 +234,25 @@ const PublicApp: React.FC = () => {
   // runs before the page's own components render, so hero motion is held back
   // from its very first frame instead of a beat later.
   const [introActive, setIntroActive] = useState(() => {
-    const playing = !introCompleted && config.motion.intro !== 'off';
+    const playing = !introCompleted && !introSeenThisSession() && config.motion.intro !== 'off';
     if (playing) closeIntroGate();
     return playing;
   });
 
-  // With the intro switched off nothing else would clear the pre-paint boot
-  // poster, so take it down before first paint.
+  // With no intro playing nothing else would clear the pre-paint boot poster,
+  // so take it down before first paint. Reads the initial state only.
   useLayoutEffect(() => {
-    if (config.motion.intro === 'off') document.getElementById('boot')?.remove();
+    if (!introActive) document.getElementById('boot')?.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleIntroDone = React.useCallback(() => {
     introCompleted = true;
+    try {
+      sessionStorage.setItem(INTRO_SEEN, '1');
+    } catch {
+      // Storage blocked: the intro simply plays again on the next hard load.
+    }
     openIntroGate();
     setIntroActive(false);
   }, []);

@@ -79,10 +79,10 @@ export const GallerySection: React.FC<{ content: GalleryContent }> = ({ content 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
         <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-10">
           <div>
-            <span className="font-script text-2xl text-accent">{content.script}</span>
-            <RevealHeading text={content.heading} className="font-display text-3xl md:text-5xl font-extrabold text-surface mt-1" />
+            {content.script && <span className="block font-script text-2xl text-accent mb-1">{content.script}</span>}
+            <RevealHeading text={content.heading} className="font-display text-3xl md:text-5xl font-extrabold text-surface" />
           </div>
-          <Link to={content.linkTo} className="hidden sm:inline-flex items-center gap-2 text-accent font-bold group whitespace-nowrap pb-1.5">
+          <Link to={content.linkTo} className="hidden sm:inline-flex items-center gap-2 min-h-11 text-accent font-bold group whitespace-nowrap">
             <span>{content.linkLabel}</span>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Link>
@@ -102,13 +102,13 @@ export const GallerySection: React.FC<{ content: GalleryContent }> = ({ content 
             key={img.src}
             variants={riseChild}
             className={`snap-start shrink-0 rounded-2xl overflow-hidden ring-1 ring-surface/15 shadow-[0_8px_30px_-14px_rgb(0_0_0/0.45)] ${
-              img.tall ? 'w-[220px] md:w-[260px] lg:w-[290px] aspect-[3/4]' : 'w-[280px] md:w-[340px] lg:w-[420px] aspect-[4/3]'
+              img.tall ? 'w-[220px] md:w-[260px] lg:w-[330px] aspect-[3/4]' : 'w-[280px] md:w-[340px] lg:w-[480px] aspect-[4/3]'
             } ${i % 3 === 1 ? 'md:mt-8' : ''}`}
           >
-            <img src={img.src} alt="" loading="lazy" className="w-full h-full object-cover" />
+            <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-full object-cover" />
           </motion.div>
         ))}
-        <Link to={content.linkTo} className="snap-start shrink-0 w-[220px] md:w-[260px] lg:w-[290px] rounded-2xl bg-accent flex flex-col items-center justify-center gap-3 text-ink font-display font-bold text-center px-6">
+        <Link to={content.linkTo} className="snap-start shrink-0 w-[220px] md:w-[260px] lg:w-[330px] rounded-2xl bg-accent flex flex-col items-center justify-center gap-3 text-ink font-display font-bold text-center px-6">
           <span>{content.ctaLabel}</span>
           <ArrowRight size={20} />
         </Link>

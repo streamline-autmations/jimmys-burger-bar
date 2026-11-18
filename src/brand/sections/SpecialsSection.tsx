@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { config } from '../../config';
 import { formatMoney, menuPrice } from '../../core/tenant';
@@ -67,27 +66,23 @@ export const SpecialsSection: React.FC<{ content: SpecialsContent }> = ({ conten
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <motion.div {...fadeInUp} className="flex items-end justify-between gap-6 mb-4">
           <div>
-            <span className="font-script text-2xl text-primary">{content.script}</span>
-            <RevealHeading text={content.heading} className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1" />
+            {content.script && <span className="block font-script text-2xl text-primary mb-1">{content.script}</span>}
+            <RevealHeading text={content.heading} className="font-display text-3xl md:text-5xl font-extrabold text-ink" />
           </div>
-          <div className="flex items-center gap-6">
-            {!(edges.start && edges.end) && (
-              <div className="hidden lg:flex items-center gap-2">
-                <RailButton label="Previous specials" disabled={edges.start} onClick={() => step(-1)}>
-                  <ArrowLeft size={18} />
-                </RailButton>
-                <RailButton label="Next specials" disabled={edges.end} onClick={() => step(1)}>
-                  <ArrowRight size={18} />
-                </RailButton>
-              </div>
-            )}
-            <Link to={content.allTo} className="hidden sm:inline-flex items-center gap-2 text-primary font-bold group whitespace-nowrap pb-1.5">
-              <span>{content.allLabel}</span>
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
+          {/* The rail is the whole specials list (there is no specials page), so
+              there is no "see all" link; the buttons reach posters past the edge. */}
+          {!(edges.start && edges.end) && (
+            <div className="hidden lg:flex items-center gap-2">
+              <RailButton label="Previous specials" disabled={edges.start} onClick={() => step(-1)}>
+                <ArrowLeft size={18} />
+              </RailButton>
+              <RailButton label="Next specials" disabled={edges.end} onClick={() => step(1)}>
+                <ArrowRight size={18} />
+              </RailButton>
+            </div>
+          )}
         </motion.div>
-        <motion.p {...fadeInUp} className="text-ink/60 max-w-md mb-12">{content.intro}</motion.p>
+        <motion.p {...fadeInUp} className="text-ink/75 max-w-md mb-12">{content.intro}</motion.p>
       </div>
 
       {/* The signature moment: posters stamp down like stickers on the wall.
@@ -127,13 +122,6 @@ export const SpecialsSection: React.FC<{ content: SpecialsContent }> = ({ conten
           </motion.div>
         ))}
       </motion.div>
-
-      <div className="sm:hidden text-center mt-6">
-        <Link to={content.allTo} className="inline-flex items-center gap-2 text-primary font-bold">
-          <span>{content.allLabel}</span>
-          <ArrowRight size={18} />
-        </Link>
-      </div>
     </section>
   );
 };

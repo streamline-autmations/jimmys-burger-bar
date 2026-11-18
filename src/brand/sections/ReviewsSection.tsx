@@ -38,10 +38,7 @@ const ReviewPoster: React.FC<{ review: Review; index: number; featured?: boolean
           stacked beside it. Its quote is set larger and centred in that space,
           instead of parking at the top over a large blank card. */}
       <div className={featured ? 'flex-1 flex flex-col' : undefined}>
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <Quote className="text-accent" size={featured ? 38 : 28} fill="currentColor" strokeWidth={0} />
-          <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-ink/35">{content.reviewerLabel}</span>
-        </div>
+        <Quote className="text-accent mb-6" size={featured ? 38 : 28} fill="currentColor" strokeWidth={0} aria-hidden="true" />
         <p className={`${featured ? 'font-display text-xl md:text-2xl lg:text-[1.7rem] xl:text-[1.9rem] leading-snug lg:leading-[1.3] lg:my-auto' : 'leading-relaxed'} text-ink/85`}>{review.text}</p>
       </div>
       <div className="flex items-center justify-between gap-3 pt-5 mt-8 border-t border-ink/10">
@@ -53,7 +50,7 @@ const ReviewPoster: React.FC<{ review: Review; index: number; featured?: boolean
               href={config.venue.googleReviews}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-ink/50 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
+              className="inline-flex items-center gap-1.5 py-2.5 -my-2.5 text-xs font-semibold text-ink/75 hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm"
               aria-label="Read this review on Google"
             >
               <GoogleG size={12} />
@@ -81,8 +78,8 @@ export const ReviewsSection: React.FC<{ content: ReviewsContent }> = ({ content 
       <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
         <motion.div {...fadeInUp} className="flex flex-wrap items-end justify-between gap-6 mb-12">
           <div>
-            <span className="font-script text-2xl text-primary">{content.script}</span>
-            <RevealHeading text={content.heading} className="font-display text-3xl md:text-5xl font-extrabold text-ink max-w-xl mt-1" />
+            {content.script && <span className="block font-script text-2xl text-primary mb-1">{content.script}</span>}
+            <RevealHeading text={content.heading} className="font-display text-3xl md:text-5xl font-extrabold text-ink max-w-xl" />
           </div>
           <GoogleBadge rating={venue.rating} reviewCount={venue.reviewCount} variant="light" href={venue.googleReviews} />
         </motion.div>
@@ -98,7 +95,7 @@ export const ReviewsSection: React.FC<{ content: ReviewsContent }> = ({ content 
               </div>
             )}
           </div>
-          <motion.p {...fadeInUp} className="text-center text-xs text-ink/45 mt-9">{content.footnote}</motion.p>
+          <motion.p {...fadeInUp} className="text-center text-sm text-ink/75 mt-9">{content.footnote}</motion.p>
         </div>
       </div>
     </section>

@@ -19,7 +19,8 @@ export interface SectionCta {
 
 export interface HeroContent {
   locationLabel: string;
-  eyebrow: string;
+  /** Optional small line above the headline. Leave it out unless it carries a fact. */
+  eyebrow?: string;
   headline: string;
   headlineAccent: string;
   primaryCta: SectionCta;
@@ -31,16 +32,14 @@ export interface HeroContent {
 }
 
 export interface SpecialsContent {
-  script: string;
+  script?: string;
   heading: string;
   intro: string;
-  allLabel: string;
-  allTo: string;
   cardEyebrow: string;
 }
 
 export interface FoodChoiceContent {
-  eyebrow: string;
+  eyebrow?: string;
   heading: string;
   intro: string;
   badges: string[];
@@ -48,7 +47,7 @@ export interface FoodChoiceContent {
 }
 
 export interface EventContent {
-  script: string;
+  script?: string;
   images: { src: string; label: string }[];
   imageAlt: string;
   sticker?: { label: string; value: string };
@@ -62,7 +61,7 @@ export interface DrinksBandContent {
 }
 
 export interface StoryContent {
-  eyebrow: string;
+  eyebrow?: string;
   heading: string;
   paragraphs: string[];
   image: string;
@@ -74,24 +73,24 @@ export interface StoryContent {
 }
 
 export interface ReviewsContent {
-  script: string;
+  script?: string;
   heading: string;
   footnote: string;
-  reviewerLabel: string;
   sourceLabel: string;
 }
 
 export interface GalleryContent {
-  script: string;
+  script?: string;
   heading: string;
   linkLabel: string;
   linkTo: string;
   ctaLabel: string;
-  images: { src: string; tall: boolean }[];
+  /** `alt` describes the photo for screen readers; every gallery image needs one. */
+  images: { src: string; alt: string; tall: boolean }[];
 }
 
 export interface ClosingContent {
-  script: string;
+  script?: string;
   heading: string;
   body: string;
   primaryCta: SectionCta;
@@ -99,7 +98,8 @@ export interface ClosingContent {
   directionsLabel: string;
   image: string;
   imageAlt: string;
-  card: { hoursLabel: string; address: string; note: string };
+  /** Today's hours are read from venue.hours, so the card carries no hours text. */
+  card: { address: string; note: string };
 }
 
 export interface DividerContent {

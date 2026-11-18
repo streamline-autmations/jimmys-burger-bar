@@ -16,11 +16,10 @@ export const templateSections: SectionSpec[] = [
     type: 'hero',
     content: {
       locationLabel: 'PLACEHOLDER town',
-      eyebrow: 'PLACEHOLDER eyebrow',
       headline: 'PLACEHOLDER headline.',
       headlineAccent: 'PLACEHOLDER accent.',
-      primaryCta: { label: 'Order Online', to: '/order' },
-      secondaryCta: { label: 'View the Menu', to: '/menu' },
+      primaryCta: { label: 'Order online', to: '/order' },
+      secondaryCta: { label: 'View the menu', to: '/menu' },
       ticket: { label: 'PLACEHOLDER label', value: 'PLACEHOLDER fact' },
       imageAlt: 'PLACEHOLDER: describe the hero image',
     },
@@ -30,7 +29,6 @@ export const templateSections: SectionSpec[] = [
   {
     type: 'story',
     content: {
-      eyebrow: 'PLACEHOLDER eyebrow',
       heading: 'PLACEHOLDER: the restaurant in one line.',
       paragraphs: ['PLACEHOLDER: a paragraph in the owner\'s own words.'],
       image: '/images/story.jpg',
@@ -47,7 +45,6 @@ export const templateSections: SectionSpec[] = [
       script: 'from the people who know us',
       heading: 'Take it from the regulars',
       footnote: 'Real words from the Google listing.',
-      reviewerLabel: 'Local regular',
       sourceLabel: 'Posted on Google',
     },
   },
@@ -63,7 +60,6 @@ export const templateSections: SectionSpec[] = [
       image: '/images/closing.jpg',
       imageAlt: 'PLACEHOLDER: describe the real photo',
       card: {
-        hoursLabel: 'PLACEHOLDER: open days',
         address: 'PLACEHOLDER street, town',
         note: 'PLACEHOLDER short note',
       },

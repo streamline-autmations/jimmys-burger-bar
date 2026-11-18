@@ -13,11 +13,10 @@ export const jimmysSections: SectionSpec[] = [
     type: 'hero',
     content: {
       locationLabel: 'Meyerton, SA',
-      eyebrow: "The Jimmy's smash",
       headline: 'Proper food.',
       headlineAccent: 'Done right.',
-      primaryCta: { label: 'Order Online', to: '/order' },
-      secondaryCta: { label: 'View the Menu', to: '/menu' },
+      primaryCta: { label: 'Order online', to: '/order' },
+      secondaryCta: { label: 'View the menu', to: '/menu' },
       ticket: { label: 'Fresh off the flat-top', value: "180g smash · Jimmy's sauce" },
       imageAlt: "Jimmy's smash burger",
     },
@@ -29,8 +28,6 @@ export const jimmysSections: SectionSpec[] = [
       script: 'every week, one big one',
       heading: 'Friday specials',
       intro: "Straight from Jimmy's own poster wall. One rotates in every Friday, while stocks last.",
-      allLabel: 'All specials',
-      allTo: '/specials',
       cardEyebrow: 'Friday special',
     },
   },
@@ -39,7 +36,6 @@ export const jimmysSections: SectionSpec[] = [
   {
     type: 'foodChoice',
     content: {
-      eyebrow: 'Pick your hunger',
       heading: 'Pick your kind of proper',
       intro: "Beef or chicken, stacked high and finished Jimmy's way. One choice, no wrong answer.",
       badges: ['180g smash patties', 'Crisp off the grill', "Jimmy's sauce"],
@@ -78,27 +74,25 @@ export const jimmysSections: SectionSpec[] = [
   {
     type: 'story',
     content: {
-      eyebrow: 'More than a quick stop',
       heading: 'The food brings you in. The place keeps you here.',
       paragraphs: [
         "Jimmy's is where the table turns into another round, the bar gets louder and the regulars already know your order.",
         'Come through for proper food, live music, Coffee & Cars and a night that does not need a reason.',
       ],
-      image: '/images/jimmys-logo-2.png',
-      imageAlt: "Jimmy's Burger Bar burgers and logo",
+      image: '/images/gallery/fireplace-corner.jpg',
+      imageAlt: 'The fireplace corner inside Jimmy\'s, the corner regulars know',
       ratingLabel: 'Google rating',
       reviewsLabel: 'local reviews',
       thirdStat: { value: '180g', label: 'smash patties' },
     },
   },
-  { type: 'divider', content: { variant: 'wave', fill: 'rgb(var(--color-surface))' } },
+  // No divider into Reviews: paper to white is too close to show a wave, and
+  // the invisible shape only added a band of empty space.
   {
     type: 'reviews',
     content: {
-      script: 'pinned by the people who know us',
       heading: 'Take it from the regulars',
       footnote: "Real words from Jimmy's Google listing. Tap any Google label to read more.",
-      reviewerLabel: 'Local regular',
       sourceLabel: 'Posted on Google',
     },
   },
@@ -106,18 +100,19 @@ export const jimmysSections: SectionSpec[] = [
   {
     type: 'gallery',
     content: {
-      script: 'the food, the crowd, the place',
       heading: 'See it for yourself',
       linkLabel: 'Full gallery',
       linkTo: '/visit#gallery',
       ctaLabel: 'See the full gallery',
       images: [
-        { src: '/images/gallery/burger-macro.jpg', tall: true },
-        { src: '/images/gallery/heritage-day-team.jpg', tall: false },
-        { src: '/images/gallery/quesadilla-corona.jpg', tall: true },
-        { src: '/images/gallery/fireplace-corner.jpg', tall: false },
-        { src: '/images/gallery/greek-meze.jpg', tall: true },
-        { src: '/images/gallery/corona-sunset.jpg', tall: false },
+        // The fireplace corner is the Story photo and the sunset closes the
+        // page, so neither repeats here.
+        { src: '/images/gallery/burger-macro.jpg', alt: "Close-up of Jimmy's beef burger with a cup of chips", tall: true },
+        { src: '/images/gallery/heritage-day-team.jpg', alt: "The Jimmy's crew in traditional dress outside the restaurant", tall: false },
+        { src: '/images/gallery/quesadilla-corona.jpg', alt: 'A quesadilla with chips and a Corona', tall: true },
+        { src: '/images/gallery/burger-duo.jpg', alt: 'Two burgers with chips and a salad for the table', tall: false },
+        { src: '/images/gallery/greek-meze.jpg', alt: 'A meze platter with pita, olives and dips for sharing', tall: true },
+        { src: '/images/gallery/breakfast-plate.jpg', alt: "Jimmy's Breakfast: eggs, bacon, toast, grilled tomato and chips", tall: false },
       ],
     },
   },
@@ -126,7 +121,7 @@ export const jimmysSections: SectionSpec[] = [
     type: 'closing',
     content: {
       script: 'the table, the sunset, one more round',
-      heading: 'Your table’s waiting.',
+      heading: 'Your burger’s waiting.',
       body: "Come for the food, stay for the people. Jimmy's is right here on Loch Street when you're ready.",
       primaryCta: { label: 'Order online', to: '/order' },
       secondaryCta: { label: 'View the menu', to: '/menu' },
@@ -134,9 +129,8 @@ export const jimmysSections: SectionSpec[] = [
       image: '/images/gallery/corona-sunset.jpg',
       imageAlt: "Cold drinks and a Friday sunset at Jimmy's Burger Bar",
       card: {
-        hoursLabel: 'Open Monday to Saturday',
         address: '57 Loch Street, Meyerton',
-        note: 'Kitchen, bar and a table with your name on it.',
+        note: 'Order ahead, or pull up a chair and eat in.',
       },
     },
   },

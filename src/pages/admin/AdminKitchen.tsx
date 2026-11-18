@@ -158,8 +158,11 @@ export const AdminKitchen: React.FC = () => {
   // Lock-screen alerts. 'unavailable' (unsupported, blocked, demo) renders nothing: the sound alert carries on.
   const [push, setPush] = useState<PushState>(initialPushState);
   const [pushBusy, setPushBusy] = useState(false);
-  useEffect(() => { void pushState().then(setPush, () => {}); }, []);
+  // Once staff tap, a slow mount check must not overwrite what the tap did.
+  const pushTapped = useRef(false);
+  useEffect(() => { void pushState().then((state) => { if (!pushTapped.current) setPush(state); }, () => {}); }, []);
   const togglePush = async () => {
+    pushTapped.current = true;
     setPushBusy(true);
     try {
       setPush(await (push === 'on' ? disablePush() : enablePush()));

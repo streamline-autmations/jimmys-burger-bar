@@ -276,6 +276,8 @@ test('the guest app opens on the order page and its worker caches only the offli
   assert.doesNotMatch(worker, /\.put\(|addAll/, 'no menu, price or order is ever cached');
   const offline = plugin.offlinePage({ ...jimmys, venue: { ...jimmys.venue, name: 'A <b> & Co' } });
   assert.match(offline, /A &lt;b&gt; &amp; Co/);
+  assert.match(plugin.offlinePage(jimmys, false), /href="tel:/);
+  assert.doesNotMatch(plugin.offlinePage(jimmys, true), /href=/, 'the demo offline page links nowhere');
 });
 
 test('shared menu and PDF cannot inherit another restaurant extras prices', () => {

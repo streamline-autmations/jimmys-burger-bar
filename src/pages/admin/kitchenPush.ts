@@ -49,15 +49,26 @@ export const errorCode = (failure: unknown) => {
   return typeof name === 'string' && name !== 'Error' ? ` (Code: ${name})` : '';
 };
 
+const activated = (registration: ServiceWorkerRegistration): Promise<void> => new Promise((resolve, reject) => {
+  if (registration.active) return resolve();
+  const worker = registration.installing ?? registration.waiting;
+  if (!worker) return reject(new Error('The alert worker did not install.'));
+  worker.addEventListener('statechange', () => {
+    if (worker.state === 'activated') resolve();
+    if (worker.state === 'redundant') reject(new Error('The alert worker did not install.'));
+  });
+});
+
 /** Call from a tap: the browser only shows its permission prompt for one. */
 export async function enablePush(): Promise<PushState> {
   if (!supported()) return 'unavailable';
   const permission = await Notification.requestPermission();
   if (permission === 'denied') return 'unavailable';
   if (permission !== 'granted') return 'off';
-  await navigator.serviceWorker.register('/staff-sw.js', { scope: SCOPE });
-  // subscribe() needs an active worker; ready waits for the one covering this page.
-  const registration = await navigator.serviceWorker.ready;
+  // Subscribe on the staff registration itself, once active. `serviceWorker.ready` would answer with
+  // whichever worker covers this page, which is the guest app's /sw.js (no push handler) on /admin with no slash.
+  const registration = await navigator.serviceWorker.register('/staff-sw.js', { scope: SCOPE });
+  await activated(registration);
   const subscription = (await registration.pushManager.getSubscription())
     ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decode(await db.pushPublicKey!()) });
   await save(subscription);

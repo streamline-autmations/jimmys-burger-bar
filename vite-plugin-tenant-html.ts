@@ -121,10 +121,11 @@ export function customerManifest(config: ManifestSource, publicDir: string): str
 }
 
 /** What the installed app shows with no connection, instead of the browser's error page. No guest data. */
-export function offlinePage(config: ManifestSource & { venue: { phone?: string } }): string {
+export function offlinePage(config: ManifestSource & { venue: { phone?: string } }, demo = process.env.VITE_DEMO === '1'): string {
   const { paper, ink, accent } = config.theme.colors;
   const name = escapeHtml(config.venue.name);
-  const phone = config.venue.phone ? `<p><a href="tel:${escapeHtml(config.venue.phone.replace(/\s/g, ''))}">Call ${name}: ${escapeHtml(config.venue.phone)}</a></p>` : '';
+  // The demo's outbound links must stay inert (CLAUDE.md), and this page renders outside DemoShell.
+  const phone = config.venue.phone && !demo ?`<p><a href="tel:${escapeHtml(config.venue.phone.replace(/\s/g, ''))}">Call ${name}: ${escapeHtml(config.venue.phone)}</a></p>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${name}: offline</title><style>body{margin:0;min-height:100dvh;display:grid;place-items:center;background:${paper};color:${ink};font:17px/1.5 system-ui,sans-serif;text-align:center;padding:24px}
 h1{font-size:1.6rem;margin:0 0 8px}a{color:${ink};font-weight:700}button{margin-top:16px;min-height:48px;padding:0 24px;border:0;border-radius:999px;background:${accent};color:${ink};font:700 1rem system-ui,sans-serif}</style></head>

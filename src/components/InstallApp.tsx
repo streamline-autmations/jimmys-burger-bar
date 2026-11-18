@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Share, X } from 'lucide-react';
 import { config } from '../config';
@@ -18,6 +18,12 @@ export const InstallApp: React.FC<{ placement: Placement; className?: string }> 
   const [steps, setSteps] = useState(false);
   const canPrompt = useCanPrompt();
   const apk = config.app?.androidApk;
+  // Installed from the browser's own menu instead of the sticker: the sticker goes too.
+  useEffect(() => {
+    const hide = () => setVisible(false);
+    window.addEventListener('appinstalled', hide);
+    return () => window.removeEventListener('appinstalled', hide);
+  }, []);
 
   if (!visible) return null;
   const floating = placement === 'return-visit';

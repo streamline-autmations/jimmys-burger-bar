@@ -62,13 +62,18 @@ let deferred: InstallPromptEvent | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
 
+// The staff console installs its own app (Kitchen); its prompts and installs are not the guest app's.
+const onStaffConsole = () => window.location.pathname.startsWith('/admin');
+
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeinstallprompt', (event) => {
+    if (onStaffConsole()) return;
     event.preventDefault(); // our sticker asks instead of Chrome's mini bar
     deferred = event as InstallPromptEvent;
     notify();
   });
   window.addEventListener('appinstalled', () => {
+    if (onStaffConsole()) return;
     deferred = null;
     writeOffer({ installed: true });
     notify();

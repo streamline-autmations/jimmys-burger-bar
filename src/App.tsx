@@ -279,7 +279,7 @@ const PublicApp: React.FC = () => {
         <AnimatedRoutes />
         <Footer />
       </div>
-      {!introActive && !OWN_PLACEMENT.includes(pathname) && <InstallApp key="return-visit" placement="return-visit" />}
+      {!introActive && !OWN_PLACEMENT.includes(pathname.replace(/\/+$/, '')) && <InstallApp key="return-visit" placement="return-visit" />}
       {/* The first-load intro is a one-time, few-second brand moment, so it plays
           for every visitor. Windows ships with animation effects switched off on
           many machines, and under the global "user" setting those visitors got

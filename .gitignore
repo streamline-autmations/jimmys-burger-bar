@@ -34,3 +34,8 @@ SESSION_CONTEXT.md
 # Browser QA artifacts
 .playwright-cli/
 .playwright-mcp/
+
+# Android app signing keys (PWABuilder). Losing one means the app can never be updated; keep it in a password manager, never in git.
+*.keystore
+*.jks
+signing-key-info.txt

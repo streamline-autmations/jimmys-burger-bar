@@ -14,6 +14,7 @@ import { useCartStore } from '../lib/cartStore';
 import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { Starburst } from '../components/Starburst';
+import { InstallApp } from '../components/InstallApp';
 
 type TrackField = 'reference' | 'contact';
 
@@ -225,6 +226,10 @@ export const Track: React.FC = () => {
           {state.phase === 'found' && (order && payment
             ? <PaidOrder order={order} payment={payment} arrival={arrival} paying={paying} payError={payError} onPay={() => void payNow()} checkedAt={state.checkedAt} live={pollMs > 0} onRefresh={() => void lookup()} />
             : <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup()} />)}
+          {/* Right after paying is when the app is worth most: next time it opens on the menu. */}
+          {order && payment && !['pending', 'failed', 'expired'].includes(payment) && order.status !== 'cancelled' && (
+            <InstallApp placement="after-order" className="mt-8" />
+          )}
         </div>
 
         <p className="mt-10 text-center text-sm text-ink/70">

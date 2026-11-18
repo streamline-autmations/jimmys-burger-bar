@@ -211,6 +211,11 @@ export interface RestaurantConfig {
   venue: VenueConfig;
   nav: { links: { name: string; path: string }[] };
   ordering: OrderingConfig;
+  /** The installable app. Unset: Android guests get Chrome's own Install button only. */
+  app?: {
+    /** Public path of the signed Android app file, e.g. "/downloads/jimmys.apk" (see docs/restaurant-direct/APP.md). */
+    androidApk?: string;
+  };
   booking: BookingConfig;
   specials: {
     intro: string;

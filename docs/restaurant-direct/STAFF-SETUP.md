@@ -135,4 +135,5 @@ Only a manager or owner sees **Delivery failed** (on a ready or out-for-delivery
 Nothing beyond the login session. The installed app has no offline cache, so no orders or
 guest details are kept on the PC or phone. A phone with lock-screen alerts on also keeps
 a small background script that only shows the alert. It stores nothing, and the alert
-itself carries no order details.
+itself carries no order details. A device that has opened the public website also keeps
+one "You are offline" page (the guest app's, see `APP.md`); it holds no orders or guest details.

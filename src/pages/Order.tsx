@@ -27,6 +27,7 @@ import { useFormErrors } from '../lib/useFormErrors';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { MenuThumb } from '../components/MenuThumb';
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
+import { InstallApp } from '../components/InstallApp';
 import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
@@ -584,6 +585,7 @@ export const Order: React.FC = () => {
                 </p>
               )}
               {shop.paused && <PausedNotice lines={lines} total={total} className="mb-6 max-w-xl" />}
+              <InstallApp placement="order" className="mb-8 max-w-xl" />
             </div>
 
             {/* Category tabs */}

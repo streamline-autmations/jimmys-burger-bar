@@ -25,7 +25,7 @@ const one = async (sql, args) => (await db.query(sql, args)).rows[0];
 async function paidOrder() {
   seq += 1; const ref = `JB-PUSH-${seq}`; const email = `push${seq}@example.com`;
   let day = new Date(Date.now() + 86400000 * 2); while (day.getUTCDay() === 0) day = new Date(+day + 86400000);
-  await db.query(`select * from public.create_order($1,'Push Guest',$2,$3,'collection',null,null,null,$4,100,false,'[{"name":"Smash Burger","qty":1,"unit_price":100}]')`,
+  await db.query(`select * from public.create_order($1,'Push Guest',$2,$3,'collection',null,null,null,$4,100,false,'[{"name":"Beef Burger","qty":1,"unit_price":100}]')`,
     [ref, email, `083${String(seq).padStart(7, '0')}`, `${day.toISOString().slice(0, 10)}T12:00:00+02:00`]);
   await db.query(`select public.begin_payment($1,$2,'jimmys-staging','sandbox')`, [ref, email]);
   return { ref, email, pay: (tx = `70${seq}`) => db.query(`select public.mark_order_paid($1,$2,'COMPLETE',100,'{}')`, [ref, tx]) };

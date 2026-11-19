@@ -19,7 +19,7 @@ async function order() {
   seq++; const ref=`JB-PAY-${seq}`; const email=`pay${seq}@example.com`;
   let day=new Date(Date.now()+86400000*2); while(day.getUTCDay()===0) day=new Date(+day+86400000);
   const time=day.toISOString().slice(0,10)+'T12:00:00+02:00';
-  await db.query(`select * from public.create_order($1,'Test Guest',$2,$3,'collection',null,null,null,$4,100,false,'[{"name":"Smash Burger","qty":1,"unit_price":100}]')`,[ref,email,`082${String(seq).padStart(7,'0')}`,time]);
+  await db.query(`select * from public.create_order($1,'Test Guest',$2,$3,'collection',null,null,null,$4,100,false,'[{"name":"Beef Burger","qty":1,"unit_price":100}]')`,[ref,email,`082${String(seq).padStart(7,'0')}`,time]);
   return {ref,email};
 }
 const begin=(o)=>one(`select public.begin_payment($1,$2,'jimmys-staging','sandbox') result`,[o.ref,o.email]);
@@ -75,8 +75,8 @@ test('pause refuses new payments and new online orders but permits verified exis
 test('checkout checks contact, tenant, mode, hours, menu availability and trusted server total',async()=>{
  const o=await order(); await assert.rejects(begin({...o,email:'wrong@example.com'}),/PAYMENT_NOT_FOUND/);
  await assert.rejects(db.query(`select public.begin_payment($1,$2,'wrong','live')`,[o.ref,o.email]),/PAYMENT_TENANT_MODE/);
- await db.exec(`update public.menu_items set available=false where name='Smash Burger'`);
- try{await assert.rejects(begin(o),/PAYMENT_UNAVAILABLE/);}finally{await db.exec(`update public.menu_items set available=true where name='Smash Burger'`);}
+ await db.exec(`update public.menu_items set available=false where name='Beef Burger'`);
+ try{await assert.rejects(begin(o),/PAYMENT_UNAVAILABLE/);}finally{await db.exec(`update public.menu_items set available=true where name='Beef Burger'`);}
  assert.equal((await begin(o)).result.amount,'100.00');
  await db.query(`update public.orders set requested_time=now()-interval '1 minute' where order_no=$1`,[o.ref]);
  await assert.rejects(begin(o),/PAYMENT_CLOSED/);
@@ -168,7 +168,7 @@ test('staff pause and sold-out switches are public to read, staff-only to change
  const stateAs=(role)=>asRole(db,role,async()=>(await one(`select public.ordering_state() s`)).s);
  assert.deepEqual(await stateAs('anon'),{paused:false,unavailable:[]});
  // One statement per role block: a refused statement aborts that block's transaction.
- for(const write of [`select public.set_ordering_paused(true)`,`select public.set_menu_item_available('Smash Burger',false)`])
+ for(const write of [`select public.set_ordering_paused(true)`,`select public.set_menu_item_available('Beef Burger',false)`])
   await asRole(db,'anon',async()=>{ await assert.rejects(db.query(write),/permission denied/); });
  const stranger='5a000000-0000-4000-8000-000000000002';
  await db.exec(`insert into auth.users(id,email) values('${stranger}','guest@example.com')`);
@@ -177,8 +177,8 @@ test('staff pause and sold-out switches are public to read, staff-only to change
  // with the refused order last (a refusal aborts the transaction).
  const asStaff=(work)=>asRole(db,'authenticated',work,{userId:reviewer});
  await asStaff(async()=>{
-  await db.query(`select public.set_menu_item_available('Smash Burger',false)`);
-  assert.deepEqual((await one(`select public.ordering_state() s`)).s.unavailable,['Smash Burger']);
+  await db.query(`select public.set_menu_item_available('Beef Burger',false)`);
+  assert.deepEqual((await one(`select public.ordering_state() s`)).s.unavailable,['Beef Burger']);
   await assert.rejects(order(),/menu item unavailable/i);
  });
  await asStaff(async()=>{ await assert.rejects(db.query(`select public.set_menu_item_available('No such dish',false)`),/MENU_ITEM_NOT_FOUND/); });

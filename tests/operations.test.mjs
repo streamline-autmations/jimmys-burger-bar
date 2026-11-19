@@ -176,7 +176,7 @@ test('menu boards convert config decimals into minor units', () => {
 
   const first = food[0].items[0];
   assert.equal(first.price, money.toMinor(config.menu.categories[0].items[0].price));
-  assert.equal(format(first.price), 'R60', 'Breakfast Bun must render R60, not R0.60');
+  assert.equal(format(first.price), 'R70', 'Breakfast Bun must render R70, not R0.70');
 
   for (const category of [...food, ...drinks]) {
     for (const item of category.items) {
@@ -188,8 +188,8 @@ test('menu boards convert config decimals into minor units', () => {
 
 test('drinks detail is flattened onto description so the board has one shape', () => {
   const drinks = board.buildBoard(config.drinks.categories);
-  const castle = drinks.flatMap((c) => c.items).find((i) => i.name === 'Castle Lager');
-  assert.equal(castle.description, 'The local');
+  const swagga = drinks.flatMap((c) => c.items).find((i) => i.name === 'Swagga Draught');
+  assert.equal(swagga.description, 'California Blonde');
 });
 
 // ---------------------------------------------------------------------------
@@ -410,7 +410,7 @@ test('demo adapter follows the database rules', async () => {
     orderNo: 'JB-TESTDEMO01', customerName: 'Test Example', email: 'test@example.com', phone: '+27 00 000 0098',
     orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
     requestedTime: future.toISOString(), total: 200, marketingConsent: false,
-    items: [{ name: 'Smash Burger', qty: 2, unit_price: 100 }],
+    items: [{ name: 'Beef Burger', qty: 2, unit_price: 100 }],
   };
 
   const first = await db.createOrder(order);
@@ -419,9 +419,9 @@ test('demo adapter follows the database rules', async () => {
   const active = await db.listOrders({ view: 'active', limit: 200 });
   assert.equal(active.filter((row) => row.order_no === 'JB-TESTDEMO01').length, 1, 'placed order lands in the queue once');
 
-  await assert.rejects(db.createOrder({ ...order, orderNo: 'JB-TESTDEMO02', total: 0.02, items: [{ name: 'Smash Burger', qty: 2, unit_price: 0.01 }] }),
+  await assert.rejects(db.createOrder({ ...order, orderNo: 'JB-TESTDEMO02', total: 0.02, items: [{ name: 'Beef Burger', qty: 2, unit_price: 0.01 }] }),
     (error) => error.kind === 'rejected' && error.reason === 'menu');
-  const lateBreakfast = { ...order, orderNo: 'JB-TESTDEMO03', total: 60, items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 60 }] };
+  const lateBreakfast = { ...order, orderNo: 'JB-TESTDEMO03', total: 70, items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 70 }] };
   await assert.rejects(db.createOrder(lateBreakfast), (error) => error.reason === 'served');
 
   const placed = active.find((row) => row.order_no === 'JB-TESTDEMO01');
@@ -454,7 +454,7 @@ test('demo stores a fictional version of whatever contact details are typed', as
     orderNo: 'JB-TESTDEMO10', customerName: 'Real Person', email: 'Real.Person@gmail.com', phone: '082 123 4567',
     orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
     requestedTime: future.toISOString(), total: 100, marketingConsent: false,
-    items: [{ name: 'Smash Burger', qty: 1, unit_price: 100 }],
+    items: [{ name: 'Beef Burger', qty: 1, unit_price: 100 }],
   });
   const stored = (await db.listOrders({ view: 'all', limit: 500 })).find((row) => row.order_no === 'JB-TESTDEMO10');
   assert.equal(stored.email, 'real.person@example.com');
@@ -475,10 +475,10 @@ test('demo order checks match create_order exactly', async () => {
   };
   const refused = (order) => assert.rejects(db.createOrder({ ...base, ...order }), (error) => error.kind === 'rejected');
   await refused({ orderNo: 'JB-V1', total: 0, items: [] });
-  await refused({ orderNo: 'JB-V2', total: 10000, items: [{ name: 'Smash Burger', qty: 100, unit_price: 100 }] });
-  await refused({ orderNo: 'JB-V3', total: 100.004, items: [{ name: 'Smash Burger', qty: 1, unit_price: 100 }] });
-  await refused({ orderNo: 'JB-V4', total: 99.99, items: [{ name: 'Smash Burger', qty: 1, unit_price: 99.99 }] });
-  await refused({ orderNo: 'JB-V5', total: 100, items: Array.from({ length: 101 }, () => ({ name: 'Smash Burger', qty: 1, unit_price: 100 })) });
+  await refused({ orderNo: 'JB-V2', total: 10000, items: [{ name: 'Beef Burger', qty: 100, unit_price: 100 }] });
+  await refused({ orderNo: 'JB-V3', total: 100.004, items: [{ name: 'Beef Burger', qty: 1, unit_price: 100 }] });
+  await refused({ orderNo: 'JB-V4', total: 99.99, items: [{ name: 'Beef Burger', qty: 1, unit_price: 99.99 }] });
+  await refused({ orderNo: 'JB-V5', total: 100, items: Array.from({ length: 101 }, () => ({ name: 'Beef Burger', qty: 1, unit_price: 100 })) });
   demoStore.resetRecords();
 });
 
@@ -568,7 +568,7 @@ test('the demo refuses orders and bookings while Jimmy\'s is closed, like the da
   const base = {
     customerName: 'Test Example', email: 'closed@example.com', phone: '+27 00 000 0097',
     orderType: 'collection', tableNumber: null, deliveryAddress: null, deliveryNotes: null,
-    total: 100, marketingConsent: false, items: [{ name: 'Smash Burger', qty: 1, unit_price: 100 }],
+    total: 100, marketingConsent: false, items: [{ name: 'Beef Burger', qty: 1, unit_price: 100 }],
   };
   await assert.rejects(db.createOrder({ ...base, orderNo: 'JB-TESTSUNDAY', requestedTime: hours.restaurantInstant(date, '12:00').toISOString() }),
     (error) => error.kind === 'rejected');

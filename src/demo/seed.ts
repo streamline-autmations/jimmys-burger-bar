@@ -69,11 +69,11 @@ const price = (name: string): number => {
 };
 
 // What a basket is built from. Breakfast only goes into orders before its cut-off.
-const MAINS = ['Smash Burger', 'Smash Burger', 'Beef Burger', 'Chicken Burger', 'Gourmet Burger', 'Nacho Burger', 'Pizza Burger',
-  '200g Rump Steak', '300g Jalapeño Steak', 'Chicken Wings', 'Chicken Schnitzel', 'Chicken Strips', 'Burger Salad'];
+const MAINS = ['Smash Burger', 'Smash Burger', 'Beef Burger', 'Chicken Burger', 'Gourmet Beef Burger', 'Nacho Burger', 'Pizza Burger',
+  '200g Rump Steak', '300g Jalapeño Rump Steak', 'Chicken Wings', 'Chicken Schnitzel (Full)', 'Chicken Strips', 'Burger Salad'];
 const BREAKFASTS = ['Breakfast Bun', 'Breakfast Burger', 'Omelette', 'Avo on Toast'];
-const SIDES = ['Loaded Fries', 'Plate of Fries', 'Plate of Onion Rings', 'Jalapeño Poppers', 'Nachos'];
-const DRINKS = ['Coke', 'Coke Zero', 'Sprite', 'Fanta Orange', 'Appletiser', 'Still Water'];
+const SIDES = ['Loaded Fries', 'Plate of Chips', 'Plate of Onion Rings', 'Jalapeño Poppers (Half)', 'Nachos (Full)'];
+const DRINKS = ['Coke', 'Cappy', 'Sprite', 'Iced Tea', 'Appletizer', 'Still Water'];
 const PLATTERS = ['Warrior Platter', 'Snack Platter'];
 // Regulars come back: the first few guests are drawn far more often.
 const WEIGHTED_GUESTS = ['lerato', 'lerato', 'lerato', 'pieter', 'pieter', 'sipho', 'sipho', 'anri', 'nomsa', 'kagiso',
@@ -141,7 +141,7 @@ export function createSeed(now: Date = new Date()): DemoRecords {
   const orders: OrderWithItems[] = [
     order(1, 'new', 'pieter', [['Smash Burger', 2], ['Loaded Fries', 1]], minutes(25), minutes(-3)),
     order(2, 'new', 'sam', [['Chicken Burger', 1], ['Coke', 1]], minutes(40), minutes(-1)),
-    order(3, 'accepted', 'lerato', [['Gourmet Burger', 1], ['Plate of Fries', 1], ['Coke Zero', 1]], minutes(15), minutes(-12)),
+    order(3, 'accepted', 'lerato', [['Gourmet Beef Burger', 1], ['Plate of Chips', 1], ['Cappy', 1]], minutes(15), minutes(-12)),
     order(4, 'preparing', 'johan', [['Warrior Platter', 1]], minutes(10), minutes(-25), { order_type: 'table', table_number: '7' }),
     order(5, 'ready', 'aisha', [['Beef Burger', 2], ['Sprite', 2]], minutes(-2), minutes(-35)),
   ];

@@ -45,7 +45,7 @@ const order = (overrides = {}) => ({
   // A fresh contact per order, so the per-contact rate limit only trips where a test means it to.
   email: `test${(contactSeq += 1)}@example.com`, phone: `082 100 ${String(contactSeq).padStart(4, '0')}`,
   type: 'collection', time: tomorrowAt('18:00'), total: 200,
-  items: [{ name: 'Smash Burger', qty: 2, unit_price: 100 }],
+  items: [{ name: 'Beef Burger', qty: 2, unit_price: 100 }],
   ...overrides,
 });
 const createOrder = (o) => db.query(
@@ -131,13 +131,13 @@ test('signed-in non-staff see nothing; staff see everything', async () => {
 // ---------------------------------------------------------------------------
 
 test('an order is priced from the menu, linked to a guest and queued for notification', async () => {
-  const o = order({ items: [{ name: 'Smash Burger', qty: 2, unit_price: 100 }, { name: 'Coke', qty: 1, unit_price: 25 }], total: 225 });
+  const o = order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100 }, { name: 'Coke', qty: 1, unit_price: 22 }], total: 222 });
   const asPublic = await asRole(db, 'anon', async () => (await createOrder({ ...o, ref: `${o.ref}X` })).rows[0]);
   assert.ok(asPublic.id, 'the public can place an order through create_order');
 
   const placed = (await createOrder(o)).rows[0];
   const row = await one(`select total, customer_id, status from public.orders where id = $1`, [placed.id]);
-  assert.equal(Number(row.total), 225);
+  assert.equal(Number(row.total), 222);
   assert.equal(row.status, 'new');
   assert.ok(row.customer_id);
   const queued = await one(`select q.url, q.body from public.notification_log l join net.http_request_queue q on q.id = l.request_id where l.reference = $1`, [o.ref]);
@@ -157,16 +157,17 @@ test('orders the menu does not allow are refused', async () => {
   };
   await db.exec('begin');
   try {
-    await refused({ items: [{ name: 'Smash Burger', qty: 2, unit_price: 0.01 }], total: 0.02 }, /menu price changed/, 'underpriced');
+    await refused({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 0.01 }], total: 0.02 }, /menu price changed/, 'underpriced');
     await refused({ items: [{ name: 'Free Lobster', qty: 1, unit_price: 10 }], total: 10 }, /menu item unavailable/, 'invented item');
-    await refused({ items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 60 }], total: 60 }, /not served at that time/, 'breakfast in the evening');
+    await refused({ items: [{ name: 'Windhoek Draught', qty: 1, unit_price: 40 }], total: 40 }, /menu item unavailable/, 'alcohol is listed only on the drinks board');
+    await refused({ items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 70 }], total: 70 }, /not served at that time/, 'breakfast in the evening');
     await refused({ total: 199.99 }, /does not match/, 'total a cent short');
     await refused({ time: new Date(Date.now() - 3600000).toISOString() }, /in the past/, 'past time');
     await refused({ items: [] , total: 0 }, /at least one item/, 'empty');
   } finally {
     await db.exec('rollback');
   }
-  const breakfast = await createOrder(order({ items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 60 }], total: 60, time: tomorrowAt('10:00') }));
+  const breakfast = await createOrder(order({ items: [{ name: 'Breakfast Bun', qty: 1, unit_price: 70 }], total: 70, time: tomorrowAt('10:00') }));
   assert.ok(breakfast.rows[0].id, 'breakfast before 12:00 is fine');
 });
 

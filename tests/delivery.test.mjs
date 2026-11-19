@@ -21,7 +21,7 @@ const at = (hhmm) => {
   while (day.getUTCDay() === 0) day = new Date(+day + 86400000);
   return `${day.toISOString().slice(0, 10)}T${hhmm}:00+02:00`;
 };
-const burger = '[{"name":"Smash Burger","qty":1,"unit_price":100}]';
+const burger = '[{"name":"Beef Burger","qty":1,"unit_price":100}]';
 
 async function deliver({ suburb = 'Riversdale', time = at('12:00'), total = 100, role = 'anon' } = {}) {
   seq++;

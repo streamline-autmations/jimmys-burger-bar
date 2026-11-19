@@ -9,6 +9,33 @@ import { ZAR } from "../../core/domain/money";
 import { defineRestaurant } from "../../core/config/define";
 import { jimmysSections } from "./sections";
 
+const coldDrinks = [
+  { name: "Coke", price: 22 },
+  { name: "Sprite", price: 22 },
+  { name: "Cappy", price: 22 },
+  { name: "Still Water", price: 22 },
+  { name: "Sparkling Water", price: 22 },
+  { name: "Red Bull", price: 35 },
+  { name: "Tonic", price: 17 },
+  { name: "Pink Tonic", price: 17 },
+  { name: "Lemonade", price: 17 },
+  { name: "Ginger Ale", price: 17 },
+  { name: "Grapetizer", price: 28 },
+  { name: "Appletizer", price: 28 },
+  { name: "Iced Tea", price: 22 },
+];
+
+const icedDrinks = [
+  { name: "Iced Coffee", price: 45 },
+  { name: "Strawberry Milkshake (Small)", price: 35 },
+  { name: "Chocolate Milkshake (Small)", price: 35 },
+  { name: "Strawberry Milkshake (Large)", price: 45 },
+  { name: "Chocolate Milkshake (Large)", price: 45 },
+];
+
+const heinekenZero = { name: "Heineken Zero", price: 30 };
+const savannah = { name: "Savannah", detail: "Dry, Lite, Neat or Non-Alcoholic", price: 35 };
+
 export const jimmys = defineRestaurant({
   slug: "jimmys",
   // ---- Locale ---------------------------------------------------------------
@@ -173,14 +200,10 @@ export const jimmys = defineRestaurant({
     tableNote: "Table service requested. Please check with staff before ordering.",
     deliveryNote: "Delivery requested. Jimmy's must confirm availability, timing and any delivery charge.",
     nonAlcoholicDrinks: [
-      { name: 'Coke', description: '330ml can', price: 25 },
-      { name: 'Coke Zero', description: '330ml can', price: 25 },
-      { name: 'Sprite', description: '330ml can', price: 25 },
-      { name: 'Fanta Orange', description: '330ml can', price: 25 },
-      { name: 'Still Water', description: '500ml', price: 18 },
-      { name: 'Sparkling Water', description: '500ml', price: 22 },
-      { name: 'Appletiser', description: '330ml', price: 30 },
-      { name: 'Heineken 0.0', description: 'Non-alcoholic beer', price: 30 },
+      ...coldDrinks,
+      ...icedDrinks,
+      heinekenZero,
+      { name: "Savannah Non-Alcoholic", price: savannah.price },
     ],
   },
 
@@ -208,215 +231,293 @@ export const jimmys = defineRestaurant({
   },
 
   // ---- Food menu ----------------------------------------------------------
-  // Jimmy's real in-store menu, straight off their printed menu boards.
+  // Jimmy's supplied menu board and price workbook.
   menu: {
-    extrasNote: 'Kitchen extras: bacon R17, egg R15, cheese R10, extra patty R28.',
     categories: [
       {
         name: "Breakfast",
-        // Breakfast Bun, Breakfast Burger, Avo on Toast and Carb Clever photos are
-        // AI-generated (Codex, 2026-09-29) under the CLAUDE.md AI-imagery override and
-        // logged there. Real: Jimmy's Breakfast (gallery/breakfast-plate.jpg) and
-        // Omelette (Christiaan's iPhone video still, 2026-11-19).
-        note: "Served until 12",
+        note: "Served until 12pm",
         availableUntil: "12:00",
         items: [
-          { name: "Breakfast Bun", description: "Bun with bacon, egg and cheese, with chips", price: 60, image: "/images/menu/breakfast/breakfast-bun.webp" },
-          { name: "Breakfast Burger", description: "Beef burger with egg, bacon and chips", price: 95, popular: true, image: "/images/menu/breakfast/breakfast-burger.webp" },
-          { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 70, popular: true, image: "/images/menu/breakfast/jimmys-breakfast.webp" },
-          { name: "Avo on Toast", description: "Smashed avo on toast with grilled tomatoes", price: 60, image: "/images/menu/breakfast/avo-on-toast.webp" },
-          { name: "Omelette", description: "Bacon and mushroom, or mushroom and cheese", price: 60, image: "/images/menu/breakfast/omelette.webp" },
-          { name: "Carb Clever Breakfast", description: "2 eggs, 2 bacon, tomato and avo", price: 60, image: "/images/menu/breakfast/carb-clever-breakfast.webp" },
+          { name: "Breakfast Bun", description: "Bacon, egg and cheese bun with chips", price: 70, image: "/images/menu/breakfast/breakfast-bun.webp" },
+          { name: "Breakfast Burger", description: "120g beef burger with egg, bacon and chips", price: 105, popular: true, image: "/images/menu/breakfast/breakfast-burger.webp" },
+          { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 80, popular: true, image: "/images/menu/breakfast/jimmys-breakfast.webp" },
+          { name: "Avo on Toast", description: "Seasonal. 2 pieces of avocado toast. Extra bacon R25.", price: 50 },
+          { name: "Omelette", description: "3-cheese omelette with toast and 2 fillings: bacon, mushroom, tomatoes or pepper", price: 95, image: "/images/menu/breakfast/omelette.webp" },
+          { name: "Carb Clever Breakfast", description: "Seasonal. 2 eggs, half an avocado, bacon, raw tomato, mozzarella and cheddar.", price: 80 },
+          { name: "Breakfast Wrap", description: "Seasonal. Eggs, bacon, avocado, feta, mozzarella, cheddar, lettuce and tomato.", price: 105 },
+          { name: "Eggs Benedict", description: "2 poached eggs, bacon, hashbrown and hollandaise sauce", price: 110 },
+          { name: "Mince on Toast", description: "2 pieces of toast with mince", price: 80 },
         ]
       },
       {
         name: "Burgers",
-        // Pizza and Gourmet Burger photos are AI-generated (Codex, 2026-09-28) under
-        // the CLAUDE.md AI-imagery override and logged there. Beef, Chicken, Smash and
-        // Nacho Burger are real iPhone photos from Christiaan (2026-11-19).
         note: "With chips · served all day",
         items: [
-          { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 90, image: "/images/menu/burgers/beef-burger.webp" },
-          { name: "Chicken Burger", description: "Chicken patty, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 90, image: "/images/menu/burgers/chicken-burger.webp" },
-          { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce", price: 100, popular: true, image: "/images/menu/burgers/smash-burger.webp" },
-          { name: "Pizza Burger", description: "180g beef patty, tomato sauce, mozzarella and pepperoni", price: 105, image: "/images/menu/burgers/pizza-burger.webp" },
-          { name: "Gourmet Burger", description: "180g beef or chicken, sweet chilli, bacon, onion rings", price: 130, image: "/images/menu/burgers/gourmet-burger.webp" },
-          { name: "Nacho Burger", description: "Chicken, bacon, sweet chilli, onion rings and nacho chips", price: 130, popular: true, image: "/images/menu/burgers/nacho-burger.webp" },
+          { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 100, image: "/images/menu/burgers/beef-burger.webp" },
+          { name: "Chicken Burger", description: "Crumbed chicken fillet, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 100 },
+          { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce", price: 110, popular: true },
+          { name: "Pizza Burger", description: "180g beef patty, Napolitana sauce, mozzarella and pepperoni", price: 120, image: "/images/menu/burgers/pizza-burger.webp" },
+          { name: "Gourmet Beef Burger", description: "180g crumbed beef patty, bacon, onion rings and pepper sauce", price: 145 },
+          { name: "Gourmet Chicken Burger", description: "Crumbed chicken fillet, sweet chilli sauce, bacon, onion rings and cheese sauce", price: 145 },
+          { name: "Nacho Burger", description: "Seasonal. 2 smashed patties, bacon, sweet chilli, nacho chips, onion rings and guacamole.", price: 145 },
         ]
       },
       {
         name: "Small Plates",
-        note: "Made for sharing",
         items: [
-          { name: "Russian & Chips", description: "Extra russian for R15", price: 55 },
-          { name: "Jalapeño Poppers", description: "Crumbed jalapeños stuffed with melted cheese", price: 65, popular: true, image: "/images/menu/small-plates/jalapeno-poppers.webp" },
-          { name: "Nachos", description: "Spicy, mild or plain · half R60", price: 90, image: "/images/menu/small-plates/nachos.webp" },
-          { name: "Steak Strips", description: "With cheese or pepper sauce", price: 80 },
-          { name: "Loaded Fries", description: "The basket that never makes it home", price: 60 },
-          { name: "Plate of Fries", description: "Crisp and golden", price: 45 },
-          { name: "Plate of Onion Rings", description: "Stacked high", price: 35 },
-          { name: "Meatballs", description: "House-made, saucy", price: 60, image: "/images/menu/small-plates/meatballs.webp" },
+          { name: "Russian & Chips", description: "Extra Russian R35", price: 65 },
+          { name: "Jalapeño Poppers (Half)", description: "Seasonal. 2 homemade jalapeño poppers.", price: 65 },
+          { name: "Jalapeño Poppers (Full)", description: "Seasonal. 4 homemade jalapeño poppers.", price: 100 },
+          { name: "Nachos (Half)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 80 },
+          { name: "Nachos (Full)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 130 },
+          { name: "Steak Strips", description: "180g basted steak strips with cheese, pepper or mushroom sauce", price: 110 },
+          { name: "Loaded Fries", description: "Chips with cheese, bacon and chicken. Extra Russian with this dish R30.", price: 90 },
+          { name: "Loaded Fries with Extra Russian", description: "Chips with cheese, bacon, chicken and an extra Russian", price: 90 + 30 },
+          { name: "Plate of Chips", price: 50 },
+          { name: "Plate of Onion Rings", price: 40 },
+          { name: "Meatballs", description: "4 meatballs with basting", price: 70, image: "/images/menu/small-plates/meatballs.webp" },
+          { name: "Italian Meatballs", description: "4 meatballs with Napolitana sauce and mozzarella", price: 90 },
+          { name: "Mozzarella Sticks", description: "3 homemade sticks with sweet chilli sauce", price: 90 },
+          { name: "Halloumi Sticks", description: "3 grilled sticks with sweet chilli sauce", price: 110 },
+          { name: "Crumbed Mushroom", description: "6 homemade panko-crusted mushrooms with cheese, pepper or mushroom sauce", price: 80 },
         ]
       },
       {
         name: "Platters",
-        note: "Built for the table",
         items: [
-          { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, popular: true, image: "/images/menu/platters/warrior-platter.webp" },
-          { name: "Snack Platter", description: "Chicken strips, chicken wings, jalapeño poppers, chips and onion rings", price: 250, image: "/images/menu/platters/snack-platter.webp" },
+          { name: "Warrior Platter", description: "Steak strips, Russian, wings, chicken strips, salad, chips and onion rings", price: 385, popular: true, image: "/images/menu/platters/warrior-platter.webp" },
+          { name: "Snack Platter", description: "Seasonal. Chicken strips, chicken wings, jalapeño poppers, chips and onion rings.", price: 275, image: "/images/menu/platters/snack-platter.webp" },
         ]
       },
       {
         name: "Steaks",
-        // Steak photos are AI-generated (ChatGPT, 2026-09-28) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips and onion rings or salad",
         items: [
-          { name: "200g Rump Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 110, popular: true, image: "/images/menu/steaks/rump-steak.webp" },
-          { name: "300g Rump Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 140, image: "/images/menu/steaks/rump-steak.webp" },
-          { name: "200g Jalapeño Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 130, image: "/images/menu/steaks/jalapeno-steak.webp" },
-          { name: "300g Jalapeño Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 160, image: "/images/menu/steaks/jalapeno-steak.webp" },
-          { name: "250g Fillet Steak", description: "With chips and onion rings or salad. Pepper or mushroom sauce", price: 140, image: "/images/menu/steaks/fillet-steak.webp" },
-          { name: "Extra Sauce", description: "Cheese, pepper or mushroom", price: 25, image: "/images/menu/steaks/extra-sauce.webp" },
+          { name: "200g Rump Steak", price: 140, popular: true, image: "/images/menu/steaks/rump-steak.webp" },
+          { name: "300g Rump Steak", price: 155, image: "/images/menu/steaks/rump-steak.webp" },
+          { name: "200g Jalapeño Rump Steak", description: "With cheese, pepper or mushroom sauce", price: 145, image: "/images/menu/steaks/jalapeno-steak.webp" },
+          { name: "300g Jalapeño Rump Steak", description: "With cheese, pepper or mushroom sauce", price: 175, image: "/images/menu/steaks/jalapeno-steak.webp" },
+          { name: "250g Fillet Steak", description: "With pepper or mushroom sauce", price: 155, image: "/images/menu/steaks/fillet-steak.webp" },
         ]
       },
       {
         name: "Chicken Meals",
-        // Chicken Strips is AI-generated (Codex, 2026-09-29) under the CLAUDE.md
-        // AI-imagery override and logged there. Wings and Schnitzel are real (2026-11-19).
         note: "With chips, salad or vegetables",
         items: [
-          { name: "Chicken Wings", description: "Glazed and grilled", price: 90, popular: true, image: "/images/menu/chicken-meals/chicken-wings.webp" },
-          { name: "Chicken Strips", description: "Golden and tender", price: 70, image: "/images/menu/chicken-meals/chicken-strips.webp" },
-          { name: "Chicken Schnitzel", description: "Crumbed and pan-fried", price: 95, image: "/images/menu/chicken-meals/chicken-schnitzel.webp" },
+          { name: "Chicken Wings", description: "3 wings with sweet chilli sauce", price: 100, popular: true },
+          { name: "Chicken Strips", description: "6 homemade panko-crusted strips with sweet chilli sauce", price: 80 },
+          { name: "Chicken Schnitzel (Half)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 80 },
+          { name: "Chicken Schnitzel (Full)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 130 },
         ]
       },
       {
         name: "Toasted Sandwiches",
         note: "With chips",
         items: [
-          { name: "Chicken Mayo", description: "The classic, done properly", price: 70 },
-          { name: "Bacon & Cheese", description: "Melted through", price: 65 },
-          { name: "Cheese & Tomato", description: "Simple and right", price: 50 },
+          { name: "Chicken Mayo & Mozzarella", price: 80 },
+          { name: "Bacon & Cheese", price: 70, image: "/images/menu/toasted-sandwiches/bacon-and-cheese.webp" },
+          { name: "Cheese & Tomato", price: 55, image: "/images/menu/toasted-sandwiches/cheese-and-tomato.webp" },
+          { name: "Bacon, Egg & Cheese", price: 80 },
+          { name: "Bacon, Mushroom & Cheese", price: 80 },
+        ]
+      },
+      {
+        name: "Wraps",
+        note: "With chips",
+        items: [
+          { name: "Chicken Wrap", description: "Crumbed chicken, feta, mozzarella, cheddar, lettuce, tomato, red onion and bell peppers", price: 105 },
+          { name: "Steak Strip Wrap", description: "200g steak strips, feta, mozzarella, cheddar, lettuce, tomato and red onions", price: 130 },
         ]
       },
       {
         name: "Salads",
-        // Greek, Burger and Chicken Salad are AI-generated (Codex, 2026-09-29) under the
-        // CLAUDE.md AI-imagery override and logged there. Jimmy's and Steak Salad are
-        // real (2026-11-19).
-        note: "Fresh from the kitchen",
         items: [
-          { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 55, image: "/images/menu/salads/greek-salad.webp" },
-          { name: "Jimmy's Salad", description: "Greek salad with chicken, bacon and avocado", price: 80, popular: true, image: "/images/menu/salads/jimmys-salad.webp" },
-          { name: "Burger Salad", description: "Greek salad with a 180g patty, bacon and avocado", price: 90, image: "/images/menu/salads/burger-salad.webp" },
-          { name: "Chicken Salad", description: "Greek salad with chicken", price: 70, image: "/images/menu/salads/chicken-salad.webp" },
-          { name: "Steak Salad", description: "Greek salad with steak", price: 85, image: "/images/menu/salads/steak-salad.webp" },
+          { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 70, image: "/images/menu/salads/greek-salad.webp" },
+          { name: "Chicken Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken and avocado.", price: 110 },
+          { name: "Steak Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, steak strips and avocado.", price: 120 },
+          { name: "Jimmy's Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken, bacon and avocado.", price: 130, image: "/images/menu/salads/jimmys-salad.webp" },
+          { name: "Burger Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, a 180g patty, bacon and avocado.", price: 140, image: "/images/menu/salads/burger-salad.webp" },
+          { name: "Halloumi Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, halloumi, avocado and bacon.", price: 110 },
         ]
       },
       {
         name: "Desserts",
-        note: "Save space",
         items: [
-          { name: "Cake of the Day", description: "Chocolate or carrot, whichever's fresh", price: 45 },
-          { name: "Ice Cream & Chocolate Sauce", description: "The one the kids fight over", price: 30 },
-          { name: "Affogato", description: "Ice cream and a shot of espresso", price: 45, popular: true, image: "/images/menu/desserts/affogato.webp" },
+          { name: "Cake of the Day", price: 50 },
+          { name: "Ice Cream & Chocolate Sauce", price: 35 },
+          { name: "Italian Kisses (4 pieces)", price: 60 },
+          { name: "Affogato", description: "Ice cream and espresso", price: 50, popular: true, image: "/images/menu/desserts/affogato.webp" },
+        ]
+      },
+      {
+        name: "Extras",
+        items: [
+          { name: "Extra Bacon", price: 25 },
+          { name: "Extra Egg", price: 20 },
+          { name: "Extra Toast", price: 15 },
+          { name: "Extra Cheese Griller", price: 30 },
+          { name: "Extra Hashbrown", price: 30 },
+          { name: "Extra Vienna", price: 25 },
+          { name: "Extra Pork Banger", price: 30 },
+          { name: "Extra Patty", price: 35 },
+          { name: "Extra Russian", price: 35 },
+          { name: "Extra Cheese Slice", price: 15 },
+          { name: "Extra Cheddar", price: 30 },
+          { name: "Extra Mozzarella", price: 30 },
+          { name: "Extra Feta", price: 30 },
+          { name: "Extra Cream Cheese", price: 35 },
+          { name: "Extra Jalapeños", price: 20 },
+          { name: "Extra Avocado", description: "Seasonal", price: 30 },
+          { name: "Extra Mushroom", price: 30 },
+          { name: "Extra Guacamole", price: 30 },
+          { name: "Extra Tomato", price: 10 },
+        ]
+      },
+      {
+        name: "Extra Sauces",
+        items: [
+          { name: "Extra Cheese Sauce", price: 30 },
+          { name: "Extra Pepper Sauce", price: 30 },
+          { name: "Extra Mushroom Sauce", price: 30 },
         ]
       },
     ],
-    // Photo tiles for the home-page favourites bento.
-    // EVERY tile here is a real photograph of Jimmy's own food, taken from
-    // their Instagram. Nothing generated, nothing stock.
-    //
-    // The three featured items are chosen to match the real photos we have -
-    // not the other way round. If you want to feature a different dish, get a
-    // real photo of it first; do not generate one to fill the tile. Generated
-    // food on a real restaurant's site misrepresents what a customer will
-    // actually be served.
+    // The old featured Smash Burger photo predates the menu's peppers and onions.
     featured: [
-      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: 100, image: "/images/gallery/smash-burger.jpg" },
-      { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, image: "/images/menu/warrior-platter.jpeg" },
-      { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12.", price: 70, image: "/images/gallery/breakfast-plate.jpg" },
+      { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce, with chips", price: 110 },
+      { name: "Warrior Platter", description: "Steak strips, Russian, wings, chicken strips, salad, chips and onion rings", price: 385, image: "/images/menu/warrior-platter.jpeg" },
+      { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12pm.", price: 80, image: "/images/gallery/breakfast-plate.jpg" },
     ],
   },
 
   // ---- Drinks ---------------------------------------------------------------
-  // Jimmy's real bar list, straight off their printed drinks menu.
+  // The full printed bar list can be browsed on Food & Drinks.
   drinks: {
-    intro: "The real Jimmy's bar list: local lagers, ciders by the bucket, house cocktails and proper coffee.",
+    intro: "Cold drinks, coffee, shakes, beers, ciders, spirits and cocktails.",
     categories: [
+      { name: "Cold Drinks", items: coldDrinks },
       {
-        name: "Beer",
-        note: "Always cold",
+        name: "Beer & Ciders",
         items: [
-          { name: "Castle Lager", detail: "The local", price: 28 },
-          { name: "Castle Lite", detail: "Extra cold", price: 28 },
-          { name: "Black Label", detail: "Cold and consistent", price: 28 },
-          { name: "Castle Milkstout", detail: "Dark and smooth", price: 28 },
-          { name: "Windhoek Draught", detail: "440ml", price: 40, popular: true },
-          { name: "Windhoek Lager", detail: "440ml", price: 40 },
-          { name: "Heineken", detail: "Zero also in the fridge, R30", price: 30 },
-          { name: "Corona", detail: "Lime included", price: 35 },
-          { name: "Stella Artois", detail: "330ml", price: 35 },
-        ]
-      },
-      {
-        name: "Ciders & Coolers",
-        items: [
-          { name: "Savanna", detail: "Dry, Lite, Neat or non-alcoholic", price: 35, popular: true },
-          { name: "Hunter's", detail: "Dry or Gold", price: 35 },
-          { name: "Flying Fish", detail: "Pressed lemon", price: 30 },
+          { name: "Windhoek Draught", price: 40, popular: true },
+          { name: "Swagga Draught", detail: "California Blonde", price: 45 },
+          { name: "Castle Lager", price: 28 },
+          { name: "Castle Lite", price: 28 },
+          { name: "Castle Milkstout", price: 28 },
+          { name: "Heineken", price: 30 },
+          heinekenZero,
+          { name: "Black Label", price: 28 },
+          { name: "Corona", price: 35 },
+          { name: "Stella Artois", price: 35 },
+          savannah,
+          { name: "Hunters", detail: "Dry or Gold", price: 35 },
+          { name: "Flying Fish", price: 30 },
+          { name: "R&R", price: 35 },
           { name: "Belgravia", detail: "Dark Cherry or Dry Lemon", price: 35 },
-          { name: "Red Square", detail: "Ice cold", price: 35 },
-          { name: "Buffelsfontein & Kola", detail: "You know who you are", price: 35 },
+          { name: "Red Square", price: 35 },
+          { name: "Buffelsfontein & Kola", price: 35 },
+          { name: "Bernini", price: 30 },
         ]
       },
       {
-        name: "Cocktails",
-        note: "Shaken at the bar",
+        name: "Hot Drinks",
         items: [
-          { name: "Frikkie van Zyl", detail: "Vodka, gin, orange juice and grenadine. The house special.", price: 70, tag: "House", popular: true },
-          { name: "Margarita", detail: "Tequila, triple sec, fruit lagoon and lime", price: 70 },
-          { name: "Martini", detail: "Martini Bianco, vodka, lime and lemon juice", price: 70 },
-          { name: "Purple Rain", detail: "Vodka, Malibu, Butlers Blue, grenadine and lemonade", price: 80 },
-          { name: "Strawberry Daiquiri", detail: "Vodka, Butlers strawberry, fruit lagoon and strawberry juice", price: 80 },
-          { name: "Long Island Iced Tea", detail: "Malibu, Bacardi, vodka, gin, triple sec, tequila, lime and Coke", price: 160 },
+          { name: "Cappuccino", price: 30 },
+          { name: "Latte", price: 35 },
+          { name: "Espresso", price: 25 },
+          { name: "Cortado", price: 28 },
+          { name: "Coffee", price: 25 },
+          { name: "Hot Chocolate", price: 40 },
+          { name: "Tea (Cup)", price: 20 },
+          { name: "Tea (Pot)", price: 40 },
+        ]
+      },
+      { name: "Iced Drinks", items: icedDrinks },
+      {
+        name: "Mixed Drinks",
+        items: [
+          { name: "Rock Shandy", detail: "Lemonade, bitters and sparkling water", price: 50 },
+          { name: "Steel Works", detail: "Ginger ale, cola tonic and bitters", price: 40 },
+        ]
+      },
+      {
+        name: "Cordial",
+        items: [
+          { name: "Passionfruit", price: 10 },
+          { name: "Lime", price: 10 },
+          { name: "Cola Tonic", price: 10 },
+        ]
+      },
+      {
+        name: "Brandy",
+        items: [
+          { name: "Klipdrift", price: 25 },
+          { name: "Richelieu", price: 25 },
+          { name: "Olof Bergh", price: 25 },
+          { name: "Buffelfontein", price: 25 },
+          { name: "KWV", price: 25 },
+          { name: "Klipdrift Premium", price: 30 },
+        ]
+      },
+      {
+        name: "Rum",
+        items: [
+          { name: "Captain Morgan", detail: "Spiced Gold or Dark Rum", price: 28 },
+          { name: "Redheart", price: 30 },
+        ]
+      },
+      {
+        name: "Whiskey",
+        items: [
+          { name: "Bell’s", price: 28 },
+          { name: "J&B", price: 28 },
+          { name: "Jameson", price: 32 },
+          { name: "Scottish Leader", price: 25 },
+          { name: "Label 5", price: 25 },
+          { name: "Johnnie Walker Black", price: 32 },
+        ]
+      },
+      {
+        name: "Vodka",
+        items: [
+          { name: "Smirnoff", price: 25 },
+          { name: "Pushkin", price: 25 },
+        ]
+      },
+      {
+        name: "Gin",
+        items: [
+          { name: "Gordons", price: 25 },
+          { name: "Tanqueray", price: 35 },
+          { name: "Old Buck", price: 20 },
         ]
       },
       {
         name: "Shots",
-        note: "For the brave table",
         items: [
           { name: "Tequila", detail: "Gold or silver", price: 27 },
-          { name: "Jägermeister", detail: "Ice cold", price: 27 },
-          { name: "Jägerbomb", detail: "With Red Bull", price: 35, popular: true },
-          { name: "Springbokkie", detail: "Green and gold", price: 22 },
-          { name: "Melktertjie", detail: "Sweet and dangerous", price: 20 },
-          { name: "Cactus Jack", detail: "Original R20, bubblegum R22", price: 20 },
+          { name: "Jägermeister", price: 27 },
+          { name: "Melktertjie", price: 20 },
+          { name: "Springbokkie", price: 22 },
+          { name: "Cactus Jack Original", price: 20 },
+          { name: "Cactus Jack Bubblegum", price: 22 },
+          { name: "Oester", price: 25 },
+          { name: "Jägerbomb", price: 35, popular: true },
         ]
       },
       {
-        name: "Wine & Bubbles",
-        note: "By the glass or bottle",
+        name: "Cocktails",
         items: [
-          { name: "Two Oceans Sauvignon Blanc", detail: "Glass R40", price: 130 },
-          { name: "Fyn Bos Chenin Blanc", detail: "Glass R45", price: 140 },
-          { name: "Van Loveren Merlot", detail: "Bottle", price: 130 },
-          { name: "Fyn Bos Merlot", detail: "Glass R45", price: 140 },
-          { name: "Four Cousins Rosé", detail: "Bottle", price: 100 },
-          { name: "JC Le Roux", detail: "Lachanson, Ledomaine or Lafleurette", price: 180, popular: true },
-        ]
-      },
-      {
-        name: "Coffee & Shakes",
-        note: "All day",
-        items: [
-          { name: "Cappuccino", detail: "Double shot", price: 30 },
-          { name: "Latte", detail: "Smooth", price: 35 },
-          { name: "Hot Chocolate", detail: "Proper winter fuel", price: 40 },
-          { name: "Iced Coffee", detail: "Cold brew over ice", price: 38 },
-          { name: "Milkshake", detail: "Strawberry or chocolate · small R30", price: 45, popular: true },
-          { name: "Rock Shandy", detail: "Lemonade, bitters and sparkling water", price: 50 },
+          { name: "Frikkie van Zyl", detail: "Vodka, gin, orange juice and grenadine", price: 70, popular: true },
+          { name: "Martini", detail: "Martini Blanco, vodka, lime and lemon juice", price: 80 },
+          { name: "Margarita", detail: "Bacardi, tequila, triple sec, fruit lagoon and lime", price: 85 },
+          { name: "Aperol Spritz", detail: "Aperol, Prosecco and soda water", price: 95 },
+          { name: "Tequila Sunrise", detail: "Tequila, orange juice and grenadine", price: 70 },
+          { name: "Purple Rain / Hurricane", detail: "Vodka, Malibu, Butlers Blue, grenadine and lemonade", price: 80 },
+          { name: "Strawberry Daiquiri", detail: "Vodka, Butlers Strawberry, fruit lagoon and strawberry juice", price: 80 },
+          { name: "Long Island Iced Tea", detail: "Malibu, Bacardi, vodka, gin, triple sec, tequila, lime and Coke", price: 145 },
+          { name: "Blue Lagoon", detail: "Butlers Blue, Malibu, vodka and Sprite", price: 85 },
         ]
       },
     ]
@@ -495,7 +596,7 @@ export const jimmys = defineRestaurant({
         video: "/videos/chicken-burger-loop.mp4",
       },
       drinks: {
-        description: "Cold local favourites, buckets, cocktails, wine and proper coffee.",
+        description: "Cold drinks, local beers, ciders, cocktails and coffee.",
         caption: "Straight from the bar.",
         video: "/videos/drinks-pour-loop.mp4",
       },

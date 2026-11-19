@@ -295,11 +295,13 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Toasted Sandwiches",
+        // Toasted Sandwiches photos are AI-generated (Codex, 2026-11-19) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips",
         items: [
-          { name: "Chicken Mayo", description: "The classic, done properly", price: 70 },
-          { name: "Bacon & Cheese", description: "Melted through", price: 65 },
-          { name: "Cheese & Tomato", description: "Simple and right", price: 50 },
+          { name: "Chicken Mayo", description: "The classic, done properly", price: 70, image: "/images/menu/toasted-sandwiches/chicken-mayo.webp" },
+          { name: "Bacon & Cheese", description: "Melted through", price: 65, image: "/images/menu/toasted-sandwiches/bacon-and-cheese.webp" },
+          { name: "Cheese & Tomato", description: "Simple and right", price: 50, image: "/images/menu/toasted-sandwiches/cheese-and-tomato.webp" },
         ]
       },
       {

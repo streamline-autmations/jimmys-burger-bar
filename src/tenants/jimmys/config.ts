@@ -268,22 +268,25 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Small Plates",
+        // Nachos (Full) and Meatballs use real iPhone photos. The other Small Plates
+        // photos are AI-generated (Codex, 2026-11-19) under the CLAUDE.md AI-imagery
+        // override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Russian & Chips", description: "Extra Russian R35", price: 65 },
-          { name: "Jalapeño Poppers (Half)", description: "Seasonal. 2 homemade jalapeño poppers.", price: 65 },
-          { name: "Jalapeño Poppers (Full)", description: "Seasonal. 4 homemade jalapeño poppers.", price: 100 },
-          { name: "Nachos (Half)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 80 },
-          { name: "Nachos (Full)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 130 },
-          { name: "Steak Strips", description: "180g basted steak strips with cheese, pepper or mushroom sauce", price: 110 },
-          { name: "Loaded Fries", description: "Chips with cheese, bacon and chicken. Extra Russian with this dish R30.", price: 90 },
-          { name: "Loaded Fries with Extra Russian", description: "Chips with cheese, bacon, chicken and an extra Russian", price: 90 + 30 },
-          { name: "Plate of Chips", price: 50 },
-          { name: "Plate of Onion Rings", price: 40 },
+          { name: "Russian & Chips", description: "Extra Russian R35", price: 65, image: "/images/menu/small-plates/russian-and-chips.webp" },
+          { name: "Jalapeño Poppers (Half)", description: "Seasonal. 2 homemade jalapeño poppers.", price: 65, image: "/images/menu/small-plates/jalapeno-poppers-half.webp" },
+          { name: "Jalapeño Poppers (Full)", description: "Seasonal. 4 homemade jalapeño poppers.", price: 100, image: "/images/menu/small-plates/jalapeno-poppers-full.webp" },
+          { name: "Nachos (Half)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 80, image: "/images/menu/small-plates/nachos-half.webp" },
+          { name: "Nachos (Full)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 130, image: "/images/menu/small-plates/nachos.webp" },
+          { name: "Steak Strips", description: "180g basted steak strips with cheese, pepper or mushroom sauce", price: 110, image: "/images/menu/small-plates/steak-strips.webp" },
+          { name: "Loaded Fries", description: "Chips with cheese, bacon and chicken. Extra Russian with this dish R30.", price: 90, image: "/images/menu/small-plates/loaded-fries.webp" },
+          { name: "Loaded Fries with Extra Russian", description: "Chips with cheese, bacon, chicken and an extra Russian", price: 90 + 30, image: "/images/menu/small-plates/loaded-fries-extra-russian.webp" },
+          { name: "Plate of Chips", price: 50, image: "/images/menu/small-plates/plate-of-chips.webp" },
+          { name: "Plate of Onion Rings", price: 40, image: "/images/menu/small-plates/plate-of-onion-rings.webp" },
           { name: "Meatballs", description: "4 meatballs with basting", price: 70, image: "/images/menu/small-plates/meatballs.webp" },
-          { name: "Italian Meatballs", description: "4 meatballs with Napolitana sauce and mozzarella", price: 90 },
-          { name: "Mozzarella Sticks", description: "3 homemade sticks with sweet chilli sauce", price: 90 },
-          { name: "Halloumi Sticks", description: "3 grilled sticks with sweet chilli sauce", price: 110 },
-          { name: "Crumbed Mushroom", description: "6 homemade panko-crusted mushrooms with cheese, pepper or mushroom sauce", price: 80 },
+          { name: "Italian Meatballs", description: "4 meatballs with Napolitana sauce and mozzarella", price: 90, image: "/images/menu/small-plates/italian-meatballs.webp" },
+          { name: "Mozzarella Sticks", description: "3 homemade sticks with sweet chilli sauce", price: 90, image: "/images/menu/small-plates/mozzarella-sticks.webp" },
+          { name: "Halloumi Sticks", description: "3 grilled sticks with sweet chilli sauce", price: 110, image: "/images/menu/small-plates/halloumi-sticks.webp" },
+          { name: "Crumbed Mushroom", description: "6 homemade panko-crusted mushrooms with cheese, pepper or mushroom sauce", price: 80, image: "/images/menu/small-plates/crumbed-mushroom.webp" },
         ]
       },
       {

@@ -437,6 +437,25 @@ test('demo adapter follows the database rules', async () => {
   const dashboard = await db.loadDashboard();
   assert.ok(dashboard.newOrdersCount >= 2, 'seeded queue is never empty');
   assert.ok(dashboard.todayBookingsCount >= 3, "today's service is populated");
+
+  assert.equal(await db.addGuestPush(placed.order_no, order.email, null), true);
+  await db.removeGuestPush(placed.order_no, 'other@example.com', '');
+  assert.ok(demoStore.readRecords().alerts[placed.order_no], 'turning off an alert needs the matching email');
+  await db.removeGuestPush(placed.order_no, order.email, '');
+  assert.equal(demoStore.readRecords().alerts[placed.order_no], undefined);
+
+  await db.advanceOrderStatus(placed.id, 'accepted', 'preparing');
+  await db.advanceOrderStatus(placed.id, 'preparing', 'ready');
+  assert.equal(await db.addGuestPush(placed.order_no, order.email, null), false, 'a late collection signup cannot get another alert');
+  demoStore.updateRecords((records) => {
+    records.orders.find((row) => row.id === placed.id).requested_time = '2026-01-31T19:00:00+02:00';
+    return true;
+  });
+  await db.advanceOrderStatus(placed.id, 'ready', 'completed');
+  const completed = demoStore.readRecords().orders.find((row) => row.id === placed.id);
+  const completedMonth = `${hours.restaurantDate(new Date(completed.completed_at)).slice(0, 7)}-01`;
+  assert.equal((await db.orderReport()).find((row) => row.reference === placed.order_no).month, completedMonth);
+
   demoStore.resetRecords();
 });
 
@@ -608,6 +627,9 @@ test('order report: months newest first, cent-exact sums, safe CSV', () => {
   assert.deepEqual(nov.rows.map((r) => r.reference), ['JB-1102-BBBBBB', 'JB-1103-CCCCCC', '=cmd'], 'rows keep the adapter order');
   assert.ok(csv[1].includes('"Paid online"'), 'payment states read as words');
   assert.equal(report.commissionAt(125.5, 0.29), 36.4, 'basis-point rate keeps the cent');
+  assert.equal(report.commissionRateLabel(0.295), '29.5%');
+  assert.equal(report.commissionRateLabel(0.29516), '29.52%');
+  assert.match(report.reportCsv(nov, 0.295), /"Commission kept at 29\.5%"/);
   const pair = report.summariseMonths([row('JB-1101-AAAAAA', '2026-11-01', 100.02), row('JB-1101-BBBBBB', '2026-11-01', 100.02)])[0];
   assert.equal(report.monthCommission(pair, 0.25), 50.02, 'month total is the sum of the rows');
   assert.ok(report.reportCsv(pair, 0.25).includes('"Total","2026-11","200.04","0.00","0.00","","","200.04","50.02"'));

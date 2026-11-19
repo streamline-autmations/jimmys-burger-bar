@@ -26,7 +26,7 @@ const decode = (base64url: string) =>
   Uint8Array.from(atob(base64url.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
 // Which orders this device switched alerts on for. Device only, like My orders.
-const readOn = (): string[] => {
+export const readAlertReferences = (): string[] => {
   try { const value = JSON.parse(localStorage.getItem(ON) ?? '[]'); return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : []; } catch { return []; }
 };
 const writeOn = (references: string[]) => {
@@ -35,20 +35,20 @@ const writeOn = (references: string[]) => {
 
 export function alertState(reference: string): AlertState {
   if (!db.addGuestPush) return 'unavailable';
-  if (simulated()) return readOn().includes(reference) ? 'on' : 'off';
+  if (simulated()) return readAlertReferences().includes(reference) ? 'on' : 'off';
   // Pay-first tenants only, like the kitchen alerts: only they have push.url and the migration.
   if (config.ordering.payment !== 'payfast') return 'unavailable';
   const ios = typeof navigator !== 'undefined' && platformOf(navigator.userAgent, navigator.maxTouchPoints) === 'ios';
   if (!browserSupports()) return ios && !isStandalone() ? 'needs-home-screen' : 'unavailable';
   if (Notification.permission === 'denied') return 'blocked';
-  return Notification.permission === 'granted' && readOn().includes(reference) ? 'on' : 'off';
+  return Notification.permission === 'granted' && readAlertReferences().includes(reference) ? 'on' : 'off';
 }
 
 /** Call from a tap: the browser only shows its permission prompt for one. */
 export async function enableAlert(reference: string, email: string): Promise<AlertState> {
   if (simulated()) {
     if (!(await db.addGuestPush!(reference, email, null))) throw new Error('ALERT_REFUSED');
-    writeOn([...readOn().filter((item) => item !== reference), reference]);
+    writeOn([...readAlertReferences().filter((item) => item !== reference), reference]);
     return 'on';
   }
   const permission = await Notification.requestPermission();
@@ -62,7 +62,7 @@ export async function enableAlert(reference: string, email: string): Promise<Ale
   if (!endpoint || !keys?.p256dh || !keys.auth) throw new Error('PUSH_SUBSCRIPTION_INCOMPLETE');
   // False: the server could not match this order to that email, or it is already done.
   if (!(await db.addGuestPush!(reference, email, { endpoint, p256dh: keys.p256dh, auth: keys.auth }))) throw new Error('ALERT_REFUSED');
-  writeOn([...readOn().filter((item) => item !== reference), reference]);
+  writeOn([...readAlertReferences().filter((item) => item !== reference), reference]);
   return 'on';
 }
 
@@ -75,6 +75,6 @@ export async function disableAlert(reference: string, email: string): Promise<Al
   } else {
     await db.removeGuestPush?.(reference, email, '');
   }
-  writeOn(readOn().filter((item) => item !== reference));
+  writeOn(readAlertReferences().filter((item) => item !== reference));
   return 'off';
 }

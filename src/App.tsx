@@ -79,6 +79,7 @@ const NotFound: React.FC = () => (
 const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
   useEffect(() => {
+    if (pathname === '/privacy' && hash === '#delete') return;
     const t = window.setTimeout(() => {
       if (pathname === '/visit' && hash) {
         document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -181,6 +182,7 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/gallery" element={<Navigate to="/visit#gallery" replace />} />
             <Route path="/visit" element={<Visit />} />
             <Route path="/order" element={<Order />} />
+            <Route path="/orders" element={<MyOrders />} />
             <Route path="/track" element={<Track />} />
             <Route path="/book" element={<Navigate to="/visit#book" replace />} />
             <Route path="/privacy" element={<Privacy />} />

@@ -67,10 +67,13 @@ export function summariseMonths(rows: OrderReportRow[]): MonthSummary[] {
     }));
 }
 
-/** What a comparison app would have taken on this base, to the cent. */
 // The rate is taken as whole basis points, so 0.29 cannot become 0.28999... and lose a cent.
+const basisPoints = (rate: number) => Math.round(rate * 10_000);
+export const commissionRateLabel = (rate: number): string => `${basisPoints(rate) / 100}%`;
+
+/** What a comparison app would have taken on this base, to the cent. */
 export const commissionAt = (base: number, rate: number): number =>
-  Math.round((cents(base) * Math.round(rate * 10000)) / 10000) / 100;
+  Math.round((cents(base) * basisPoints(rate)) / 10_000) / 100;
 
 /** The month's commission as the sum of each order's rounded figure, so the CSV rows add up to its total. */
 export const monthCommission = (summary: MonthSummary, rate: number): number =>
@@ -86,7 +89,7 @@ const amount = (value: number) => (cents(value) / 100).toFixed(2);
 /** One month's rows as CSV (RFC 4180, CRLF), amounts as plain decimals. */
 export function reportCsv(summary: MonthSummary, rate?: number): string {
   const header = ['Reference', 'Month', 'Food', 'Delivery', 'Refunds', 'Payment', 'Status', 'Commission base'];
-  if (rate) header.push(`Commission kept at ${Math.round(rate * 100)}%`);
+  if (rate) header.push(`Commission kept at ${commissionRateLabel(rate)}`);
   const lines = summary.rows.map((row) => {
     const line = [row.reference, summary.month, amount(row.food_subtotal), amount(row.delivery), amount(row.refunds),
       paymentLabel(row.payment_state), row.fulfilment_state, amount(row.commission_base)];

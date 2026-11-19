@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { config } from '../config';
 import { payFirst } from '../core/tenant';
 import { useAppShell } from '../lib/appShell';
@@ -34,6 +34,10 @@ const Section: React.FC<{ id?: string; title: string; children: React.ReactNode 
 
 export const Privacy: React.FC = () => {
   const appShell = useAppShell();
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === '#delete') document.getElementById('delete')?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  }, [hash]);
   const { venue, privacy } = config;
   const name = venue.name;
   const delivery = config.ordering.fulfilment.includes('delivery');
@@ -113,7 +117,7 @@ export const Privacy: React.FC = () => {
               <li>whether you have seen the opening animation, and whether you closed the "get the app" sticker;</li>
               <li>in the installed app only: your name, phone number, email and the orders you placed from that phone, so checkout is quicker and you can reorder.</li>
             </ul>
-            <p>No advertising or analytics trackers are used. In the app, <strong>My orders</strong> then <strong>Forget my details</strong> removes what the app keeps; uninstalling the app removes all of it.</p>
+            <p>No advertising or analytics trackers are used. In the app, <strong>My orders</strong> then <strong>Forget my details</strong> clears your saved contact details, order history{payFirst ? ' and the reference and email saved to resume a payment' : ''} from this device.</p>
           </Section>
 
           <Section title="How long we keep it">
@@ -130,7 +134,7 @@ export const Privacy: React.FC = () => {
 
           <Section id="delete" title="Delete your data">
             <ol className="list-decimal space-y-2 pl-5">
-              <li><strong>On your phone:</strong> in the app, open <strong>My orders</strong> and tap <strong>Forget my details</strong>, or uninstall the app.</li>
+              <li><strong>On your phone:</strong> in the app, open <strong>My orders</strong> and tap <strong>Forget my details</strong>. You can also clear this website’s data in your browser settings.</li>
               <li><strong>In our records:</strong> email {email} or send a {whatsapp} message with your name, the phone number or email you ordered with, and your order references if you have them. Ask us to delete your details.</li>
             </ol>
             <p>We will delete your name, phone number, email and addresses from our records. Records the law requires us to keep, such as payment records, are kept only for as long as the law requires.</p>

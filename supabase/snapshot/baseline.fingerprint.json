@@ -142,7 +142,7 @@
   {
     "kind": "function",
     "name": "add_guest_push(p_reference text, p_email text, p_endpoint text, p_p256dh text, p_auth text)",
-    "fingerprint": "d5b972782785f6f6a88ecc63e74e5079"
+    "fingerprint": "a0da3b82ab8dfd8d87779caccf6eefd0"
   },
   {
     "kind": "function",

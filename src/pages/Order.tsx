@@ -99,10 +99,14 @@ export const Order: React.FC = () => {
   const location = useLocation();
   // Order again from the tracking page lands on checkout, as it does in the app.
   const [localStep, setLocalStep] = useState<Step>(() => ((location.state as { reordered?: boolean } | null)?.reordered ? 'checkout' : 'browse'));
-  const step: Step = appShell && localStep !== 'confirmed' ? (params.get('view') === 'cart' ? 'checkout' : 'browse') : localStep;
+  const [confirmationKey, setConfirmationKey] = useState<string | null>(null);
+  const tabStep = params.get('view') === 'cart' ? 'checkout' : 'browse';
+  const step: Step = !appShell ? localStep : confirmationKey === location.key ? 'confirmed' : tabStep;
   const setStep = (next: Step) => {
     setLocalStep(next);
-    if (appShell && next !== 'confirmed' && next !== step) setParams(next === 'checkout' ? { view: 'cart' } : {});
+    if (!appShell) return;
+    setConfirmationKey(next === 'confirmed' ? location.key : null);
+    if (next !== 'confirmed' && next !== step) setParams(next === 'checkout' ? { view: 'cart' } : {});
   };
   // Order again: the dishes My orders could not put back, named once on arrival.
   const arrival = location.state as { skipped?: string[]; reordered?: boolean } | null;
@@ -117,7 +121,7 @@ export const Order: React.FC = () => {
     setParams(params, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const skipped = arrival?.skipped ?? [];
+  const skipped = skippedNow ?? arrival?.skipped ?? [];
   const reordered = !!arrival?.reordered || skippedNow !== null;
   const savedOrders = useSavedOrders();
   // The app remembers the last order's contact details on this phone; the browser site never does.
@@ -387,6 +391,7 @@ export const Order: React.FC = () => {
         return;
       }
       setPlacedOrder({ orderNo: created.order_no, ...sentDetails.current });
+      attemptRef.current = generateOrderNumber();
       clear();
       setStep('confirmed');
     } catch (error) {
@@ -849,7 +854,7 @@ export const Order: React.FC = () => {
             <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">{copy.order.checkoutHeading}</h1>
 
             <ErrorSummary ref={form.summaryRef} items={form.submitted ? summaryItems : []} />
-            {(skippedNow ?? skipped).length > 0 ? <SkippedNotice names={skippedNow ?? skipped} className="mb-6" />
+            {skipped.length > 0 ? <SkippedNotice names={skipped} className="mb-6" />
               : reordered && <p role="status" className="mb-6 rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p>}
 
             {payFirst ? (

@@ -3,6 +3,7 @@
 // signature verifies, and the lock-screen text carries no order data.
 import assert from 'node:assert/strict';
 import { test, before, after } from 'node:test';
+import { runInNewContext } from 'node:vm';
 import { createDatabase, asRole } from './db/harness.mjs';
 import { importVapidKey, pushEndpoint, vapidHeaders } from '../supabase/functions/kitchen-push/vapid.mjs';
 import { load } from '../scripts/lib/load-ts.mjs';
@@ -231,7 +232,19 @@ test('a delivery alerts at ready and when it leaves; a cancelled order forgets i
 test('an order nobody asked to be alerted about queues nothing', async () => {
   const o = await paidOrder(); await o.pay();
   for (const status of ['accepted', 'preparing', 'ready']) await setStatus(o.ref, status);
+  assert.equal(await addGuestPush(o.ref, o.email, guestSub('missed-ready')), false);
   assert.equal((await guestQueued(o.ref)).rows.length, 0);
+  assert.equal((await guestSubs(o.ref)).length, 0);
+});
+
+test('delivery can still opt in after ready but signup closes at dispatch', async () => {
+  const o = await paidOrder(); await o.pay();
+  await db.query(`update public.orders set order_type = 'delivery', delivery_address = '1 Test Street' where order_no = $1`, [o.ref]);
+  for (const status of ['accepted', 'preparing', 'ready']) await setStatus(o.ref, status);
+  assert.equal(await addGuestPush(o.ref, o.email, guestSub('before-dispatch')), true);
+  await setStatus(o.ref, 'out_for_delivery');
+  assert.equal(await addGuestPush(o.ref, o.email, guestSub('missed-dispatch')), false);
+  assert.deepEqual((await guestQueued(o.ref)).rows.map((row) => row.body.status), ['out_for_delivery']);
 });
 
 test("the guest's alert text is generic and the guest worker still caches only the offline page", () => {
@@ -239,4 +252,33 @@ test("the guest's alert text is generic and the guest worker still caches only t
   assert.match(worker, /"Your order at Jimmy's is ready"/);
   assert.match(worker, /addEventListener\('push'/);
   assert.doesNotMatch(worker, /event\.data|customer|total|order_items|\.put\(|addAll/, 'no payload read, nothing cached beyond the offline page');
+});
+
+test('a guest alert opens order history in an existing guest window or a new one', async () => {
+  const worker = load('vite-plugin-tenant-html.ts').customerServiceWorker({ venue: { name: "Jimmy's" }, seo: { themeColor: '#172544' }, theme: { colors: { paper: '#FFFDF7' } } }, 'public');
+  const origin = 'https://restaurant.example';
+  const target = `${origin}/orders?source=alert`;
+  const click = async (windows) => {
+    const calls = [];
+    const handlers = new Map();
+    runInNewContext(worker, { URL, self: {
+      location: { origin },
+      addEventListener: (name, handler) => handlers.set(name, handler),
+      clients: {
+        matchAll: async () => windows(calls),
+        openWindow: async (url) => calls.push(['open', url]),
+      },
+    } });
+    let result;
+    handlers.get('notificationclick')({ notification: { close() {} }, waitUntil: (work) => { result = work; } });
+    await result;
+    return calls;
+  };
+  const staff = { url: `${origin}/admin/kitchen`, navigate: () => assert.fail('leave the kitchen window alone') };
+  assert.deepEqual(await click(() => [staff]), [['open', target]]);
+  assert.deepEqual(await click((calls) => [staff, {
+    url: `${origin}/order`,
+    navigate: async (url) => { calls.push(['navigate', url]); return { focus: () => calls.push(['focus', url]) }; },
+  }]), [['navigate', target], ['focus', target]]);
+  assert.deepEqual(await click((calls) => [{ url: target, focus: () => calls.push(['focus', target]) }]), [['focus', target]]);
 });

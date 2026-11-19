@@ -17,6 +17,7 @@ import { copy, deliveryRun, restaurantDate, restaurantDayBounds } from '../core/
 import { orderableCategories, orderableItems } from '../core/menu/orderable';
 import { nextStatuses } from '../pages/admin/operations';
 import { readRecords, subscribeRecords, updateRecords } from './store';
+import { SEED_ORDER_PREFIX } from './seed';
 import { salesWindow, summariseSales } from '../core/data/sales';
 import { tradingHours } from '../lib/tradingHours';
 
@@ -94,8 +95,10 @@ function advance(table: 'orders' | 'bookings', id: string, from: string, to: str
     if (!row || row.status !== from || !nextStatuses(from, deliveryRun && 'order_type' in row ? row.order_type : undefined).includes(to)) return false;
     Object.assign(row, patch, { status: to });
     row.updated_at = new Date().toISOString();
-    // As the database does: a finished order's alert subscription is deleted.
-    if (table === 'orders' && (to === 'completed' || to === 'cancelled') && 'order_no' in row && next.alerts) delete next.alerts[row.order_no];
+    if ('order_no' in row) {
+      row.completed_at = to === 'completed' ? row.updated_at : null;
+      if ((to === 'completed' || to === 'cancelled') && next.alerts) delete next.alerts[row.order_no];
+    }
     moved = true;
     return true;
   });
@@ -287,19 +290,19 @@ export const adapter: DataAdapter = {
   },
 
   // collection_commission_report, over the fictional records: completed orders
-  // only, by the restaurant-local month (the seed has no completed_at, so the
-  // requested time stands in), food minus refunds as the base.
+  // only, by the restaurant-local month. For older saves, the last update is
+  // when the order was completed. Seeded history uses its requested time.
   async orderReport() {
     await settle();
     return readRecords().orders
-      .filter((row) => row.status === 'completed' && row.requested_time)
-      // Newest completed first, so the order just collected in a walkthrough heads the list.
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-      .map((row) => {
+      .filter((row) => row.status === 'completed')
+      .map((row) => ({ row, completedAt: row.completed_at ?? (row.order_no.startsWith(SEED_ORDER_PREFIX) ? row.requested_time ?? row.updated_at : row.updated_at) }))
+      .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+      .map(({ row, completedAt }) => {
         const food = Math.round((row.total - row.delivery_fee) * 100) / 100;
         return {
           reference: row.order_no,
-          month: `${restaurantDate(new Date(row.requested_time!)).slice(0, 7)}-01`,
+          month: `${restaurantDate(new Date(completedAt)).slice(0, 7)}-01`,
           food_subtotal: food,
           delivery: row.delivery_fee,
           refunds: row.refund_amount,
@@ -328,19 +331,22 @@ export const adapter: DataAdapter = {
     let added = false;
     updateRecords((next) => {
       const order = next.orders.find((row) => row.order_no.toUpperCase() === reference.trim().toUpperCase());
-      if (!order || !email.includes('@') || !sameContact(order, email) || order.status === 'completed' || order.status === 'cancelled') return false;
+      if (!order || !email.includes('@') || !sameContact(order, email)) return false;
+      const stillComing = ['new', 'accepted', 'preparing'].includes(order.status)
+        || (deliveryRun && order.order_type === 'delivery' && order.status === 'ready');
+      if (!stillComing || !['paid', 'not_required'].includes(order.payment_status)) return false;
       next.alerts = { ...next.alerts, [order.order_no]: next.alerts?.[order.order_no] ?? [] };
       added = true;
       return true;
     });
     return added;
   },
-  async removeGuestPush(reference) {
+  async removeGuestPush(reference, email) {
     await settle();
     updateRecords((next) => {
-      const key = Object.keys(next.alerts ?? {}).find((ref) => ref.toUpperCase() === reference.trim().toUpperCase());
-      if (!key || !next.alerts) return false;
-      delete next.alerts[key];
+      const order = next.orders.find((row) => row.order_no.toUpperCase() === reference.trim().toUpperCase());
+      if (!order || !email.includes('@') || !sameContact(order, email) || !next.alerts?.[order.order_no]) return false;
+      delete next.alerts[order.order_no];
       return true;
     });
   },

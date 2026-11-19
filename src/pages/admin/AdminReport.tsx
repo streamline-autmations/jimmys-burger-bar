@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Download } from 'lucide-react';
-import { data as db, reportCsv, summariseMonths, monthCommission, paymentLabel, type OrderReportRow } from '../../core/data';
+import { data as db, reportCsv, summariseMonths, commissionRateLabel, monthCommission, paymentLabel, type OrderReportRow } from '../../core/data';
 import { formatWholeMoney } from '../../core/data/sales';
 import { formatCartMoney } from '../../lib/cartStore';
 import { toMinor } from '../../core/domain/money';
@@ -106,13 +106,13 @@ export const AdminReport: React.FC = () => {
                 className="col-span-2 lg:col-span-1"
                 label="Commission kept"
                 value={formatWholeMoney(monthCommission(summary, rate))}
-                note={`What a ${Math.round(rate * 100)}% delivery app would have taken`}
+                note={`What a ${commissionRateLabel(rate)} delivery app would have taken`}
               />
             ) : null}
           </dl>
           <p className="mb-6 max-w-[68ch] text-sm text-ink/70">
             Order value is what the Restaurant Direct fee is worked out from: food, less refunds, without delivery fees.
-            {rate ? ` Commission kept uses the ${Math.round(rate * 100)}% comparison rate set for ${config.venue.name}, not any app's actual fee.` : ''}
+            {rate ? ` The ${commissionRateLabel(rate)} rate estimates what a delivery app would charge ${config.venue.name}.` : ''}
           </p>
 
           <ul className="space-y-3 lg:hidden" aria-label="Orders">

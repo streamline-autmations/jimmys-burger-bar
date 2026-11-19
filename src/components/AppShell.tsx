@@ -122,7 +122,10 @@ export const AppShell: React.FC<{ pages: AppPages; onMount: () => void }> = ({ p
   useEffect(onMount, [onMount]);
   // A tab is a fresh screen: start it at the top, straight away.
   // 'instant' overrides the site-wide smooth scrolling, which made a tab switch glide.
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [location.pathname, location.search]);
+  useEffect(() => {
+    if (location.pathname === '/privacy' && location.hash === '#delete') return;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <MotionConfig reducedMotion="user">

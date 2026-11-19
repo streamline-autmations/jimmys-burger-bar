@@ -1,7 +1,8 @@
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { menuPrice, orderCategories, storageKey } from '../core/tenant';
 import type { Minor } from '../core/domain/money';
 import { useCartStore, type CartLine, type OrderType } from './cartStore';
+import { writePending } from './payment';
 
 // "My orders" and the prefilled checkout, for the installed app only. Kept on
 // this phone in localStorage and nowhere else: nothing here is sent anywhere
@@ -58,17 +59,19 @@ export function rememberOrder(order: SavedOrder, details: GuestDetails): void {
   changed();
 }
 
-/** "Forget my details": name, phone, email and the order list all leave this phone. */
+/** "Forget my details" clears the profile, order history and local payment handoff. */
 export function forgetEverything(): void {
   write(DETAILS, null);
   write(ORDERS, null);
+  writePending(null);
   changed();
 }
 
 /** Re-renders when this tab saves or forgets. Other tabs pick changes up on their next load. */
 export function useSavedOrders(): SavedOrder[] {
-  useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => version, () => 0);
-  return readOrders();
+  const orderVersion = useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => version, () => 0);
+  // The version changes when a local order is saved or forgotten.
+  return useMemo(readOrders, [orderVersion]);
 }
 export function useSavedDetails(): GuestDetails | null {
   useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => version, () => 0);

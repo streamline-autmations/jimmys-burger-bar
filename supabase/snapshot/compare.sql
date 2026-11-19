@@ -119,7 +119,7 @@ expected(kind, name, fingerprint) as (
     ('column_grant', 'staff authenticated', 'db0f1fc245cd88be9bc281a32f1ec9cc'),
     ('column_grant', 'staff_push_subscriptions anon', 'a894c9d4e886be66ad71fd72ee72b446'),
     ('column_grant', 'staff_push_subscriptions authenticated', '79e8e222d777ebf5ea0e305bef0c1dba'),
-    ('function', 'add_guest_push(p_reference text, p_email text, p_endpoint text, p_p256dh text, p_auth text)', 'd5b972782785f6f6a88ecc63e74e5079'),
+    ('function', 'add_guest_push(p_reference text, p_email text, p_endpoint text, p_p256dh text, p_auth text)', 'a0da3b82ab8dfd8d87779caccf6eefd0'),
     ('function', 'begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text)', '40efb895f5c6ccbcdabb02cc13222d52'),
     ('function', 'bookings_upsert_customer()', 'e52ac4d5c2bb9d4624757a420bc4f0fb'),
     ('function', 'collection_commission_report()', '310b23d2beb814358da016bee3d42dce'),

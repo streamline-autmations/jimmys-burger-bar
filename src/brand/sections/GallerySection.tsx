@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import gsap from 'gsap';
@@ -17,6 +17,7 @@ export const GallerySection: React.FC<{ content: GalleryContent }> = ({ content 
   const galleryRail = useRailSkew<HTMLDivElement>();
   useDragScroll(galleryRail);
   const sectionRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
 
   // Desktop: the section pins and vertical scroll walks the rail sideways, so
   // every photo is reached with the wheel a desktop visitor already has in
@@ -105,7 +106,11 @@ export const GallerySection: React.FC<{ content: GalleryContent }> = ({ content 
               img.tall ? 'w-[220px] md:w-[260px] lg:w-[330px] aspect-[3/4]' : 'w-[280px] md:w-[340px] lg:w-[480px] aspect-[4/3]'
             } ${i % 3 === 1 ? 'md:mt-8' : ''}`}
           >
-            <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-full object-cover" />
+            {img.video && !reduceMotion ? (
+              <video src={img.video} poster={img.src} aria-label={img.alt} autoPlay muted loop playsInline preload="metadata" className="w-full h-full object-cover" />
+            ) : (
+              <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-full object-cover" />
+            )}
           </motion.div>
         ))}
         <Link to={content.linkTo} className="snap-start shrink-0 w-[220px] md:w-[260px] lg:w-[330px] rounded-2xl bg-accent flex flex-col items-center justify-center gap-3 text-ink font-display font-bold text-center px-6">

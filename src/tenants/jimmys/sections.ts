@@ -107,12 +107,18 @@ export const jimmysSections: SectionSpec[] = [
       images: [
         // The fireplace corner is the Story photo and the sunset closes the
         // page, so neither repeats here.
+        // Real iPhone photos and the Greek Platter loop added 2026-11-19. The loop
+        // replaces greek-meze.jpg here so the platter doesn't appear twice.
         { src: '/images/gallery/burger-macro.jpg', alt: "Close-up of Jimmy's beef burger with a cup of chips", tall: true },
         { src: '/images/gallery/heritage-day-team.jpg', alt: "The Jimmy's crew in traditional dress outside the restaurant", tall: false },
-        { src: '/images/gallery/quesadilla-corona.jpg', alt: 'A quesadilla with chips and a Corona', tall: true },
+        { src: '/images/gallery/greek-platter.jpg', video: '/videos/greek-platter-loop.mp4', alt: 'The Greek Platter from above: pita, tzatziki, steak, chicken, meatballs, feta, olives and salad', tall: true },
+        { src: '/images/gallery/osso-buco.jpg', alt: 'Osso buco on creamy mash with a rich gravy', tall: true },
         { src: '/images/gallery/burger-duo.jpg', alt: 'Two burgers with chips and a salad for the table', tall: false },
-        { src: '/images/gallery/greek-meze.jpg', alt: 'A meze platter with pita, olives and dips for sharing', tall: true },
+        { src: '/images/gallery/jimmys-plate.jpg', alt: "A burger and chips on a blue plate with Jimmy's written in sauce", tall: true },
+        { src: '/images/gallery/oxtail.jpg', alt: 'Oxtail stew with mash and creamed spinach', tall: true },
         { src: '/images/gallery/breakfast-plate.jpg', alt: "Jimmy's Breakfast: eggs, bacon, toast, grilled tomato and chips", tall: false },
+        { src: '/images/gallery/chicken-skewers.jpg', alt: 'Chicken skewers with savoury rice, creamed spinach and lemon', tall: true },
+        { src: '/images/gallery/quesadilla-corona.jpg', alt: 'A quesadilla with chips and a Corona', tall: true },
       ],
     },
   },

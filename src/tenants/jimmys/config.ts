@@ -214,9 +214,10 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
-        // Breakfast photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
-        // Jimmy's Breakfast is real: public/images/gallery/breakfast-plate.jpg.
+        // Breakfast Bun, Breakfast Burger, Avo on Toast and Carb Clever photos are
+        // AI-generated (Codex, 2026-09-29) under the CLAUDE.md AI-imagery override and
+        // logged there. Real: Jimmy's Breakfast (gallery/breakfast-plate.jpg) and
+        // Omelette (Christiaan's iPhone video still, 2026-11-19).
         note: "Served until 12",
         availableUntil: "12:00",
         items: [
@@ -230,9 +231,9 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Burgers",
-        // Burgers photos are AI-generated (Codex, 2026-09-28) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
-        // Beef Burger is real: public/images/gallery/burger-macro.jpg.
+        // Pizza and Gourmet Burger photos are AI-generated (Codex, 2026-09-28) under
+        // the CLAUDE.md AI-imagery override and logged there. Beef, Chicken, Smash and
+        // Nacho Burger are real iPhone photos from Christiaan (2026-11-19).
         note: "With chips · served all day",
         items: [
           { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 90, image: "/images/menu/burgers/beef-burger.webp" },
@@ -248,20 +249,17 @@ export const jimmys = defineRestaurant({
         note: "Made for sharing",
         items: [
           { name: "Russian & Chips", description: "Extra russian for R15", price: 55 },
-          { name: "Jalapeño Poppers", description: "Crumbed jalapeños stuffed with melted cheese", price: 65, popular: true },
-          { name: "Nachos", description: "Spicy, mild or plain · half R60", price: 90 },
+          { name: "Jalapeño Poppers", description: "Crumbed jalapeños stuffed with melted cheese", price: 65, popular: true, image: "/images/menu/small-plates/jalapeno-poppers.webp" },
+          { name: "Nachos", description: "Spicy, mild or plain · half R60", price: 90, image: "/images/menu/small-plates/nachos.webp" },
           { name: "Steak Strips", description: "With cheese or pepper sauce", price: 80 },
           { name: "Loaded Fries", description: "The basket that never makes it home", price: 60 },
           { name: "Plate of Fries", description: "Crisp and golden", price: 45 },
           { name: "Plate of Onion Rings", description: "Stacked high", price: 35 },
-          { name: "Meatballs", description: "House-made, saucy", price: 60 },
+          { name: "Meatballs", description: "House-made, saucy", price: 60, image: "/images/menu/small-plates/meatballs.webp" },
         ]
       },
       {
         name: "Platters",
-        // Platters photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
-        // Warrior Platter is real: public/images/menu/warrior-platter.jpeg.
         note: "Built for the table",
         items: [
           { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, popular: true, image: "/images/menu/platters/warrior-platter.webp" },
@@ -284,8 +282,8 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
-        // Chicken Meals photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
+        // Chicken Strips is AI-generated (Codex, 2026-09-29) under the CLAUDE.md
+        // AI-imagery override and logged there. Wings and Schnitzel are real (2026-11-19).
         note: "With chips, salad or vegetables",
         items: [
           { name: "Chicken Wings", description: "Glazed and grilled", price: 90, popular: true, image: "/images/menu/chicken-meals/chicken-wings.webp" },
@@ -304,8 +302,9 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Salads",
-        // Salads photos are AI-generated (Codex, 2026-09-29) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
+        // Greek, Burger and Chicken Salad are AI-generated (Codex, 2026-09-29) under the
+        // CLAUDE.md AI-imagery override and logged there. Jimmy's and Steak Salad are
+        // real (2026-11-19).
         note: "Fresh from the kitchen",
         items: [
           { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 55, image: "/images/menu/salads/greek-salad.webp" },
@@ -321,7 +320,7 @@ export const jimmys = defineRestaurant({
         items: [
           { name: "Cake of the Day", description: "Chocolate or carrot, whichever's fresh", price: 45 },
           { name: "Ice Cream & Chocolate Sauce", description: "The one the kids fight over", price: 30 },
-          { name: "Affogato", description: "Ice cream and a shot of espresso", price: 45, popular: true },
+          { name: "Affogato", description: "Ice cream and a shot of espresso", price: 45, popular: true, image: "/images/menu/desserts/affogato.webp" },
         ]
       },
     ],
@@ -335,7 +334,7 @@ export const jimmys = defineRestaurant({
     // food on a real restaurant's site misrepresents what a customer will
     // actually be served.
     featured: [
-      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: 100, image: "/images/gallery/burger-macro.jpg" },
+      { name: "Smash Burger", description: "2 smashed patties, cheese and Jimmy's sauce, with chips", price: 100, image: "/images/gallery/smash-burger.jpg" },
       { name: "Warrior Platter", description: "Steak strips, russian, wings, chicken strips, salad, chips and onion rings", price: 350, image: "/images/menu/warrior-platter.jpeg" },
       { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12.", price: 70, image: "/images/gallery/breakfast-plate.jpg" },
     ],
@@ -490,7 +489,10 @@ export const jimmys = defineRestaurant({
       food: {
         description: "Breakfast, 180g burgers, plates for the table and the full kitchen board.",
         caption: "Fresh off the grill.",
-        image: { src: "/images/campaign/gourmet-burger.webp", alt: "Jimmy's gourmet burger" },
+        // Real chicken burger, a muted ping-pong loop of Christiaan's iPhone clip
+        // (2026-11-19). The poster is its first frame and the reduced-motion still.
+        image: { src: "/images/chicken-burger-poster.jpg", alt: "Jimmy's chicken burger with chips" },
+        video: "/videos/chicken-burger-loop.mp4",
       },
       drinks: {
         description: "Cold local favourites, buckets, cocktails, wine and proper coffee.",

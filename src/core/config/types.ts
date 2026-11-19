@@ -195,7 +195,8 @@ export interface PagesConfig {
   };
   menu: {
     script: string;
-    food: { description: string; caption: string; image: PhotoRef };
+    /** `video` loops over `image`; reduced-motion visitors get `image` only. */
+    food: { description: string; caption: string; image: PhotoRef; video?: string };
     drinks: { description: string; caption: string; video?: string; image?: PhotoRef };
   };
 }

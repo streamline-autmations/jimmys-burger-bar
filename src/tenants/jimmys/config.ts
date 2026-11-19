@@ -252,15 +252,18 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Burgers",
+        // Chicken, Smash, Gourmet Beef, Gourmet Chicken and Nacho Burger photos are
+        // AI-generated (Codex, 2026-11-19) under the CLAUDE.md AI-imagery override and
+        // logged there. Pizza Burger is also AI (2026-09-28). Beef Burger is a real iPhone photo.
         note: "With chips · served all day",
         items: [
           { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 100, image: "/images/menu/burgers/beef-burger.webp" },
-          { name: "Chicken Burger", description: "Crumbed chicken fillet, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 100 },
-          { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce", price: 110, popular: true },
+          { name: "Chicken Burger", description: "Crumbed chicken fillet, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 100, image: "/images/menu/burgers/chicken-burger-v2.webp" },
+          { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce", price: 110, popular: true, image: "/images/menu/burgers/smash-burger-v2.webp" },
           { name: "Pizza Burger", description: "180g beef patty, Napolitana sauce, mozzarella and pepperoni", price: 120, image: "/images/menu/burgers/pizza-burger.webp" },
-          { name: "Gourmet Beef Burger", description: "180g crumbed beef patty, bacon, onion rings and pepper sauce", price: 145 },
-          { name: "Gourmet Chicken Burger", description: "Crumbed chicken fillet, sweet chilli sauce, bacon, onion rings and cheese sauce", price: 145 },
-          { name: "Nacho Burger", description: "Seasonal. 2 smashed patties, bacon, sweet chilli, nacho chips, onion rings and guacamole.", price: 145 },
+          { name: "Gourmet Beef Burger", description: "180g crumbed beef patty, bacon, onion rings and pepper sauce", price: 145, image: "/images/menu/burgers/gourmet-beef-burger.webp" },
+          { name: "Gourmet Chicken Burger", description: "Crumbed chicken fillet, sweet chilli sauce, bacon, onion rings and cheese sauce", price: 145, image: "/images/menu/burgers/gourmet-chicken-burger.webp" },
+          { name: "Nacho Burger", description: "Seasonal. 2 smashed patties, bacon, sweet chilli, nacho chips, onion rings and guacamole.", price: 145, image: "/images/menu/burgers/nacho-burger-v2.webp" },
         ]
       },
       {
@@ -313,21 +316,25 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Toasted Sandwiches",
+        // Toasted Sandwiches photos are AI-generated (Codex, 2026-11-19) under the
+        // CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips",
         items: [
-          { name: "Chicken Mayo & Mozzarella", price: 80 },
+          { name: "Chicken Mayo & Mozzarella", price: 80, image: "/images/menu/toasted-sandwiches/chicken-mayo-and-mozzarella.webp" },
           { name: "Bacon & Cheese", price: 70, image: "/images/menu/toasted-sandwiches/bacon-and-cheese.webp" },
           { name: "Cheese & Tomato", price: 55, image: "/images/menu/toasted-sandwiches/cheese-and-tomato.webp" },
-          { name: "Bacon, Egg & Cheese", price: 80 },
-          { name: "Bacon, Mushroom & Cheese", price: 80 },
+          { name: "Bacon, Egg & Cheese", price: 80, image: "/images/menu/toasted-sandwiches/bacon-egg-and-cheese.webp" },
+          { name: "Bacon, Mushroom & Cheese", price: 80, image: "/images/menu/toasted-sandwiches/bacon-mushroom-and-cheese.webp" },
         ]
       },
       {
         name: "Wraps",
+        // Wraps photos are AI-generated (Codex, 2026-11-19) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips",
         items: [
-          { name: "Chicken Wrap", description: "Crumbed chicken, feta, mozzarella, cheddar, lettuce, tomato, red onion and bell peppers", price: 105 },
-          { name: "Steak Strip Wrap", description: "200g steak strips, feta, mozzarella, cheddar, lettuce, tomato and red onions", price: 130 },
+          { name: "Chicken Wrap", description: "Crumbed chicken, feta, mozzarella, cheddar, lettuce, tomato, red onion and bell peppers", price: 105, image: "/images/menu/wraps/chicken-wrap.webp" },
+          { name: "Steak Strip Wrap", description: "200g steak strips, feta, mozzarella, cheddar, lettuce, tomato and red onions", price: 130, image: "/images/menu/wraps/steak-strip-wrap.webp" },
         ]
       },
       {

@@ -306,12 +306,14 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
+        // Chicken Wings, Chicken Strips and Chicken Schnitzel (Half) are AI-generated
+        // (Codex, 2026-11-19) under the CLAUDE.md override. The Full photo is real.
         note: "With chips, salad or vegetables",
         items: [
-          { name: "Chicken Wings", description: "3 wings with sweet chilli sauce", price: 100, popular: true },
-          { name: "Chicken Strips", description: "6 homemade panko-crusted strips with sweet chilli sauce", price: 80 },
-          { name: "Chicken Schnitzel (Half)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 80 },
-          { name: "Chicken Schnitzel (Full)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 130 },
+          { name: "Chicken Wings", description: "3 wings with sweet chilli sauce", price: 100, popular: true, image: "/images/menu/chicken-meals/chicken-wings-three.webp" },
+          { name: "Chicken Strips", description: "6 homemade panko-crusted strips with sweet chilli sauce", price: 80, image: "/images/menu/chicken-meals/chicken-strips-six.webp" },
+          { name: "Chicken Schnitzel (Half)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 80, image: "/images/menu/chicken-meals/chicken-schnitzel-half.webp" },
+          { name: "Chicken Schnitzel (Full)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 130, image: "/images/menu/chicken-meals/chicken-schnitzel.webp" },
         ]
       },
       {
@@ -339,21 +341,25 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Salads",
+        // Greek Salad, Burger Salad, Chicken Salad and Halloumi Salad use AI photos
+        // under the CLAUDE.md override. Steak Salad and Jimmy's Salad use real photos.
         items: [
           { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 70, image: "/images/menu/salads/greek-salad.webp" },
-          { name: "Chicken Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken and avocado.", price: 110 },
-          { name: "Steak Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, steak strips and avocado.", price: 120 },
+          { name: "Chicken Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken and avocado.", price: 110, image: "/images/menu/salads/chicken-salad-with-avocado.webp" },
+          { name: "Steak Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, steak strips and avocado.", price: 120, image: "/images/menu/salads/steak-salad.webp" },
           { name: "Jimmy's Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken, bacon and avocado.", price: 130, image: "/images/menu/salads/jimmys-salad.webp" },
           { name: "Burger Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, a 180g patty, bacon and avocado.", price: 140, image: "/images/menu/salads/burger-salad.webp" },
-          { name: "Halloumi Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, halloumi, avocado and bacon.", price: 110 },
+          { name: "Halloumi Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, halloumi, avocado and bacon.", price: 110, image: "/images/menu/salads/halloumi-salad.webp" },
         ]
       },
       {
         name: "Desserts",
+        // Ice Cream & Chocolate Sauce is AI-generated (Codex, 2026-11-19) under the
+        // CLAUDE.md override. Italian Kisses and Affogato use real photos.
         items: [
           { name: "Cake of the Day", price: 50 },
-          { name: "Ice Cream & Chocolate Sauce", price: 35 },
-          { name: "Italian Kisses (4 pieces)", price: 60 },
+          { name: "Ice Cream & Chocolate Sauce", price: 35, image: "/images/menu/desserts/ice-cream-and-chocolate-sauce.webp" },
+          { name: "Italian Kisses (4 pieces)", price: 60, image: "/images/menu/desserts/italian-kisses.webp" },
           { name: "Affogato", description: "Ice cream and espresso", price: 50, popular: true, image: "/images/menu/desserts/affogato.webp" },
         ]
       },

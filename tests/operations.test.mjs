@@ -578,3 +578,39 @@ test('the demo refuses orders and bookings while Jimmy\'s is closed, like the da
   }), (error) => error.kind === 'rejected');
   demoStore.resetRecords();
 });
+
+test('order report: months newest first, cent-exact sums, safe CSV', () => {
+  const report = load('src/core/data/report.ts');
+  const row = (reference, month, food, extra = {}) => ({
+    reference, month, food_subtotal: food, delivery: 0, refunds: 0, payment_state: 'paid', fulfilment_state: 'completed',
+    commission_base: Math.max(0, food - (extra.refunds ?? 0)), ...extra,
+  });
+  const months = report.summariseMonths([
+    row('JB-1001-AAAAAA', '2026-10-01', 90.1),
+    row('JB-1102-BBBBBB', '2026-11-01', 0.1),
+    row('JB-1103-CCCCCC', '2026-11-01', 0.2, { refunds: 0.2, delivery: 39 }),
+    row('=cmd', '2026-11-01', 100),
+  ]);
+  assert.deepEqual(months.map((m) => m.month), ['2026-11', '2026-10']);
+  const nov = months[0];
+  assert.equal(nov.orders, 3);
+  assert.equal(nov.food, 100.3); // 0.1 + 0.2 would drift in floats
+  assert.equal(nov.base, 100.1);
+  assert.equal(nov.refunds, 0.2);
+  assert.equal(nov.delivery, 39);
+  assert.equal(report.commissionAt(nov.base, 0.25), 25.03);
+  const csv = report.reportCsv(nov, 0.25).split('\r\n');
+  assert.equal(csv[0], '"Reference","Month","Food","Delivery","Refunds","Payment","Status","Commission base","Commission kept at 25%"');
+  assert.ok(csv.some((line) => line.startsWith(`"'=cmd"`)), 'a formula-looking cell is neutralised');
+  assert.equal(csv.at(-2), '"Total","2026-11","100.30","39.00","0.20","","","100.10","25.03"');
+  assert.equal(csv.at(-1), '');
+  assert.ok(!report.reportCsv(nov).includes('Commission kept'), 'no comparison column without a rate');
+  assert.deepEqual(nov.rows.map((r) => r.reference), ['JB-1102-BBBBBB', 'JB-1103-CCCCCC', '=cmd'], 'rows keep the adapter order');
+  assert.ok(csv[1].includes('"Paid online"'), 'payment states read as words');
+  assert.equal(report.commissionAt(125.5, 0.29), 36.4, 'basis-point rate keeps the cent');
+  const pair = report.summariseMonths([row('JB-1101-AAAAAA', '2026-11-01', 100.02), row('JB-1101-BBBBBB', '2026-11-01', 100.02)])[0];
+  assert.equal(report.monthCommission(pair, 0.25), 50.02, 'month total is the sum of the rows');
+  assert.ok(report.reportCsv(pair, 0.25).includes('"Total","2026-11","200.04","0.00","0.00","","","200.04","50.02"'));
+  const sneaky = report.summariseMonths([row('\n=1+1', '2026-11-01', 1), row('\uFF1D1+1', '2026-11-01', 1)])[0];
+  assert.ok(!/(^|,)"[\n\uFF1D]/.test(report.reportCsv(sneaky)), 'line-feed and full-width prefixes are neutralised');
+});

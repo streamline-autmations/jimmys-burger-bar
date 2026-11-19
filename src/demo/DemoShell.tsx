@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3, CalendarDays, ChefHat, ChevronUp, Home, LayoutDashboard, RotateCcw, Search,
   ShoppingBag, Smartphone, Sparkles, Users, X,
+  ReceiptText,
 } from 'lucide-react';
 import { config } from './config';
 import { restaurantDate } from '../core/tenant';
@@ -80,9 +81,11 @@ const JUMPS = [
   { label: 'Book a table', to: '/visit#book', icon: CalendarDays },
   { label: 'Track an order', to: '/track?ref=JB-DEMO-0003', icon: Search },
   { label: 'Today', to: '/admin', icon: LayoutDashboard },
-  { label: 'Kitchen queue', to: '/admin/orders', icon: ChefHat },
+  { label: 'Orders', to: '/admin/orders', icon: ShoppingBag },
+  { label: 'Kitchen screen', to: '/admin/kitchen', icon: ChefHat },
   { label: 'Bookings', to: '/admin/bookings', icon: CalendarDays },
   { label: 'Guests', to: '/admin/customers', icon: Users },
+  { label: 'Order report', to: '/admin/report', icon: ReceiptText },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -420,7 +423,7 @@ export const DemoShell: React.FC = () => {
             </div>
 
             <p className="mt-4 text-xs leading-relaxed text-ink/65">
-              Tip: keep the kitchen queue open in a second window. Orders placed on the customer site appear there straight away.
+              Tip: keep the kitchen screen open in a second window. Orders placed on the customer site appear there straight away.
             </p>
           </div>
         </div>

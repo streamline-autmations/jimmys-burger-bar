@@ -109,6 +109,20 @@ export const supabaseAdapter: DataAdapter = {
     if (error) throw error;
     return data?.role ?? null;
   },
+  // Pay-first projects only: the report function arrives with the payments migration.
+  orderReport: config.ordering.payment === 'payfast' ? async () => {
+    // Paged: PostgREST caps one response (max-rows, 1,000 by default), and a short
+    // read would show a month's total without its oldest orders.
+    const PAGE = 1000;
+    const rows = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('collection_commission_report')
+        .order('month', { ascending: false }).order('reference', { ascending: false }).range(from, from + PAGE - 1)));
+      if (error) throw error;
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE) return rows;
+    }
+  } : undefined,
   async setItemAvailable(name, available) {
     const { error } = await withTimeout(Promise.resolve(supabase.rpc('set_menu_item_available', { p_name: name, p_available: available })));
     if (error) throw error;

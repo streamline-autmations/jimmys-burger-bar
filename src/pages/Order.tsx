@@ -97,7 +97,8 @@ export const Order: React.FC = () => {
   const appShell = useAppShell();
   const [params, setParams] = useSearchParams();
   const location = useLocation();
-  const [localStep, setLocalStep] = useState<Step>('browse');
+  // Order again from the tracking page lands on checkout, as it does in the app.
+  const [localStep, setLocalStep] = useState<Step>(() => ((location.state as { reordered?: boolean } | null)?.reordered ? 'checkout' : 'browse'));
   const step: Step = appShell && localStep !== 'confirmed' ? (params.get('view') === 'cart' ? 'checkout' : 'browse') : localStep;
   const setStep = (next: Step) => {
     setLocalStep(next);
@@ -108,6 +109,14 @@ export const Order: React.FC = () => {
   // Shown only on the cart screen it arrived with: going back to the menu drops the navigation state.
   const [skippedNow, setSkippedNow] = useState<string[] | null>(null);
   useEffect(() => { if (step !== 'checkout') setSkippedNow(null); }, [step]);
+  // Take the reorder hand-off once, then drop it from history, so a reload or Back
+  // does not reopen checkout with the old notice.
+  useEffect(() => {
+    if (!arrival?.reordered) return;
+    setSkippedNow(arrival.skipped ?? []);
+    setParams(params, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const skipped = arrival?.skipped ?? [];
   const reordered = !!arrival?.reordered || skippedNow !== null;
   const savedOrders = useSavedOrders();
@@ -840,8 +849,8 @@ export const Order: React.FC = () => {
             <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">{copy.order.checkoutHeading}</h1>
 
             <ErrorSummary ref={form.summaryRef} items={form.submitted ? summaryItems : []} />
-            {appShell && (skippedNow ?? skipped).length > 0 ? <SkippedNotice names={skippedNow ?? skipped} className="mb-6" />
-              : appShell && reordered && <p role="status" className="mb-6 rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p>}
+            {(skippedNow ?? skipped).length > 0 ? <SkippedNotice names={skippedNow ?? skipped} className="mb-6" />
+              : reordered && <p role="status" className="mb-6 rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p>}
 
             {payFirst ? (
               <>

@@ -68,7 +68,7 @@ const ActionQueue: React.FC<{
 /** Whole units: the strip is read at a glance, and cents are noise here. */
 const rands = formatWholeMoney;
 
-const Figure: React.FC<{ label: string; value: string; note: string; highlight?: boolean; className?: string }> = ({ label, value, note, highlight, className = '' }) => (
+export const Figure: React.FC<{ label: string; value: string; note: string; highlight?: boolean; className?: string }> = ({ label, value, note, highlight, className = '' }) => (
   <div className={`min-w-0 px-5 py-4 ${highlight ? 'bg-accent text-ink' : ''} ${className}`}>
     <dt className={`text-sm font-bold ${highlight ? 'text-ink' : 'text-paper/75'}`}>{label}</dt>
     <dd className="mt-1 font-display text-[1.65rem] font-bold leading-none tabular-nums sm:text-3xl">{value}</dd>

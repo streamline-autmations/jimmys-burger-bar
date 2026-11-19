@@ -22,7 +22,8 @@ export async function enableSound(): Promise<boolean> {
 
 /** Three rising beeps, square wave so they cut through extraction fans. */
 export function chime(): void {
-  navigator.vibrate?.([250, 120, 250]);
+  // Chrome refuses (and logs an error) until the page has been tapped once.
+  if (navigator.userActivation?.hasBeenActive ?? true) navigator.vibrate?.([250, 120, 250]);
   if (!context || !soundReady()) return;
   const start = context.currentTime + 0.02;
   [660, 880, 1175].forEach((frequency, index) => {

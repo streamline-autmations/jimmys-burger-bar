@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bell, BellOff, Check, Clock3, LoaderCircle, MessageCircle, RotateCw, Search, WifiOff, X } from 'lucide-react';
 import { config } from '../config';
@@ -16,7 +16,7 @@ import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { Starburst } from '../components/Starburst';
 import { InstallApp } from '../components/InstallApp';
 import { useAppShell } from '../lib/appShell';
-import { findSavedOrder } from '../lib/orderHistory';
+import { findSavedOrder, orderAgain } from '../lib/orderHistory';
 import { alertState, disableAlert, enableAlert, type AlertState } from '../lib/guestPush';
 
 type TrackField = 'reference' | 'contact';
@@ -240,10 +240,10 @@ export const Track: React.FC = () => {
           )}
         </div>
 
-        <p className="mt-10 text-center text-sm text-ink/70">
+        {state.phase !== 'found' && <p className="mt-10 text-center text-sm text-ink/70">
           Nothing to track yet? <Link to="/order" className="font-bold text-primary underline underline-offset-2">{orderCtaLabel}</Link>
           {config.features.reservations && <> or <Link to="/visit#book" className="font-bold text-primary underline underline-offset-2">book a table</Link></>}.
-        </p>
+        </p>}
       </div>
     </div>
   );
@@ -330,6 +330,28 @@ type OrderResult = Extract<LookupResult, { kind: 'order' }>;
 const checkedTime = new Intl.DateTimeFormat(config.locale, { timeZone: config.timezone, hour: '2-digit', minute: '2-digit' });
 
 /**
+ * Order again from the tracking page: the same dishes at today's prices, straight
+ * to checkout. Anything no longer on the menu is named there, never swapped.
+ */
+const ReorderButton: React.FC<{ order: { items: { name: string; qty: number }[]; order_type: 'collection' | 'delivery' | 'table' }; className?: string }> = ({ order, className = '' }) => {
+  const navigate = useNavigate();
+  const appShell = useAppShell();
+  if (order.items.length === 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const skipped = orderAgain({ items: order.items, orderType: order.order_type });
+        navigate(appShell ? '/order?view=cart' : '/order', { state: { skipped, reordered: true } });
+      }}
+      className={`inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 font-display font-bold text-surface ${className}`}
+    >
+      <RotateCw size={16} aria-hidden="true" /> Order this again
+    </button>
+  );
+};
+
+/**
  * A pay-first order. Payment and fulfilment are two separate facts and are
  * shown as two separate steps: "Payment received" is the server's word that
  * the money arrived, and only then can the restaurant accept the order.
@@ -407,7 +429,7 @@ const PaidOrder: React.FC<{
       )}
       {(payment === 'failed' || payment === 'expired') && (
         <div className="mt-5">
-          <Link to="/order" className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-display font-bold text-surface">Order again</Link>
+          <ReorderButton order={order} />
           <WhatsAppFallback lines={order.items} className="mt-4" />
         </div>
       )}
@@ -449,6 +471,7 @@ const PaidOrder: React.FC<{
           {order.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
         </ul>
       )}
+      {order.status === 'completed' && <ReorderButton order={order} className="mt-5" />}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-4 text-sm text-ink/65">
         <span>Checked at {checkedTime.format(checkedAt)}{live ? '. Updates on its own while this page is open.' : ''}</span>
         <button type="button" onClick={onRefresh} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/20 px-4 font-display font-bold text-ink">
@@ -505,8 +528,10 @@ const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: bool
       {!cancelled && (
         <ol className="mt-6 space-y-0" aria-label="Order progress">
           {ORDER_STEPS.map((step, index) => {
-            const done = index < currentIndex;
-            const current = index === currentIndex;
+            // A completed order has every step ticked, the last one included.
+            const finished = result.status === 'completed';
+            const done = index < currentIndex || finished;
+            const current = !finished && index === currentIndex;
             return (
               <li key={step.status} className="relative flex items-center gap-3 pb-4 last:pb-0" aria-current={current ? 'step' : undefined}>
                 {index < ORDER_STEPS.length - 1 && (
@@ -541,6 +566,7 @@ const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: bool
           {result.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
         </ul>
       )}
+      {result.status === 'completed' && <ReorderButton order={result} className="mt-5" />}
       {refresh}
     </article>
   );

@@ -97,7 +97,7 @@ export function rebuildCart(
 }
 
 /** Replaces the cart with a past order at today's prices. Returns the dishes left out. */
-export function orderAgain(order: SavedOrder): string[] {
+export function orderAgain(order: Pick<SavedOrder, 'items' | 'orderType'>): string[] {
   const menu = orderCategories.flatMap((category) => category.items.map((item) => ({ name: item.name, price: menuPrice(item.price) })));
   const { lines, skipped } = rebuildCart(order.items, menu);
   useCartStore.getState().replaceLines(lines);

@@ -1,4 +1,5 @@
 import type { Database } from '../../lib/database.types';
+import type { OrderReportRow } from './report';
 
 export type Booking = Database['public']['Tables']['bookings']['Row'];
 export type Customer = Database['public']['Tables']['customers']['Row'];
@@ -212,4 +213,10 @@ export interface DataAdapter {
   markDeliveryFailed?(id: string): Promise<void>;
   /** The signed-in staff member's role, e.g. 'manager'. */
   staffRole?(): Promise<string | null>;
+  /**
+   * Completed orders for the monthly report (collection_commission_report, staff
+   * only). Absent where the payments migration is not applied, so the console
+   * hides the Report screen instead of calling a function the database lacks.
+   */
+  orderReport?(): Promise<OrderReportRow[]>;
 }

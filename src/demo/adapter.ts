@@ -286,6 +286,30 @@ export const adapter: DataAdapter = {
     });
   },
 
+  // collection_commission_report, over the fictional records: completed orders
+  // only, by the restaurant-local month (the seed has no completed_at, so the
+  // requested time stands in), food minus refunds as the base.
+  async orderReport() {
+    await settle();
+    return readRecords().orders
+      .filter((row) => row.status === 'completed' && row.requested_time)
+      // Newest completed first, so the order just collected in a walkthrough heads the list.
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      .map((row) => {
+        const food = Math.round((row.total - row.delivery_fee) * 100) / 100;
+        return {
+          reference: row.order_no,
+          month: `${restaurantDate(new Date(row.requested_time!)).slice(0, 7)}-01`,
+          food_subtotal: food,
+          delivery: row.delivery_fee,
+          refunds: row.refund_amount,
+          payment_state: row.payment_status,
+          fulfilment_state: row.status,
+          commission_base: Math.max(0, Math.round((food - row.refund_amount) * 100) / 100),
+        };
+      });
+  },
+
   async advanceOrderStatus(id, from, to, eta) {
     await settle();
     advance('orders', id, from, to, eta === undefined ? {} : { eta });

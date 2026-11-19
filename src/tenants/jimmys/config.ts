@@ -236,18 +236,22 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
+        // Codex generated Avo on Toast, Carb Clever Breakfast, Breakfast Wrap, Eggs
+        // Benedict and Mince on Toast (2026-11-19) under the CLAUDE.md AI-imagery override.
+        // Breakfast Bun and Breakfast Burger use earlier AI photos. Jimmy's Breakfast
+        // and Omelette use real photos. Swap the AI photos for real photos when shot.
         note: "Served until 12pm",
         availableUntil: "12:00",
         items: [
           { name: "Breakfast Bun", description: "Bacon, egg and cheese bun with chips", price: 70, image: "/images/menu/breakfast/breakfast-bun.webp" },
           { name: "Breakfast Burger", description: "120g beef burger with egg, bacon and chips", price: 105, popular: true, image: "/images/menu/breakfast/breakfast-burger.webp" },
           { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 80, popular: true, image: "/images/menu/breakfast/jimmys-breakfast.webp" },
-          { name: "Avo on Toast", description: "Seasonal. 2 pieces of avocado toast. Extra bacon R25.", price: 50 },
+          { name: "Avo on Toast", description: "Seasonal. 2 pieces of avocado toast. Extra bacon R25.", price: 50, image: "/images/menu/breakfast/avo-on-toast-updated.webp" },
           { name: "Omelette", description: "3-cheese omelette with toast and 2 fillings: bacon, mushroom, tomatoes or pepper", price: 95, image: "/images/menu/breakfast/omelette.webp" },
-          { name: "Carb Clever Breakfast", description: "Seasonal. 2 eggs, half an avocado, bacon, raw tomato, mozzarella and cheddar.", price: 80 },
-          { name: "Breakfast Wrap", description: "Seasonal. Eggs, bacon, avocado, feta, mozzarella, cheddar, lettuce and tomato.", price: 105 },
-          { name: "Eggs Benedict", description: "2 poached eggs, bacon, hashbrown and hollandaise sauce", price: 110 },
-          { name: "Mince on Toast", description: "2 pieces of toast with mince", price: 80 },
+          { name: "Carb Clever Breakfast", description: "Seasonal. 2 eggs, half an avocado, bacon, raw tomato, mozzarella and cheddar.", price: 80, image: "/images/menu/breakfast/carb-clever-breakfast-updated.webp" },
+          { name: "Breakfast Wrap", description: "Seasonal. Eggs, bacon, avocado, feta, mozzarella, cheddar, lettuce and tomato.", price: 105, image: "/images/menu/breakfast/breakfast-wrap.webp" },
+          { name: "Eggs Benedict", description: "2 poached eggs, bacon, hashbrown and hollandaise sauce", price: 110, image: "/images/menu/breakfast/eggs-benedict.webp" },
+          { name: "Mince on Toast", description: "2 pieces of toast with mince", price: 80, image: "/images/menu/breakfast/mince-on-toast.webp" },
         ]
       },
       {

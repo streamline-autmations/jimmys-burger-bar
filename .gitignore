@@ -39,3 +39,9 @@ SESSION_CONTEXT.md
 *.keystore
 *.jks
 signing-key-info.txt
+
+# Raw iPhone photos and videos: source material, processed copies go in public/
+Images/Iphone/
+
+# Supabase CLI cache
+supabase/.temp/

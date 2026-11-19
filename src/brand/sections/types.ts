@@ -86,7 +86,8 @@ export interface GalleryContent {
   linkTo: string;
   ctaLabel: string;
   /** `alt` describes the photo for screen readers; every gallery image needs one. */
-  images: { src: string; alt: string; tall: boolean }[];
+  /** `video` plays a muted loop with `src` as its poster; reduced motion shows `src`. */
+  images: { src: string; alt: string; tall: boolean; video?: string }[];
 }
 
 export interface ClosingContent {

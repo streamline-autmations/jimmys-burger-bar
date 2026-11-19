@@ -178,7 +178,18 @@ export const FoodDrinks: React.FC = () => {
                 exit="exit"
                 className="absolute inset-0"
               >
-                {board === 'food' || !boardMeta.drinks.video ? (
+                {board === 'food' && boardMeta.food.video && !shouldReduceMotion ? (
+                  <video
+                    src={boardMeta.food.video}
+                    poster={boardMeta.food.image.src}
+                    aria-label={boardMeta.food.image.alt}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : board === 'food' || !boardMeta.drinks.video ? (
                   <img
                     src={board === 'food' ? boardMeta.food.image.src : boardMeta.drinks.image?.src}
                     alt={board === 'food' ? boardMeta.food.image.alt : boardMeta.drinks.image?.alt ?? ''}

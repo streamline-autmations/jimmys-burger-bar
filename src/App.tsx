@@ -8,6 +8,8 @@ const FoodDrinks = lazy(() => import('./pages/FoodDrinks').then((module) => ({ d
 const Visit = lazy(() => import('./pages/Visit').then((module) => ({ default: module.Visit })));
 const Order = lazy(() => import('./pages/Order').then((module) => ({ default: module.Order })));
 const Track = lazy(() => import('./pages/Track').then((module) => ({ default: module.Track })));
+const MyOrders = lazy(() => import('./pages/MyOrders').then((module) => ({ default: module.MyOrders })));
+const Privacy = lazy(() => import('./pages/Privacy').then((module) => ({ default: module.Privacy })));
 const AdminApp = lazy(() => import('./pages/admin/AdminApp').then((module) => ({ default: module.AdminApp })));
 import { useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
@@ -21,6 +23,8 @@ import { copy, storageKey } from './core/tenant';
 import { InstallApp } from './components/InstallApp';
 import { countVisit, isStandalone } from './lib/installApp';
 import { useHeadTags, type HeadTag } from './lib/useHeadTags';
+import { useAppShell } from './lib/appShell';
+import { AppShell } from './components/AppShell';
 
 // The customer app: app.webmanifest and sw.js are emitted by the tenant HTML
 // plugin. Opened from the home screen it starts on the order page.
@@ -75,6 +79,7 @@ const NotFound: React.FC = () => (
 const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
   useEffect(() => {
+    if (pathname === '/privacy' && hash === '#delete') return;
     const t = window.setTimeout(() => {
       if (pathname === '/visit' && hash) {
         document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -177,8 +182,10 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/gallery" element={<Navigate to="/visit#gallery" replace />} />
             <Route path="/visit" element={<Visit />} />
             <Route path="/order" element={<Order />} />
+            <Route path="/orders" element={<MyOrders />} />
             <Route path="/track" element={<Track />} />
             <Route path="/book" element={<Navigate to="/visit#book" replace />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
@@ -242,9 +249,21 @@ const AnimatedRoutes: React.FC = () => {
 // route transition, the custom cursor. Everything under "/" gets this.
 // "/admin/*" deliberately does not: it's an internal staff tool, not a brand
 // surface, and none of this chrome belongs on it.
+// Production only: the worker serves an offline page and shows order alerts, and Chrome offers one-tap install only with one.
+const registerWorker = () => {
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) void navigator.serviceWorker.register('/sw.js').catch(() => {});
+};
+
+const APP_PAGES = { Order, Track, MyOrders, Privacy, FoodDrinks, Visit, NotFound };
+
+// Installed (home screen or the Android app): the app shell. A browser: the website, unchanged.
 const PublicApp: React.FC = () => {
-  useLenis();
   useHeadTags(APP_TAGS);
+  return useAppShell() ? <AppShell pages={APP_PAGES} onMount={registerWorker} /> : <BrowserSite />;
+};
+
+const BrowserSite: React.FC = () => {
+  useLenis();
   const { pathname } = useLocation();
   // Opened from the home screen, the guest came to order: no few-second brand intro on every launch.
   const [standalone] = useState(isStandalone);
@@ -268,8 +287,7 @@ const PublicApp: React.FC = () => {
 
   useEffect(() => {
     countVisit();
-    // Production only: the worker serves an offline page, and Chrome offers one-tap install only with one.
-    if (import.meta.env.PROD && 'serviceWorker' in navigator) void navigator.serviceWorker.register('/sw.js').catch(() => {});
+    registerWorker();
   }, []);
 
   const handleIntroDone = React.useCallback(() => {

@@ -10,6 +10,8 @@ import { AdminLogin } from './AdminLogin';
 import { AdminOrders } from './AdminOrders';
 import { AdminKitchen } from './AdminKitchen';
 import { AdminOrdering } from './AdminOrdering';
+import { AdminReport } from './AdminReport';
+import { data as db } from '../../core/data';
 import { payFirst } from '../../core/tenant';
 import { AdminSecurity } from './AdminMfa';
 
@@ -39,6 +41,7 @@ const AdminRoutes: React.FC = () => (
     <Route path="orders" element={guarded(<AdminOrders />)} />
     <Route path="kitchen" element={<AdminGuard bare><AdminKitchen /></AdminGuard>} />
     {payFirst && <Route path="ordering" element={guarded(<AdminOrdering />)} />}
+    {db.orderReport && <Route path="report" element={guarded(<AdminReport />)} />}
     <Route path="customers" element={guarded(<AdminCustomers />)} />
     <Route path="customers/:customerId" element={guarded(<AdminCustomerDetail />)} />
     <Route path="security" element={guarded(<AdminSecurity />)} />

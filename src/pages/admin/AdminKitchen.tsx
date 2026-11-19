@@ -3,7 +3,7 @@ import { ArrowLeft, Bell, BellOff, BellRing, Bike, MapPin, Maximize, MessageCirc
 import { Link } from 'react-router-dom';
 import { config } from '../../config';
 import { ConflictError, data as db } from '../../core/data';
-import { deliveryRun } from '../../core/tenant';
+import { deliveryRun, payFirst } from '../../core/tenant';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { formatTimeOnly } from './adminUtils';
 import { formatCartMoney } from '../../lib/cartStore';
@@ -38,7 +38,7 @@ const DELIVERY_NEXT: Partial<Record<string, { to: OrderStatus; label: string }>>
 
 const delivery = config.ordering.deliveryPreview;
 const LANES = [
-  { key: 'new', title: 'To accept', empty: 'Nothing waiting. New paid orders land here with a sound.', statuses: ['new'] },
+  { key: 'new', title: 'To accept', empty: payFirst ? 'Nothing waiting. New paid orders land here with a sound.' : 'Nothing waiting. New orders land here with a sound.', statuses: ['new'] },
   { key: 'cooking', title: 'In the kitchen', empty: 'Nothing on the go.', statuses: ['accepted', 'preparing'] },
   delivery
     ? { key: 'ready', title: 'Ready and out', empty: 'Nothing at the counter or on the road.', statuses: ['ready', 'out_for_delivery'] }
@@ -147,7 +147,7 @@ const Ticket: React.FC<{
 
         {fresh ? (
           <p className="mt-3 font-bold" role="timer" aria-live="off">
-            Paid, waiting <span className="font-display text-xl tabular-nums">{clock(waited)}</span>
+            {order.paid_at ? 'Paid, waiting' : 'Waiting'} <span className="font-display text-xl tabular-nums">{clock(waited)}</span>
           </p>
         ) : (
           <p className="mt-3 text-sm font-bold text-ink/65">{order.status === 'accepted' ? 'Accepted, not started' : order.status === 'preparing' ? 'Preparing' : order.status === 'out_for_delivery' ? 'Out for delivery' : isDelivery ? 'Ready, waiting for the rider' : 'Ready at the counter'}</p>

@@ -31,8 +31,9 @@ The demo deploys as **its own Vercel project**, never on a restaurant's domain.
 ## On screen
 
 - A navy **Demo** strip is fixed to the bottom of every screen, public and staff.
-- **Controls** (right of the strip) opens the presenter panel: jump points, "Fill guest
-  details on this page", "The week in numbers" and "Reset demo records".
+- **Controls** (right of the strip) opens the presenter panel: jump points (including
+  **Kitchen screen** and **Order report**), "Fill guest details on this page", "Show as
+  installed app", "The week in numbers" and "Reset demo records".
 - "Fill guest details" picks the soonest collection time, about 30 minutes out, so the
   ticket lands at the top of the queue. With breakfast in the cart it stays before the
   breakfast cut-off, moving to the next open day if it has to. The panel closes itself.
@@ -45,6 +46,10 @@ The demo deploys as **its own Vercel project**, never on a restaurant's domain.
   and the commission a 25% delivery app would have taken on those orders. The real
   console shows the same strip; the commission figure appears only where a restaurant's
   config sets `reporting.appCommissionRate`.
+- **Order report** (`/admin/report`) shows completed orders by month: count, order value
+  (food less refunds, the figure the Restaurant Direct fee is worked out from) and the
+  commission kept at the comparison rate, with a CSV download. The real console shows it on
+  pay-first restaurants, from `collection_commission_report()`.
 - **The week in numbers** is the closing screen: commission kept over 7 days, orders,
   guests, tables and review requests. It shows no Restaurant Direct price; quote that
   yourself.
@@ -58,23 +63,42 @@ The demo deploys as **its own Vercel project**, never on a restaurant's domain.
 - Orders placed in one window appear in another window's staff console at once, in the
   same browser profile.
 
-## The 75 to 90 second walkthrough
+## The two-minute walkthrough
 
-Set up two windows side by side before the call: the customer site sized like a phone,
-and the staff console on **Kitchen queue**. Press **Reset demo records** first.
+Ordered to sell: the guest's app first, the kitchen, the moment the guest's phone says
+"ready", the repeat order, and the money last.
 
-| Time | Customer window | Staff window | Say |
+Set up two windows side by side before the call. Press **Reset demo records** first.
+
+- **Customer window**, sized like a phone: Controls → **Show as installed app**. It opens on
+  the menu with the Menu / Cart / My orders tabs.
+- **Staff window**: Controls → **Kitchen screen**, then tap **Enable sound**.
+
+| Time | Customer window (app view) | Staff window | Say |
 |---|---|---|---|
-| 0:00 | Home page, scroll once | | "Their own site, their own brand, built for phones." |
-| 0:08 | **Order online**, add two burgers, **Checkout** | | "Guests order straight from you, no marketplace commission." |
-| 0:18 | Controls → **Fill guest details**, **Place order** | | "They pick a collection time, and every price is checked by the server." |
-| 0:28 | Confirmation, guest email card | The order appears in the queue, restaurant email card | "It lands in the kitchen instantly, and both of you get an email." |
-| 0:34 | | **Accept order → Start preparing → Mark ready → Complete order** (confirm the last) | "One tap per stage. The guest can follow it on the tracking page." |
-| 0:48 | | Review request card | "Tonight they're asked for a Google review, automatically." |
-| 0:55 | | **Bookings**: confirm Megan Smith's 18:30 | "Table requests come in the same way." |
-| 1:02 | | **Guests** → Thabo Nkosi | "Every guest builds a history: what they ordered, when they visited." |
-| 1:08 | | **Today** | "Today's service at a glance, and what came in direct." |
-| 1:15 | | Controls → **The week in numbers** | "That's commission you keep. That's Restaurant Direct." |
+| 0:00 | The menu | | "This is Jimmy's own app. Guests add it to their home screen, and it opens on the menu." |
+| 0:08 | **Add** Smash Burger and Beef Burger, then the **Cart** tab | | "Their menu, their prices, checked by the server." |
+| 0:18 | Controls → **Fill guest details on this page**, **Place order** | | "No marketplace in between. The order and the guest are Jimmy's." |
+| 0:28 | Guest email card, then **Track this order** → **Tell me when it is ready** | The order chimes in under *To accept* | "It lands in the kitchen instantly, and the guest gets a confirmation." |
+| 0:40 | | Tap a time to accept, then **Start preparing**, **Mark ready** | "One tap per stage, with a promised time the guest can see." |
+| 0:52 | The *Simulated* alert: "Your order at Jimmy's is ready" | | "The guest's phone tells them it's ready, so nobody phones to ask." |
+| 1:00 | | **Collected** | "Tonight they're asked for a Google review, automatically." |
+| 1:08 | **My orders** → **Order again**: the cart refills at today's prices | | "Next Friday their usual is two taps away. Repeat business, with no app taking a cut." |
+| 1:22 | | Controls → **Order report** | "Month end: every completed order, its value, and the commission kept. **Download CSV** for the bookkeeper." |
+| 1:42 | | Controls → **The week in numbers** | "That's commission you keep. That's Restaurant Direct." |
+
+If there is time, or they ask: **Bookings** (confirm Megan Smith's 18:30), **Guests** →
+Thabo Nkosi (every guest builds a history), and **Today** (the day at a glance).
+
+About the ready alert: the demo shows it on screen and never asks the browser for
+permission. On a real phone it arrives as a notification once the guest has tapped **Tell me
+when it is ready**: Chrome on Android, or on iPhone only once the app is on the Home Screen
+(iOS 16.4 or later). Arrival on a real phone is not yet proven (TaskHub 3818e0e1), so do not
+promise it until it is.
+
+The report's "Commission kept" uses the demo's 25% comparison rate, which is an assumption
+and not any app's actual fee. Say so if asked. Its order value counts completed orders only,
+so it is lower than the 7-day figure on **Today**, which counts every order not cancelled.
 
 After 20:00 the review card says "tomorrow evening": the real nightly job has already run,
 and picks the order up the next night.

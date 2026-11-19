@@ -17,6 +17,7 @@ import { copy, deliveryRun, restaurantDate, restaurantDayBounds } from '../core/
 import { orderableCategories, orderableItems } from '../core/menu/orderable';
 import { nextStatuses } from '../pages/admin/operations';
 import { readRecords, subscribeRecords, updateRecords } from './store';
+import { SEED_ORDER_PREFIX } from './seed';
 import { salesWindow, summariseSales } from '../core/data/sales';
 import { tradingHours } from '../lib/tradingHours';
 
@@ -94,6 +95,10 @@ function advance(table: 'orders' | 'bookings', id: string, from: string, to: str
     if (!row || row.status !== from || !nextStatuses(from, deliveryRun && 'order_type' in row ? row.order_type : undefined).includes(to)) return false;
     Object.assign(row, patch, { status: to });
     row.updated_at = new Date().toISOString();
+    if ('order_no' in row) {
+      row.completed_at = to === 'completed' ? row.updated_at : null;
+      if ((to === 'completed' || to === 'cancelled') && next.alerts) delete next.alerts[row.order_no];
+    }
     moved = true;
     return true;
   });
@@ -284,6 +289,30 @@ export const adapter: DataAdapter = {
     });
   },
 
+  // collection_commission_report, over the fictional records: completed orders
+  // only, by the restaurant-local month. For older saves, the last update is
+  // when the order was completed. Seeded history uses its requested time.
+  async orderReport() {
+    await settle();
+    return readRecords().orders
+      .filter((row) => row.status === 'completed')
+      .map((row) => ({ row, completedAt: row.completed_at ?? (row.order_no.startsWith(SEED_ORDER_PREFIX) ? row.requested_time ?? row.updated_at : row.updated_at) }))
+      .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+      .map(({ row, completedAt }) => {
+        const food = Math.round((row.total - row.delivery_fee) * 100) / 100;
+        return {
+          reference: row.order_no,
+          month: `${restaurantDate(new Date(completedAt)).slice(0, 7)}-01`,
+          food_subtotal: food,
+          delivery: row.delivery_fee,
+          refunds: row.refund_amount,
+          payment_state: row.payment_status,
+          fulfilment_state: row.status,
+          commission_base: Math.max(0, Math.round((food - row.refund_amount) * 100) / 100),
+        };
+      });
+  },
+
   async advanceOrderStatus(id, from, to, eta) {
     await settle();
     advance('orders', id, from, to, eta === undefined ? {} : { eta });
@@ -292,6 +321,34 @@ export const adapter: DataAdapter = {
   async advanceBookingStatus(id, from, to) {
     await settle();
     advance('bookings', id, from, to);
+  },
+
+  // Guest order alerts, simulated: the demo shows the alert on screen
+  // (DemoShell) and never asks the browser for notification permission.
+  pushSimulated: true,
+  async addGuestPush(reference, email) {
+    await settle();
+    let added = false;
+    updateRecords((next) => {
+      const order = next.orders.find((row) => row.order_no.toUpperCase() === reference.trim().toUpperCase());
+      if (!order || !email.includes('@') || !sameContact(order, email)) return false;
+      const stillComing = ['new', 'accepted', 'preparing'].includes(order.status)
+        || (deliveryRun && order.order_type === 'delivery' && order.status === 'ready');
+      if (!stillComing || !['paid', 'not_required'].includes(order.payment_status)) return false;
+      next.alerts = { ...next.alerts, [order.order_no]: next.alerts?.[order.order_no] ?? [] };
+      added = true;
+      return true;
+    });
+    return added;
+  },
+  async removeGuestPush(reference, email) {
+    await settle();
+    updateRecords((next) => {
+      const order = next.orders.find((row) => row.order_no.toUpperCase() === reference.trim().toUpperCase());
+      if (!order || !email.includes('@') || !sameContact(order, email) || !next.alerts?.[order.order_no]) return false;
+      delete next.alerts[order.order_no];
+      return true;
+    });
   },
 
   subscribe(listener, onLive) {

@@ -144,7 +144,9 @@ checks(sort, check_name, ok, detail) as (
     coalesce((select string_agg(item, ' ' order by item) from anon_column_level), 'nothing')
   union all
   select 53, 'the public can only call create_order and lookup_request',
-    coalesce((select string_agg(name, ',' order by name) from anon_functions), '') in ('create_order,lookup_request', 'create_order,lookup_request,ordering_state', 'create_delivery_order,create_order,lookup_request,ordering_state'),
+    coalesce((select string_agg(name, ',' order by name) from anon_functions), '') in ('create_order,lookup_request', 'create_order,lookup_request,ordering_state', 'create_delivery_order,create_order,lookup_request,ordering_state',
+      -- 20261119120000: guest order alerts, guarded by the same reference + email proof as lookup_request.
+      'add_guest_push,create_delivery_order,create_order,lookup_request,ordering_state,remove_guest_push'),
     coalesce((select string_agg(name, ', ' order by name) from anon_functions), 'nothing')
   union all
   select 54, 'future tables and functions start closed',

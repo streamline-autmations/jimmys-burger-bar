@@ -6,6 +6,7 @@ import { copy } from '../core/tenant';
 import { STAMP_EASE } from '../lib/motion';
 import { dismissOffer, isStandalone, platformOf, promptInstall, readOffer, shouldOffer, useCanPrompt, type Placement } from '../lib/installApp';
 import { Starburst } from './Starburst';
+import { appShellActive } from '../lib/appShell';
 
 // "Get the app" as one more sticker on the poster wall. Android: Chrome's own
 // install dialog, or the signed app file when the tenant has one. iPhone: the
@@ -14,7 +15,7 @@ import { Starburst } from './Starburst';
 
 export const InstallApp: React.FC<{ placement: Placement; className?: string }> = ({ placement, className = '' }) => {
   const platform = useMemo(() => (typeof navigator === 'undefined' ? 'other' : platformOf(navigator.userAgent, navigator.maxTouchPoints)), []);
-  const [visible, setVisible] = useState(() => !isStandalone() && shouldOffer(readOffer(), placement, platform, Date.now()));
+  const [visible, setVisible] = useState(() => !isStandalone() && !appShellActive() && shouldOffer(readOffer(), placement, platform, Date.now()));
   const [steps, setSteps] = useState(false);
   const canPrompt = useCanPrompt();
   const apk = config.app?.androidApk;

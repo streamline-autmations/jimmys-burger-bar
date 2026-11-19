@@ -3,6 +3,7 @@
 // signature verifies, and the lock-screen text carries no order data.
 import assert from 'node:assert/strict';
 import { test, before, after } from 'node:test';
+import { runInNewContext } from 'node:vm';
 import { createDatabase, asRole } from './db/harness.mjs';
 import { importVapidKey, pushEndpoint, vapidHeaders } from '../supabase/functions/kitchen-push/vapid.mjs';
 import { load } from '../scripts/lib/load-ts.mjs';
@@ -139,4 +140,145 @@ test('a push URL must point at this project\'s own function, on a pay-first tena
   assert.deepEqual(validateTenant({ ...infra, pushUrl: PUSH_URL }, config), []);
   assert.match(validateTenant({ ...infra, pushUrl: PUSH_URL.replace('cagc', 'zzzz') }, config).join(), /pushUrl must be this project/);
   assert.match(validateTenant({ ...infra, payments: null, pushUrl: PUSH_URL }, { ...config, ordering: { payment: 'on_collection' } }).join(), /pushUrl needs ordering.payment/);
+});
+
+// ---------------------------------------------------------------------------
+// Guest order-ready alerts (20261119120000): anon proves the order is theirs,
+// can never read a subscription, one push per status, cleanup on completion.
+// ---------------------------------------------------------------------------
+
+const guestSub = (tag) => ({ endpoint: `https://fcm.googleapis.com/fcm/send/guest-${tag}-${seq}`, p256dh: 'BPguest', auth: 'auguest' });
+const addGuestPush = (ref, email, sub) =>
+  db.query(`select public.add_guest_push($1,$2,$3,$4,$5) as ok`, [ref, email, sub.endpoint, sub.p256dh, sub.auth]).then((r) => r.rows[0].ok);
+const guestQueued = (ref) => db.query(`select q.body from net.http_request_queue q where q.url = $1 and q.body ? 'status' and q.body->>'order_id' = (select id::text from public.orders where order_no = $2) order by q.id`, [PUSH_URL, ref]);
+const guestSubs = (ref) => db.query(`select s.endpoint from public.guest_push_subscriptions s join public.orders o on o.id = s.order_id where o.order_no = $1`, [ref]).then((r) => r.rows);
+// Run as the database owner: staff screens go one step at a time, the tests also bounce back to prove the dedupe.
+const setStatus = (ref, status) => db.query(`update public.orders set status = $2 where order_no = $1`, [ref, status]);
+
+test('a guest can add an alert only for a paid order they prove is theirs', async () => {
+  const o = await paidOrder();
+  const sub = guestSub('own');
+  await asRole(db, 'anon', async () => {
+    assert.equal(await addGuestPush(o.ref, o.email, sub), false, 'not paid yet: no alert');
+  });
+  await o.pay();
+  await asRole(db, 'anon', async () => {
+    assert.equal(await addGuestPush(o.ref, 'someone.else@example.com', sub), false, 'wrong email');
+    assert.equal(await addGuestPush('JB-NOPE-000', o.email, sub), false, 'unknown reference');
+    assert.equal(await addGuestPush(o.ref, o.email, { ...sub, endpoint: 'http://insecure.example/x' }), false, 'https only');
+    assert.equal(await addGuestPush(o.ref, `  ${o.email.toUpperCase()} `, sub), true, 'the owner, in any case and spacing');
+    assert.equal(await addGuestPush(o.ref, o.email, sub), true, 'repeating it is harmless');
+    // asRole rolls back, so the row is checked inside the same transaction, as the owner.
+    await db.exec('reset role');
+    assert.equal((await guestSubs(o.ref)).length, 1);
+  });
+});
+
+test('nobody can read, write or delete guest subscriptions directly', async () => {
+  const o = await paidOrder(); await o.pay();
+  await addGuestPush(o.ref, o.email, guestSub('direct'));
+  for (const role of ['anon', 'authenticated']) {
+    const userId = role === 'authenticated' ? CHEF : undefined;
+    await asRole(db, role, () => assert.rejects(db.query(`select * from public.guest_push_subscriptions`), /permission denied/, `${role} cannot read them, staff included`), { userId });
+    await asRole(db, role, () => assert.rejects(db.query(`select * from public.guest_order_push`), /permission denied/), { userId });
+    await asRole(db, role, () => assert.rejects(db.query(`insert into public.guest_push_subscriptions(order_id,endpoint,p256dh,auth) select id,'https://fcm.googleapis.com/x','a','b' from public.orders limit 1`), /permission denied/), { userId });
+    await asRole(db, role, () => assert.rejects(db.query(`delete from public.guest_push_subscriptions`), /permission denied/), { userId });
+  }
+  await asRole(db, 'anon', async () => {
+    await db.query(`select public.remove_guest_push($1,'wrong@example.com',$2)`, [o.ref, guestSub('direct').endpoint]);
+  });
+  assert.equal((await guestSubs(o.ref)).length, 1, 'removing needs the same proof');
+  await asRole(db, 'anon', async () => {
+    await db.query(`select public.remove_guest_push($1,$2,$3)`, [o.ref, o.email, guestSub('direct').endpoint]);
+    await db.exec('reset role');
+    assert.equal((await guestSubs(o.ref)).length, 0, 'the owner can switch it off');
+  });
+});
+
+test('a collection order queues one alert at ready, once, carrying only its id and status', async () => {
+  const o = await paidOrder(); await o.pay();
+  await addGuestPush(o.ref, o.email, guestSub('ready'));
+  for (const status of ['accepted', 'preparing']) await setStatus(o.ref, status);
+  assert.equal((await guestQueued(o.ref)).rows.length, 0, 'nothing before ready');
+  await setStatus(o.ref, 'ready');
+  await setStatus(o.ref, 'preparing');
+  await setStatus(o.ref, 'ready');
+  const calls = (await guestQueued(o.ref)).rows;
+  assert.equal(calls.length, 1, 'bouncing back to ready sends nothing twice');
+  assert.deepEqual(Object.keys(calls[0].body).sort(), ['order_id', 'status']);
+  assert.equal(calls[0].body.status, 'ready');
+  assert.ok((await one(`select p.request_id from public.guest_order_push p join public.orders o on o.id = p.order_id where o.order_no = $1 and p.status = 'ready'`, [o.ref])).request_id, 'the dedupe row records the request');
+  await setStatus(o.ref, 'completed');
+  assert.equal((await guestSubs(o.ref)).length, 0, 'the push address is deleted once the order is collected');
+  await asRole(db, 'anon', async () => {
+    assert.equal(await addGuestPush(o.ref, o.email, guestSub('late')), false, 'and a finished order takes no new alert');
+  });
+});
+
+test('a delivery alerts at ready and when it leaves; a cancelled order forgets its subscriptions', async () => {
+  const o = await paidOrder(); await o.pay();
+  await db.query(`update public.orders set order_type = 'delivery', delivery_address = '1 Test Street' where order_no = $1`, [o.ref]);
+  await addGuestPush(o.ref, o.email, guestSub('delivery'));
+  for (const status of ['accepted', 'preparing', 'ready', 'out_for_delivery']) await setStatus(o.ref, status);
+  assert.deepEqual((await guestQueued(o.ref)).rows.map((row) => row.body.status), ['ready', 'out_for_delivery']);
+
+  const c = await paidOrder(); await c.pay();
+  await addGuestPush(c.ref, c.email, guestSub('cancel'));
+  await setStatus(c.ref, 'accepted');
+  await setStatus(c.ref, 'cancelled');
+  assert.equal((await guestSubs(c.ref)).length, 0);
+});
+
+test('an order nobody asked to be alerted about queues nothing', async () => {
+  const o = await paidOrder(); await o.pay();
+  for (const status of ['accepted', 'preparing', 'ready']) await setStatus(o.ref, status);
+  assert.equal(await addGuestPush(o.ref, o.email, guestSub('missed-ready')), false);
+  assert.equal((await guestQueued(o.ref)).rows.length, 0);
+  assert.equal((await guestSubs(o.ref)).length, 0);
+});
+
+test('delivery can still opt in after ready but signup closes at dispatch', async () => {
+  const o = await paidOrder(); await o.pay();
+  await db.query(`update public.orders set order_type = 'delivery', delivery_address = '1 Test Street' where order_no = $1`, [o.ref]);
+  for (const status of ['accepted', 'preparing', 'ready']) await setStatus(o.ref, status);
+  assert.equal(await addGuestPush(o.ref, o.email, guestSub('before-dispatch')), true);
+  await setStatus(o.ref, 'out_for_delivery');
+  assert.equal(await addGuestPush(o.ref, o.email, guestSub('missed-dispatch')), false);
+  assert.deepEqual((await guestQueued(o.ref)).rows.map((row) => row.body.status), ['out_for_delivery']);
+});
+
+test("the guest's alert text is generic and the guest worker still caches only the offline page", () => {
+  const worker = load('vite-plugin-tenant-html.ts').customerServiceWorker({ venue: { name: "Jimmy's" }, seo: { themeColor: '#172544' }, theme: { colors: { paper: '#FFFDF7' } } }, 'public');
+  assert.match(worker, /"Your order at Jimmy's is ready"/);
+  assert.match(worker, /addEventListener\('push'/);
+  assert.doesNotMatch(worker, /event\.data|customer|total|order_items|\.put\(|addAll/, 'no payload read, nothing cached beyond the offline page');
+});
+
+test('a guest alert opens order history in an existing guest window or a new one', async () => {
+  const worker = load('vite-plugin-tenant-html.ts').customerServiceWorker({ venue: { name: "Jimmy's" }, seo: { themeColor: '#172544' }, theme: { colors: { paper: '#FFFDF7' } } }, 'public');
+  const origin = 'https://restaurant.example';
+  const target = `${origin}/orders?source=alert`;
+  const click = async (windows) => {
+    const calls = [];
+    const handlers = new Map();
+    runInNewContext(worker, { URL, self: {
+      location: { origin },
+      addEventListener: (name, handler) => handlers.set(name, handler),
+      clients: {
+        matchAll: async () => windows(calls),
+        openWindow: async (url) => calls.push(['open', url]),
+      },
+    } });
+    let result;
+    handlers.get('notificationclick')({ notification: { close() {} }, waitUntil: (work) => { result = work; } });
+    await result;
+    return calls;
+  };
+  const staff = { url: `${origin}/admin/kitchen`, navigate: () => assert.fail('leave the kitchen window alone') };
+  assert.deepEqual(await click(() => [staff]), [['open', target]]);
+  assert.deepEqual(await click((calls) => [staff, {
+    url: `${origin}/order`,
+    navigate: async (url) => { calls.push(['navigate', url]); return { focus: () => calls.push(['focus', url]) }; },
+  }]), [['navigate', target], ['focus', target]]);
+  assert.deepEqual(await click((calls) => [{ url: target, focus: () => calls.push(['focus', target]) }]), [['focus', target]]);
 });

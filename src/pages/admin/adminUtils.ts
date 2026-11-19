@@ -28,11 +28,11 @@ export const panelHeadingClass = 'font-display text-lg font-bold text-primary';
 
 /** Small uppercase label above a heading. */
 export const eyebrowClass =
-  'text-[11px] font-bold uppercase tracking-[0.16em] text-ink/45';
+  'text-[11px] font-bold uppercase tracking-[0.16em] text-ink/65';
 
 /** Table header cell. */
 export const thClass =
-  'px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-ink/50';
+  'px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-ink/65';
 
 /** Minimum comfortable touch target for controls staff use mid-service. */
 export const controlClass =

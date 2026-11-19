@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, LogOut, Power, ShieldCheck, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
+import { LayoutDashboard, LogOut, Power, ReceiptText, ShieldCheck, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { config } from '../../config';
 import { eyebrowClass } from './adminUtils';
 import { payFirst } from '../../core/tenant';
+import { data as db } from '../../core/data';
 
 const navItems = [
   { to: '/admin', label: 'Today', icon: LayoutDashboard, end: true },
@@ -13,6 +14,8 @@ const navItems = [
   { to: '/admin/customers', label: 'Customers', icon: Users, end: false },
   // Pause and sold-out switches exist only where the server enforces them.
   ...(payFirst ? [{ to: '/admin/ordering', label: 'Ordering', icon: Power, end: false }] : []),
+  // Only where the database has the report function (the payments migration, or the demo).
+  ...(db.orderReport ? [{ to: '/admin/report', label: 'Report', icon: ReceiptText, end: false }] : []),
 ];
 
 // Three postures. A desktop back office gets a navy sidebar, so the workspace

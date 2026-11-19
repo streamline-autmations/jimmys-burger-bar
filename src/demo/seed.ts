@@ -17,8 +17,11 @@ import { orderableCategories, orderableItems } from '../core/menu/orderable';
 import { addDays, latestTime, tradingHours } from '../lib/tradingHours';
 import { config } from './config';
 
+type DemoOrder = OrderWithItems & { completed_at?: string | null };
+export const SEED_ORDER_PREFIX = 'JB-DEMO-';
+
 export interface DemoRecords {
-  orders: OrderWithItems[];
+  orders: DemoOrder[];
   bookings: Booking[];
   customers: Customer[];
 }
@@ -116,7 +119,7 @@ export function createSeed(now: Date = new Date()): DemoRecords {
     return {
       id,
       payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null, delivery_fee: 0, delivery_suburb: null,
-      order_no: `JB-DEMO-${String(n).padStart(4, '0')}`,
+      order_no: `${SEED_ORDER_PREFIX}${String(n).padStart(4, '0')}`,
       customer_id: customerId(key),
       customer_name: who.name,
       email: who.email,

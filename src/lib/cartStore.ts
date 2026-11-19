@@ -34,6 +34,8 @@ interface CartState {
   setOrderType: (type: OrderType) => void;
   setTableNumber: (value: string) => void;
   clear: () => void;
+  /** Order again: the whole cart at once, already priced from today's menu. */
+  replaceLines: (lines: CartLine[]) => void;
 }
 
 function restoredLines(): Record<string, CartLine> {
@@ -97,6 +99,7 @@ export const useCartStore = create<CartState>((set) => ({
   setOrderType: (orderType) => set({ orderType }),
   setTableNumber: (tableNumber) => set({ tableNumber }),
   clear: () => set({ lines: {}, tableNumber: '' }),
+  replaceLines: (lines) => set({ lines: Object.fromEntries(lines.map((line) => [line.name, line])) }),
 }));
 
 /**

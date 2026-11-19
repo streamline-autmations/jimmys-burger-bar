@@ -1,4 +1,5 @@
 import type { Database } from '../../lib/database.types';
+import type { OrderReportRow } from './report';
 
 export type Booking = Database['public']['Tables']['bookings']['Row'];
 export type Customer = Database['public']['Tables']['customers']['Row'];
@@ -184,6 +185,18 @@ export interface DataAdapter {
   /** Saves this browser's subscription for the signed-in staff member. Idempotent. */
   savePushSubscription?(subscription: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
   deletePushSubscription?(endpoint: string): Promise<void>;
+  /**
+   * Guest order-ready alerts (20261119120000). The order reference plus the
+   * email it was placed with prove ownership; resolves false when they do not
+   * match, or the order is unpaid or already finished. Nothing can be read back.
+   * `subscription` is null only in the demo, which simulates the alert on screen.
+   */
+  addGuestPush?(reference: string, email: string, subscription: { endpoint: string; p256dh: string; auth: string } | null): Promise<boolean>;
+  removeGuestPush?(reference: string, email: string, endpoint: string): Promise<void>;
+  /** The demo: alerts appear on screen, and the browser is never asked for permission. */
+  pushSimulated?: boolean;
+  /** Who stores orders and bookings, as the privacy page names them. Unset in the demo, which keeps them in the browser. */
+  storedWith?: string;
 
   // Pay-first tenants only (ordering.payment = 'payfast'). Absent elsewhere, so
   // a tenant without the payments migration never calls a function it lacks.
@@ -200,4 +213,10 @@ export interface DataAdapter {
   markDeliveryFailed?(id: string): Promise<void>;
   /** The signed-in staff member's role, e.g. 'manager'. */
   staffRole?(): Promise<string | null>;
+  /**
+   * Completed orders for the monthly report (collection_commission_report, staff
+   * only). Absent where the payments migration is not applied, so the console
+   * hides the Report screen instead of calling a function the database lacks.
+   */
+  orderReport?(): Promise<OrderReportRow[]>;
 }

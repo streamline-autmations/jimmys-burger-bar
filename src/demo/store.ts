@@ -14,6 +14,8 @@ const KEY = 'rd-demo-records-v2';
 interface Stored extends DemoRecords {
   /** The restaurant date the seed was laid out for. A new day re-seeds, so "today" is never empty. */
   seededFor: string;
+  /** Simulated guest order alerts: order reference -> the statuses already announced. */
+  alerts?: Record<string, string[]>;
 }
 
 let memory: Stored | null = null;

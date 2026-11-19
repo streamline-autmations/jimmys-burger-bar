@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jimmy's Burger Bar: meeting prep</title>
+  <style>
+    :root { --navy: #172544; --rule: #b3b3b3; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: white;
+      color: black;
+      font: 10.5pt/1.35 Arial, sans-serif;
+    }
+    h1, h2, p, ol, ul, dl, dd { margin: 0; }
+    h1, h2 { color: var(--navy); }
+    h1 { font: bold 28pt/1.1 Georgia, serif; }
+    h2 { margin-bottom: 2mm; font-size: 14pt; line-height: 1.16; }
+    p + p, li + li { margin-top: 1.25mm; }
+    ol, ul { padding-left: 5mm; }
+    li::marker { color: var(--navy); }
+    a { color: inherit; overflow-wrap: anywhere; }
+    .sheet { display: flex; flex-direction: column; gap: 4.5mm; }
+    .masthead { border-top: 1.2mm solid var(--navy); padding-top: 3.5mm; }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1mm 4mm;
+      margin-top: 2.1mm;
+      font-size: 9.5pt;
+    }
+    .continuation .meta { margin-top: 0; }
+    .continuation .meta strong { color: var(--navy); }
+    .opening { border-left: 0.8mm solid var(--navy); padding-left: 3mm; }
+    .ready { margin-bottom: 1.75mm; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    th, td { border-bottom: 0.25mm solid var(--rule); padding: 1.5mm 2mm; }
+    th:first-child { text-align: left; padding-left: 0; white-space: nowrap; }
+    .sub { font-size: 8.5pt; }
+    thead th { color: var(--navy); border-bottom: 0.5mm solid var(--navy); }
+    tbody th { font-weight: normal; }
+    .amount { text-align: right; white-space: nowrap; }
+    .note { margin-top: 2mm; font-size: 9.5pt; }
+    .takeaway { margin-top: 2.25mm; }
+    .objection {
+      display: grid;
+      grid-template-columns: 31% 1fr;
+      gap: 3mm;
+      padding: 1.2mm 0;
+      border-bottom: 0.25mm solid var(--rule);
+    }
+    .objection:first-child { padding-top: 0; }
+    .objection:last-child { border-bottom: 0; padding-bottom: 0; }
+    dt { font-weight: bold; }
+    footer {
+      margin-top: auto;
+      border-top: 0.45mm solid var(--navy);
+      padding-top: 1.9mm;
+      font-size: 9pt;
+    }
+    @media screen {
+      main { width: min(182mm, calc(100% - 2rem)); margin: 1rem auto; }
+      .sheet + .sheet { margin-top: 2rem; }
+    }
+    @media screen and (max-width: 500px) {
+      .objection { grid-template-columns: 1fr; gap: 0; }
+    }
+    @media print {
+      .sheet { min-height: 266mm; }
+      .sheet + .sheet { break-before: page; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <article class="sheet" aria-labelledby="title">
+      <header class="masthead">
+        <h1 id="title">Jimmy's Burger Bar: meeting prep</h1>
+        <div class="meta">
+          <time datetime="2026-11-19">2026-11-19</time>
+          <strong>Internal, do not hand to the owner</strong>
+        </div>
+      </header>
+
+      <section aria-label="Meeting goal and opening line">
+        <p><strong>Goal.</strong> Show how Restaurant Direct works and find out whether Jimmy's wants to pilot collection first and test delivery with its own driver.</p>
+        <p class="opening"><strong>Open with.</strong> I'd like Jimmy's to have its own link for collection and delivery with your own driver. Customers can order and pay in a few taps. The ticket lands on the till computer and the chef's phone, and customers can use the same link every time.</p>
+      </section>
+
+      <section aria-labelledby="demo">
+        <h2 id="demo">The two-minute demo</h2>
+        <p class="ready"><strong>Have ready:</strong> do the 10-minute checklist in DEMO-SCRIPT.md (trading hours, sound on both devices, old tickets cleared, app installed with one collected order).</p>
+        <ol>
+          <li><strong>The app.</strong> Open Jimmy's app from the Home Screen. It starts on the menu.</li>
+          <li><strong>Order and pay.</strong> Add a Beef Burger, pay with the Payfast sandbox, tap <strong>Tell me when it is ready</strong>.</li>
+          <li><strong>Kitchen.</strong> It chimes under <strong>To accept</strong> on both screens, only after Payfast confirms.</li>
+          <li><strong>Accept and ready.</strong> Promise a time, <strong>Mark ready</strong>: the guest phone shows <strong>Ready to collect</strong>.</li>
+          <li><strong>Reorder.</strong> <strong>My orders</strong>, then <strong>Order again</strong>: the cart refills at today's prices. Don't place it.</li>
+          <li><strong>Month end.</strong> <strong>Report</strong> with CSV, then <strong>Ordering</strong>: pause and sold out. Only if staging has been redeployed; otherwise say it is "built and coming with the next update".</li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="money">
+        <h2 id="money">The money: direct vs Mr D, per month</h2>
+        <div class="table-wrap">
+          <table aria-describedby="fee-note">
+            <thead>
+              <tr>
+                <th scope="col">Food sales / month</th>
+                <th scope="col" class="amount">Our fee</th>
+                <th scope="col" class="amount">Ours + EFT fees</th>
+                <th scope="col" class="amount">Ours + card fees</th>
+                <th scope="col" class="amount">Mr D 25% *</th>
+                <th scope="col" class="amount">Mr D 30% *</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">R5,000</th><td class="amount">R999 (20%)</td><td class="amount">R1,114</td><td class="amount">R1,225</td><td class="amount">R1,250</td><td class="amount">R1,500</td></tr>
+              <tr><th scope="row">R10,000</th><td class="amount">R1,500</td><td class="amount">R1,730</td><td class="amount">R1,951</td><td class="amount">R2,500</td><td class="amount">R3,000</td></tr>
+              <tr><th scope="row"><strong>R12,600</strong> <span class="sub">now on Mr D</span></th><td class="amount">R1,890</td><td class="amount">R2,180</td><td class="amount">R2,459</td><td class="amount">R3,150</td><td class="amount">R3,780</td></tr>
+              <tr><th scope="row">R15,000 <span class="sub">pilot target</span></th><td class="amount">R2,250</td><td class="amount">R2,595</td><td class="amount">R2,927</td><td class="amount">R3,750</td><td class="amount">R4,500</td></tr>
+              <tr><th scope="row">R25,000</th><td class="amount">R3,750</td><td class="amount">R4,325</td><td class="amount">R4,878</td><td class="amount">R6,250</td><td class="amount">R7,500</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" id="fee-note">* <strong>Placeholders, not Jimmy's rate.</strong> Mr D does not publish its commission. 30% is the figure restaurants gave MyBroadband. 25% is the demo build's assumption. Our fee excludes VAT (still to decide). Payfast includes 15% VAT. All rows assume the build plan's R276 average order. Arithmetic is ours (guess).</p>
+        <ul class="takeaway">
+          <li><strong>R10k to R15k a month direct saves roughly R800 to R1,600 a month</strong>, if Mr D charges them 25% to 30%.</li>
+          <li><strong>Below about R6,660 a month, the R999 minimum applies.</strong> At R5k it works out to 20% plus Payfast, close to Mr D.</li>
+          <li><strong>Guests pay in-store prices direct.</strong> MyBroadband (June 2025) found Mr D menu prices 22% to 40% above in-store for chains (Big Mac R51.90 in store, R71.90 on Mr D).</li>
+          <li><strong>Delivery:</strong> Jimmy's has its own driver and scooter. The guest pays the delivery fee (R39 up to 3 km, R49 up to 5 km, provisional), and we take no commission on it.</li>
+        </ul>
+        <p><strong>Ask for their Mr D statement</strong> (rate, fees, payout timing) and use their real rate. Their Mr D emails show R10k to R12.6k a month in food; not all of it will move direct, so don't promise it.</p>
+      </section>
+
+      <footer>Sources: FEATURE-RESEARCH.md (web sources accessed 2026-11-19), build plan 16 Nov 2026</footer>
+    </article>
+
+    <article class="sheet continuation" aria-label="Pricing and owner discussion">
+      <header class="masthead">
+        <div class="meta">
+          <strong>Restaurant Direct · Jimmy's Burger Bar</strong>
+          <span>Internal, do not hand to the owner</span>
+        </div>
+      </header>
+
+      <section aria-labelledby="pricing">
+        <h2 id="pricing">Pricing options to discuss</h2>
+        <p><strong>Current build plan proposal.</strong> R0 upfront, then R999/month or 15% of completed direct food sales, whichever is higher, with a 90-day review. Jimmy's pays Payfast through its own account and handles fulfilment and refunds. Start with collection. Agree delivery scope and pricing separately after testing.</p>
+        <p><strong>Alternative (your call).</strong> A lower minimum, so the deal is clearly cheaper than Mr D even in a slow month.</p>
+        <p><strong>What Jimmy's pays Payfast</strong> (its own account, ex VAT, no monthly fee): Instant EFT and Capitec Pay 2% (min R2), card, Apple Pay and Google Pay 3.2% + R2, SnapScan 3.5% + R2, R8.70 per payout, R2 per refund.</p>
+        <p><strong>Still to agree:</strong> whether the 15% is on food with or without VAT, whether Streamline adds VAT, how refunds net off, and that "month" means calendar month.</p>
+      </section>
+
+      <section aria-labelledby="questions">
+        <h2 id="questions">Questions to ask the owner</h2>
+        <ul>
+          <li><strong>Collection volume.</strong> How many phone or WhatsApp collection orders did you take in the last 30 days, and what were the food sales?</li>
+          <li><strong>Staff.</strong> Who accepts orders and handles busy periods? Who can refund? Which payment method will you select in the POS?</li>
+          <li><strong>Equipment.</strong> Can the POS PC run a browser alongside the till? What phone does the chef use? Who needs a login, and who is the backup?</li>
+          <li><strong>Launch.</strong> What are the current menu, till prices, hours and kitchen capacity? How will you show the link on Google, Instagram and in-store?</li>
+          <li><strong>Driver.</strong> What hours does your driver work, and are they available on Fridays? How are they paid per trip? How far can the scooter go? Who takes cash or card at the door, if anyone?</li>
+          <li><strong>Terms.</strong> Which pilot price would you approve? How will we define the commission base, including food VAT, and reconcile completed sales?</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="objections">
+        <h2 id="objections">Likely objections</h2>
+        <dl>
+          <div class="objection"><dt>We're already on Mr D.</dt><dd>Compare a real basket using your Mr D statement.</dd></div>
+          <div class="objection"><dt>Customers just WhatsApp us.</dt><dd>Share the link on WhatsApp so regulars can order and pay directly.</dd></div>
+          <div class="objection"><dt>What if the internet is down?</dt><dd>Retry when data returns. Use WhatsApp if reachable.</dd></div>
+          <div class="objection"><dt>What does it cost me?</dt><dd>Nothing upfront. R999 a month or 15% of direct food sales, whichever is higher. At R15k that is R2,250, plus about R345 Payfast by EFT.</dd></div>
+        </dl>
+      </section>
+
+      <section aria-labelledby="cautions">
+        <h2 id="cautions">Don't say</h2>
+        <ul>
+          <li>Skip sales and results claims. Vendor case-study percentages are not promises.</li>
+          <li>Call it a staging demo with a Payfast sandbox payment. The MVP is unfinished. Don't say "customise": there are no sauce or side options yet. Don't quote a "commission kept" figure: no Mr D rate is set. The ready alert isn't proven on a real phone yet, so rehearse it on yours. Rehearse checkout too: the kitchen-push line had a Payfast checkout bug (TaskHub 62bb1711).</li>
+          <li>Keep R39/R49 provisional. Ask which delivery zones to cover and what each trip costs before agreeing fees.</li>
+        </ul>
+      </section>
+
+      <footer>Sources: FEATURE-RESEARCH.md (web sources accessed 2026-11-19), build plan 16 Nov 2026</footer>
+    </article>
+  </main>
+</body>
+</html>

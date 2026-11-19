@@ -236,51 +236,61 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
+        // Codex generated Avo on Toast, Carb Clever Breakfast, Breakfast Wrap, Eggs
+        // Benedict and Mince on Toast (2026-11-19) under the CLAUDE.md AI-imagery override.
+        // Breakfast Bun and Breakfast Burger use earlier AI photos. Jimmy's Breakfast
+        // and Omelette use real photos. Swap the AI photos for real photos when shot.
         note: "Served until 12pm",
         availableUntil: "12:00",
         items: [
           { name: "Breakfast Bun", description: "Bacon, egg and cheese bun with chips", price: 70, image: "/images/menu/breakfast/breakfast-bun.webp" },
           { name: "Breakfast Burger", description: "120g beef burger with egg, bacon and chips", price: 105, popular: true, image: "/images/menu/breakfast/breakfast-burger.webp" },
           { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips", price: 80, popular: true, image: "/images/menu/breakfast/jimmys-breakfast.webp" },
-          { name: "Avo on Toast", description: "Seasonal. 2 pieces of avocado toast. Extra bacon R25.", price: 50 },
+          { name: "Avo on Toast", description: "Seasonal. 2 pieces of avocado toast. Extra bacon R25.", price: 50, image: "/images/menu/breakfast/avo-on-toast-updated.webp" },
           { name: "Omelette", description: "3-cheese omelette with toast and 2 fillings: bacon, mushroom, tomatoes or pepper", price: 95, image: "/images/menu/breakfast/omelette.webp" },
-          { name: "Carb Clever Breakfast", description: "Seasonal. 2 eggs, half an avocado, bacon, raw tomato, mozzarella and cheddar.", price: 80 },
-          { name: "Breakfast Wrap", description: "Seasonal. Eggs, bacon, avocado, feta, mozzarella, cheddar, lettuce and tomato.", price: 105 },
-          { name: "Eggs Benedict", description: "2 poached eggs, bacon, hashbrown and hollandaise sauce", price: 110 },
-          { name: "Mince on Toast", description: "2 pieces of toast with mince", price: 80 },
+          { name: "Carb Clever Breakfast", description: "Seasonal. 2 eggs, half an avocado, bacon, raw tomato, mozzarella and cheddar.", price: 80, image: "/images/menu/breakfast/carb-clever-breakfast-updated.webp" },
+          { name: "Breakfast Wrap", description: "Seasonal. Eggs, bacon, avocado, feta, mozzarella, cheddar, lettuce and tomato.", price: 105, image: "/images/menu/breakfast/breakfast-wrap.webp" },
+          { name: "Eggs Benedict", description: "2 poached eggs, bacon, hashbrown and hollandaise sauce", price: 110, image: "/images/menu/breakfast/eggs-benedict.webp" },
+          { name: "Mince on Toast", description: "2 pieces of toast with mince", price: 80, image: "/images/menu/breakfast/mince-on-toast.webp" },
         ]
       },
       {
         name: "Burgers",
+        // Chicken, Smash, Gourmet Beef, Gourmet Chicken and Nacho Burger photos are
+        // AI-generated (Codex, 2026-11-19) under the CLAUDE.md AI-imagery override and
+        // logged there. Pizza Burger is also AI (2026-09-28). Beef Burger is a real iPhone photo.
         note: "With chips · served all day",
         items: [
           { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 100, image: "/images/menu/burgers/beef-burger.webp" },
-          { name: "Chicken Burger", description: "Crumbed chicken fillet, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 100 },
-          { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce", price: 110, popular: true },
+          { name: "Chicken Burger", description: "Crumbed chicken fillet, cheese sauce, tomato, lettuce and Jimmy's sauce", price: 100, image: "/images/menu/burgers/chicken-burger-v2.webp" },
+          { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce", price: 110, popular: true, image: "/images/menu/burgers/smash-burger-v2.webp" },
           { name: "Pizza Burger", description: "180g beef patty, Napolitana sauce, mozzarella and pepperoni", price: 120, image: "/images/menu/burgers/pizza-burger.webp" },
-          { name: "Gourmet Beef Burger", description: "180g crumbed beef patty, bacon, onion rings and pepper sauce", price: 145 },
-          { name: "Gourmet Chicken Burger", description: "Crumbed chicken fillet, sweet chilli sauce, bacon, onion rings and cheese sauce", price: 145 },
-          { name: "Nacho Burger", description: "Seasonal. 2 smashed patties, bacon, sweet chilli, nacho chips, onion rings and guacamole.", price: 145 },
+          { name: "Gourmet Beef Burger", description: "180g crumbed beef patty, bacon, onion rings and pepper sauce", price: 145, image: "/images/menu/burgers/gourmet-beef-burger.webp" },
+          { name: "Gourmet Chicken Burger", description: "Crumbed chicken fillet, sweet chilli sauce, bacon, onion rings and cheese sauce", price: 145, image: "/images/menu/burgers/gourmet-chicken-burger.webp" },
+          { name: "Nacho Burger", description: "Seasonal. 2 smashed patties, bacon, sweet chilli, nacho chips, onion rings and guacamole.", price: 145, image: "/images/menu/burgers/nacho-burger-v2.webp" },
         ]
       },
       {
         name: "Small Plates",
+        // Nachos (Full) and Meatballs use real iPhone photos. The other Small Plates
+        // photos are AI-generated (Codex, 2026-11-19) under the CLAUDE.md AI-imagery
+        // override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Russian & Chips", description: "Extra Russian R35", price: 65 },
-          { name: "Jalapeño Poppers (Half)", description: "Seasonal. 2 homemade jalapeño poppers.", price: 65 },
-          { name: "Jalapeño Poppers (Full)", description: "Seasonal. 4 homemade jalapeño poppers.", price: 100 },
-          { name: "Nachos (Half)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 80 },
-          { name: "Nachos (Full)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 130 },
-          { name: "Steak Strips", description: "180g basted steak strips with cheese, pepper or mushroom sauce", price: 110 },
-          { name: "Loaded Fries", description: "Chips with cheese, bacon and chicken. Extra Russian with this dish R30.", price: 90 },
-          { name: "Loaded Fries with Extra Russian", description: "Chips with cheese, bacon, chicken and an extra Russian", price: 90 + 30 },
-          { name: "Plate of Chips", price: 50 },
-          { name: "Plate of Onion Rings", price: 40 },
+          { name: "Russian & Chips", description: "Extra Russian R35", price: 65, image: "/images/menu/small-plates/russian-and-chips.webp" },
+          { name: "Jalapeño Poppers (Half)", description: "Seasonal. 2 homemade jalapeño poppers.", price: 65, image: "/images/menu/small-plates/jalapeno-poppers-half.webp" },
+          { name: "Jalapeño Poppers (Full)", description: "Seasonal. 4 homemade jalapeño poppers.", price: 100, image: "/images/menu/small-plates/jalapeno-poppers-full.webp" },
+          { name: "Nachos (Half)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 80, image: "/images/menu/small-plates/nachos-half.webp" },
+          { name: "Nachos (Full)", description: "Seasonal. Nacho chips with cheese, salsa and guacamole, mild or spicy. Extra cream cheese R35.", price: 130, image: "/images/menu/small-plates/nachos.webp" },
+          { name: "Steak Strips", description: "180g basted steak strips with cheese, pepper or mushroom sauce", price: 110, image: "/images/menu/small-plates/steak-strips.webp" },
+          { name: "Loaded Fries", description: "Chips with cheese, bacon and chicken. Extra Russian with this dish R30.", price: 90, image: "/images/menu/small-plates/loaded-fries.webp" },
+          { name: "Loaded Fries with Extra Russian", description: "Chips with cheese, bacon, chicken and an extra Russian", price: 90 + 30, image: "/images/menu/small-plates/loaded-fries-extra-russian.webp" },
+          { name: "Plate of Chips", price: 50, image: "/images/menu/small-plates/plate-of-chips.webp" },
+          { name: "Plate of Onion Rings", price: 40, image: "/images/menu/small-plates/plate-of-onion-rings.webp" },
           { name: "Meatballs", description: "4 meatballs with basting", price: 70, image: "/images/menu/small-plates/meatballs.webp" },
-          { name: "Italian Meatballs", description: "4 meatballs with Napolitana sauce and mozzarella", price: 90 },
-          { name: "Mozzarella Sticks", description: "3 homemade sticks with sweet chilli sauce", price: 90 },
-          { name: "Halloumi Sticks", description: "3 grilled sticks with sweet chilli sauce", price: 110 },
-          { name: "Crumbed Mushroom", description: "6 homemade panko-crusted mushrooms with cheese, pepper or mushroom sauce", price: 80 },
+          { name: "Italian Meatballs", description: "4 meatballs with Napolitana sauce and mozzarella", price: 90, image: "/images/menu/small-plates/italian-meatballs.webp" },
+          { name: "Mozzarella Sticks", description: "3 homemade sticks with sweet chilli sauce", price: 90, image: "/images/menu/small-plates/mozzarella-sticks.webp" },
+          { name: "Halloumi Sticks", description: "3 grilled sticks with sweet chilli sauce", price: 110, image: "/images/menu/small-plates/halloumi-sticks.webp" },
+          { name: "Crumbed Mushroom", description: "6 homemade panko-crusted mushrooms with cheese, pepper or mushroom sauce", price: 80, image: "/images/menu/small-plates/crumbed-mushroom.webp" },
         ]
       },
       {
@@ -303,50 +313,60 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
+        // Chicken Wings, Chicken Strips and Chicken Schnitzel (Half) are AI-generated
+        // (Codex, 2026-11-19) under the CLAUDE.md override. The Full photo is real.
         note: "With chips, salad or vegetables",
         items: [
-          { name: "Chicken Wings", description: "3 wings with sweet chilli sauce", price: 100, popular: true },
-          { name: "Chicken Strips", description: "6 homemade panko-crusted strips with sweet chilli sauce", price: 80 },
-          { name: "Chicken Schnitzel (Half)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 80 },
-          { name: "Chicken Schnitzel (Full)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 130 },
+          { name: "Chicken Wings", description: "3 wings with sweet chilli sauce", price: 100, popular: true, image: "/images/menu/chicken-meals/chicken-wings-three.webp" },
+          { name: "Chicken Strips", description: "6 homemade panko-crusted strips with sweet chilli sauce", price: 80, image: "/images/menu/chicken-meals/chicken-strips-six.webp" },
+          { name: "Chicken Schnitzel (Half)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 80, image: "/images/menu/chicken-meals/chicken-schnitzel-half.webp" },
+          { name: "Chicken Schnitzel (Full)", description: "Homemade panko-crusted schnitzel with cheese, pepper or mushroom sauce", price: 130, image: "/images/menu/chicken-meals/chicken-schnitzel.webp" },
         ]
       },
       {
         name: "Toasted Sandwiches",
+        // Toasted Sandwiches photos are AI-generated (Codex, 2026-11-19) under the
+        // CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips",
         items: [
-          { name: "Chicken Mayo & Mozzarella", price: 80 },
+          { name: "Chicken Mayo & Mozzarella", price: 80, image: "/images/menu/toasted-sandwiches/chicken-mayo-and-mozzarella.webp" },
           { name: "Bacon & Cheese", price: 70, image: "/images/menu/toasted-sandwiches/bacon-and-cheese.webp" },
           { name: "Cheese & Tomato", price: 55, image: "/images/menu/toasted-sandwiches/cheese-and-tomato.webp" },
-          { name: "Bacon, Egg & Cheese", price: 80 },
-          { name: "Bacon, Mushroom & Cheese", price: 80 },
+          { name: "Bacon, Egg & Cheese", price: 80, image: "/images/menu/toasted-sandwiches/bacon-egg-and-cheese.webp" },
+          { name: "Bacon, Mushroom & Cheese", price: 80, image: "/images/menu/toasted-sandwiches/bacon-mushroom-and-cheese.webp" },
         ]
       },
       {
         name: "Wraps",
+        // Wraps photos are AI-generated (Codex, 2026-11-19) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         note: "With chips",
         items: [
-          { name: "Chicken Wrap", description: "Crumbed chicken, feta, mozzarella, cheddar, lettuce, tomato, red onion and bell peppers", price: 105 },
-          { name: "Steak Strip Wrap", description: "200g steak strips, feta, mozzarella, cheddar, lettuce, tomato and red onions", price: 130 },
+          { name: "Chicken Wrap", description: "Crumbed chicken, feta, mozzarella, cheddar, lettuce, tomato, red onion and bell peppers", price: 105, image: "/images/menu/wraps/chicken-wrap.webp" },
+          { name: "Steak Strip Wrap", description: "200g steak strips, feta, mozzarella, cheddar, lettuce, tomato and red onions", price: 130, image: "/images/menu/wraps/steak-strip-wrap.webp" },
         ]
       },
       {
         name: "Salads",
+        // Greek Salad, Burger Salad, Chicken Salad and Halloumi Salad use AI photos
+        // under the CLAUDE.md override. Steak Salad and Jimmy's Salad use real photos.
         items: [
           { name: "Greek Salad", description: "Lettuce, tomato, onion, cucumber, olives and feta", price: 70, image: "/images/menu/salads/greek-salad.webp" },
-          { name: "Chicken Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken and avocado.", price: 110 },
-          { name: "Steak Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, steak strips and avocado.", price: 120 },
+          { name: "Chicken Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken and avocado.", price: 110, image: "/images/menu/salads/chicken-salad-with-avocado.webp" },
+          { name: "Steak Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, steak strips and avocado.", price: 120, image: "/images/menu/salads/steak-salad.webp" },
           { name: "Jimmy's Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, chicken, bacon and avocado.", price: 130, image: "/images/menu/salads/jimmys-salad.webp" },
           { name: "Burger Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, feta, a 180g patty, bacon and avocado.", price: 140, image: "/images/menu/salads/burger-salad.webp" },
-          { name: "Halloumi Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, halloumi, avocado and bacon.", price: 110 },
+          { name: "Halloumi Salad", description: "Seasonal. Lettuce, tomato, onion, cucumber, olives, halloumi, avocado and bacon.", price: 110, image: "/images/menu/salads/halloumi-salad.webp" },
         ]
       },
       {
         name: "Desserts",
+        // Ice Cream & Chocolate Sauce is AI-generated (Codex, 2026-11-19) under the
+        // CLAUDE.md override. Italian Kisses and Affogato use real photos.
         items: [
           { name: "Cake of the Day", price: 50 },
-          { name: "Ice Cream & Chocolate Sauce", price: 35 },
-          { name: "Italian Kisses (4 pieces)", price: 60 },
+          { name: "Ice Cream & Chocolate Sauce", price: 35, image: "/images/menu/desserts/ice-cream-and-chocolate-sauce.webp" },
+          { name: "Italian Kisses (4 pieces)", price: 60, image: "/images/menu/desserts/italian-kisses.webp" },
           { name: "Affogato", description: "Ice cream and espresso", price: 50, popular: true, image: "/images/menu/desserts/affogato.webp" },
         ]
       },

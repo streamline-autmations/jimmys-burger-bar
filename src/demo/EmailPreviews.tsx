@@ -172,7 +172,10 @@ export const EmailPreviews: React.FC = () => {
       <div
         aria-live="polite"
         aria-label="Emails sent"
-        className="pointer-events-none fixed right-3 top-3 z-[305] flex w-[min(calc(100vw-1.5rem),23rem)] flex-col gap-2.5 sm:right-5 sm:top-5"
+        className={`pointer-events-none fixed right-3 z-[305] flex w-[min(calc(100vw-1.5rem),23rem)] flex-col gap-2.5 sm:right-5 ${
+          // The kitchen screen's sound, refresh and full-screen buttons live in its top bar.
+          location.pathname === '/admin/kitchen' ? 'top-44 sm:top-20' : 'top-3 sm:top-5'
+        }`}
       >
         <AnimatePresence initial={false}>
           {previews.map((item) => (

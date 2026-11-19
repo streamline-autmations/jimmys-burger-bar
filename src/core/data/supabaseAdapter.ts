@@ -34,6 +34,7 @@ function joinOrderSignal() {
 }
 
 export const supabaseAdapter: DataAdapter = {
+  storedWith: 'Supabase',
   subscribe(listener, onLive) {
     // Only pay-first projects have the order signal; elsewhere the console keeps
     // polling and says so.
@@ -76,6 +77,18 @@ export const supabaseAdapter: DataAdapter = {
     const { error } = await withTimeout(Promise.resolve(supabase.from('staff_push_subscriptions').delete().eq('endpoint', endpoint)));
     if (error) throw error;
   },
+  async addGuestPush(reference, email, subscription) {
+    if (!subscription) return false;
+    const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('add_guest_push', {
+      p_reference: reference.trim(), p_email: email.trim(), p_endpoint: subscription.endpoint, p_p256dh: subscription.p256dh, p_auth: subscription.auth,
+    })));
+    if (error) throw error;
+    return data === true;
+  },
+  async removeGuestPush(reference, email, endpoint) {
+    const { error } = await withTimeout(Promise.resolve(supabase.rpc('remove_guest_push', { p_reference: reference.trim(), p_email: email.trim(), p_endpoint: endpoint })));
+    if (error) throw error;
+  },
   async orderingState() {
     const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('ordering_state')));
     if (error) throw error;
@@ -96,6 +109,20 @@ export const supabaseAdapter: DataAdapter = {
     if (error) throw error;
     return data?.role ?? null;
   },
+  // Pay-first projects only: the report function arrives with the payments migration.
+  orderReport: config.ordering.payment === 'payfast' ? async () => {
+    // Paged: PostgREST caps one response (max-rows, 1,000 by default), and a short
+    // read would show a month's total without its oldest orders.
+    const PAGE = 1000;
+    const rows = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('collection_commission_report')
+        .order('month', { ascending: false }).order('reference', { ascending: false }).range(from, from + PAGE - 1)));
+      if (error) throw error;
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE) return rows;
+    }
+  } : undefined,
   async setItemAvailable(name, available) {
     const { error } = await withTimeout(Promise.resolve(supabase.rpc('set_menu_item_available', { p_name: name, p_available: available })));
     if (error) throw error;

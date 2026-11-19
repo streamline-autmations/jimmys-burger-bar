@@ -268,9 +268,14 @@ test('the guest app opens on the order page and its worker caches only the offli
   assert.equal(manifest.start_url, '/order');
   assert.equal(manifest.scope, '/');
   assert.equal(manifest.display, 'standalone');
-  assert.equal(manifest.icons.length, 3);
+  assert.equal(manifest.id, '/order', 'the installed app keeps its identity');
+  assert.equal(manifest.icons.length, 4);
+  assert.deepEqual(manifest.icons.map((icon) => icon.purpose).sort(), ['any', 'any', 'maskable', 'maskable']);
+  assert.deepEqual(manifest.shortcuts.map((shortcut) => shortcut.url), ['/orders', '/order?view=cart']);
+  assert.ok(manifest.description && manifest.lang, 'description and language for the store listing');
+  for (const shot of manifest.screenshots ?? []) assert.ok(fs.existsSync(`public${shot.src}`), shot.src);
   assert.equal(JSON.parse(plugin.staffManifest(jimmys, 'public')).scope, '/admin/', 'the staff app stays separate');
-  const worker = plugin.customerServiceWorker();
+  const worker = plugin.customerServiceWorker(jimmys, 'public');
   assert.match(worker, /addEventListener\('fetch'/);
   assert.match(worker, /mode !== 'navigate'/);
   assert.doesNotMatch(worker, /\.put\(|addAll/, 'no menu, price or order is ever cached');
@@ -297,4 +302,16 @@ test("todayHoursLabel reads Jimmy's hours in the restaurant's own timezone", asy
   assert.equal(at('2026-11-20T10:00:00+02:00'), 'Open today 09:00 – midnight'); // Friday closes "00:00"
   assert.equal(at('2026-11-22T10:00:00+02:00'), 'Closed today'); // Sunday
   assert.equal(at('2026-11-20T23:30:00Z'), 'Open today 09:00 – midnight'); // already Saturday in Meyerton
+});
+
+test('order again uses today\'s prices and names every dish it had to leave out', () => {
+  const { rebuildCart } = load('src/lib/orderHistory.ts');
+  const menu = [{ name: 'Smash Burger', price: 11000 }, { name: 'Chips', price: 3500 }, { name: 'Market Fish', price: 0 }];
+  const { lines, skipped } = rebuildCart(
+    [{ name: 'Smash Burger', qty: 2 }, { name: 'Retired Burger', qty: 1 }, { name: 'Chips', qty: 1 }, { name: 'Market Fish', qty: 1 }, { name: 'Smash Burger', qty: 1 }],
+    menu,
+  );
+  assert.deepEqual(lines, [{ name: 'Smash Burger', price: 11000, qty: 3 }, { name: 'Chips', price: 3500, qty: 1 }]);
+  assert.deepEqual(skipped, ['Retired Burger', 'Market Fish'], 'an unpriced dish is left out too, never added at R0');
+  assert.equal(rebuildCart([{ name: 'Chips', qty: 500 }], menu).lines[0].qty, 99, 'capped like the cart');
 });

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Clock3, LoaderCircle, MessageCircle, RotateCw, Search, WifiOff, X } from 'lucide-react';
+import { Bell, BellOff, Check, Clock3, LoaderCircle, MessageCircle, RotateCw, Search, WifiOff, X } from 'lucide-react';
 import { config } from '../config';
 import { copy, formatMoney, orderCtaLabel } from '../core/tenant';
 import { toMinor } from '../core/domain/money';
@@ -15,6 +15,9 @@ import { paymentStartMessage, readPending, submitHostedForm, writePending } from
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { Starburst } from '../components/Starburst';
 import { InstallApp } from '../components/InstallApp';
+import { useAppShell } from '../lib/appShell';
+import { findSavedOrder, orderAgain } from '../lib/orderHistory';
+import { alertState, disableAlert, enableAlert, type AlertState } from '../lib/guestPush';
 
 type TrackField = 'reference' | 'contact';
 
@@ -41,10 +44,11 @@ const dateOnly = new Intl.DateTimeFormat(config.locale, {
 
 const panel = 'bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]';
 
+type LookupTarget = { reference: string; contact: string };
 type LookupState =
   | { phase: 'idle' }
   | { phase: 'loading' }
-  | { phase: 'found'; result: LookupResult; checkedAt: Date }
+  | { phase: 'found'; result: LookupResult; target: LookupTarget; checkedAt: Date }
   | { phase: 'not-found' }
   | { phase: 'error'; offline: boolean };
 
@@ -61,9 +65,13 @@ export const Track: React.FC = () => {
   const [reference, setReference] = useState(() => params.get('ref') ?? '');
   // Back from the payment page: this device remembers which order and which
   // email, so the guest lands on their status instead of an empty form.
+  const appShell = useAppShell();
   const [contact, setContact] = useState(() => {
     const saved = readPending();
-    return saved && (!params.get('ref') || saved.reference === params.get('ref')) ? saved.email : '';
+    if (saved && (!params.get('ref') || saved.reference === params.get('ref'))) return saved.email;
+    // The installed app remembers the email each of its own orders was placed with.
+    const ref = params.get('ref');
+    return (appShell && ref && findSavedOrder(ref)?.email) || '';
   });
   // 'return' or 'cancelled', as the payment page sent the guest back. Navigation only: never proof of payment.
   const [arrival] = useState(() => params.get('pay'));
@@ -86,28 +94,31 @@ export const Track: React.FC = () => {
     .map((field) => ({ fieldId: `track-${field}`, message: form.visible[field]! }));
 
   // `silent` is the background re-check: it never blanks or replaces what is on screen with an error.
-  const lookup = async (silent = false) => {
+  const lookup = useCallback(async (target: LookupTarget, silent = false) => {
     const id = ++request.current;
     if (!silent) setState({ phase: 'loading' });
     try {
-      const result = await db.lookupRequest(reference, contact);
+      const result = await db.lookupRequest(target.reference, target.contact);
       if (id !== request.current) return;
       if (result) {
         firstFound.current ||= Date.now();
-        setState({ phase: 'found', result, checkedAt: new Date() });
-        setParams({ ref: result.reference }, { replace: true });
+        setState({ phase: 'found', result, target, checkedAt: new Date() });
+        if (!silent) setParams({ ref: result.reference }, { replace: true });
       } else if (!silent) setState({ phase: 'not-found' });
     } catch (error) {
       if (id !== request.current || silent) return;
       setState({ phase: 'error', offline: isOffline(error) });
     }
     if (!silent) requestAnimationFrame(() => outcomeRef.current?.focus({ preventScroll: false }));
-  };
+  }, [setParams]);
+
+  const checkForm = () => lookup({ reference: reference.trim(), contact: contact.trim() });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (reference.trim() && contact.trim()) void lookup(); }, []);
+  useEffect(() => { if (reference.trim() && contact.trim()) void checkForm(); }, []);
 
   const order = state.phase === 'found' && state.result.kind === 'order' ? state.result : null;
+  const matched = state.phase === 'found' ? state.target : null;
   const payment = order?.payment_status && order.payment_status !== 'not_required' ? order.payment_status : null;
   const closed = order ? order.status === 'completed' || order.status === 'cancelled' : true;
 
@@ -116,11 +127,10 @@ export const Track: React.FC = () => {
   const pollMs = !payment || closed || payment === 'failed' ? 0
     : payment === 'pending' && Date.now() - firstFound.current < 120_000 ? 3000 : 15_000;
   useEffect(() => {
-    if (!pollMs) return;
-    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void lookup(true); }, pollMs);
+    if (!pollMs || !matched) return;
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void lookup(matched, true); }, pollMs);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pollMs, reference, contact]);
+  }, [pollMs, matched, lookup]);
 
   // The cart survives the trip to the payment page and is emptied here, once,
   // when the server says the money arrived. A dead order stops being offered for payment.
@@ -135,11 +145,11 @@ export const Track: React.FC = () => {
   }, [order, payment, closed]);
 
   const payNow = async () => {
-    if (!order) return;
+    if (!order || !matched) return;
     setPaying(true);
     setPayError(null);
     try {
-      submitHostedForm(await db.beginPayment!(order.reference, contact.trim()));
+      submitHostedForm(await db.beginPayment!(order.reference, matched.contact));
     } catch (error) {
       setPaying(false);
       setPayError(paymentStartMessage(error instanceof Error ? error.message : ''));
@@ -149,13 +159,13 @@ export const Track: React.FC = () => {
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.attempt()) return;
-    void lookup();
+    void checkForm();
   };
 
   const loading = state.phase === 'loading';
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div className={`${appShell ? 'pt-3' : 'pt-28'} pb-24 min-h-screen`}>
       <div className="max-w-xl mx-auto px-4 md:px-8">
         <motion.div {...fadeInUp} className="mb-8">
           <span className="font-script text-2xl text-primary">{copy.track.eyebrow}</span>
@@ -217,27 +227,94 @@ export const Track: React.FC = () => {
                 {state.offline ? 'You seem to be offline' : 'We could not check right now'}
               </p>
               <p className="mt-2 text-sm">{state.offline ? 'Reconnect and try again.' : 'This is on our side, not a problem with your request. Try again in a moment.'}</p>
-              <button type="button" onClick={() => void lookup()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 font-display text-sm font-bold text-surface">
+              <button type="button" onClick={() => void checkForm()} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 font-display text-sm font-bold text-surface">
                 <RotateCw size={16} aria-hidden="true" /> Try again
               </button>
             </div>
           )}
 
           {state.phase === 'found' && (order && payment
-            ? <PaidOrder order={order} payment={payment} arrival={arrival} paying={paying} payError={payError} onPay={() => void payNow()} checkedAt={state.checkedAt} live={pollMs > 0} onRefresh={() => void lookup()} />
-            : <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup()} />)}
+            ? <PaidOrder order={order} payment={payment} arrival={arrival} paying={paying} payError={payError} onPay={() => void payNow()} checkedAt={state.checkedAt} live={pollMs > 0} onRefresh={() => void lookup(state.target)} />
+            : <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup(state.target)} />)}
+          {order && matched?.contact.includes('@') && <OrderAlert key={order.reference} order={order} email={matched.contact} />}
           {/* Right after paying is when the app is worth most: next time it opens on the menu. */}
           {order && payment && !['pending', 'failed', 'expired'].includes(payment) && order.status !== 'cancelled' && (
             <InstallApp placement="after-order" className="mt-8" />
           )}
         </div>
 
-        <p className="mt-10 text-center text-sm text-ink/70">
+        {state.phase !== 'found' && <p className="mt-10 text-center text-sm text-ink/70">
           Nothing to track yet? <Link to="/order" className="font-bold text-primary underline underline-offset-2">{orderCtaLabel}</Link>
           {config.features.reservations && <> or <Link to="/visit#book" className="font-bold text-primary underline underline-offset-2">book a table</Link></>}.
-        </p>
+        </p>}
       </div>
     </div>
+  );
+};
+
+/**
+ * "Tell me when it is ready": one alert at ready, and for a delivery one more
+ * when it leaves. Offered only while the order is paid (or needs no payment)
+ * and still on its way, and only where it can actually work.
+ */
+const OrderAlert: React.FC<{ order: OrderResult; email: string }> = ({ order, email }) => {
+  const delivery = order.order_type === 'delivery';
+  const paid = !order.payment_status || order.payment_status === 'paid' || order.payment_status === 'not_required';
+  const coming = ['new', 'accepted', 'preparing'].includes(order.status) || (delivery && order.status === 'ready');
+  const [state, setState] = useState<AlertState>(() => alertState(order.reference));
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  if (!paid || !coming || state === 'unavailable') return null;
+
+  const run = async (work: () => Promise<AlertState>) => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      setState(await work());
+    } catch (failure) {
+      setProblem(failure instanceof Error && failure.message === 'ALERT_REFUSED'
+        ? 'This order can no longer get an alert. It may already be ready or collected.'
+        : 'This phone could not switch the alert on just now. Try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const what = delivery ? 'when it is ready and when it leaves' : 'when it is ready to collect';
+
+  return (
+    <section aria-labelledby="order-alert-heading" className="mt-4 flex scroll-mb-28 gap-4 rounded-2xl bg-ink p-5 text-paper">
+      <span className={`mt-0.5 flex h-11 w-11 shrink-0 -rotate-6 items-center justify-center rounded-full ${state === 'on' ? 'bg-accent text-ink' : 'bg-paper/10 text-accent'}`} aria-hidden="true">
+        {state === 'blocked' ? <BellOff size={20} /> : <Bell size={20} />}
+      </span>
+      <div className="min-w-0">
+        <h2 id="order-alert-heading" className="font-display text-lg font-extrabold text-accent">
+          {state === 'on' ? 'Alert is on' : 'Get an alert on this phone'}
+        </h2>
+        {state === 'needs-home-screen' && (
+          <p className="mt-1 text-sm text-paper/85">
+            On iPhone, alerts only work once {config.venue.name} is on your Home Screen (iOS 16.4 or later): tap Share, then Add to Home Screen, then open it from there and track this order again.
+          </p>
+        )}
+        {state === 'blocked' && <p className="mt-1 text-sm text-paper/85">Notifications are switched off for this site. Allow them in your phone's settings to get an alert.</p>}
+        {state === 'off' && (
+          <>
+            <p className="mt-1 text-sm text-paper/85">We send one alert {what}. It shows no name, dish or amount.</p>
+            <button type="button" disabled={busy} onClick={() => void run(() => enableAlert(order.reference, email))} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 font-display text-sm font-bold text-ink disabled:opacity-60">
+              <Bell size={16} aria-hidden="true" /> {busy ? 'Switching on…' : 'Tell me when it is ready'}
+            </button>
+          </>
+        )}
+        {state === 'on' && (
+          <>
+            <p className="mt-1 text-sm text-paper/85">This phone gets an alert {what}.</p>
+            <button type="button" disabled={busy} onClick={() => void run(() => disableAlert(order.reference, email))} className="mt-3 inline-flex min-h-11 items-center rounded-full border border-paper/30 px-5 font-display text-sm font-bold text-paper disabled:opacity-60">
+              Turn off
+            </button>
+          </>
+        )}
+        {problem && <p role="alert" className="mt-3 text-sm font-semibold text-accent">{problem}</p>}
+      </div>
+    </section>
   );
 };
 
@@ -254,6 +331,28 @@ const ContactLine: React.FC<{ reference: string }> = ({ reference }) => (
 
 type OrderResult = Extract<LookupResult, { kind: 'order' }>;
 const checkedTime = new Intl.DateTimeFormat(config.locale, { timeZone: config.timezone, hour: '2-digit', minute: '2-digit' });
+
+/**
+ * Order again from the tracking page: the same dishes at today's prices, straight
+ * to checkout. Anything no longer on the menu is named there, never swapped.
+ */
+const ReorderButton: React.FC<{ order: { items: { name: string; qty: number }[]; order_type: 'collection' | 'delivery' | 'table' }; className?: string }> = ({ order, className = '' }) => {
+  const navigate = useNavigate();
+  const appShell = useAppShell();
+  if (order.items.length === 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const skipped = orderAgain({ items: order.items, orderType: order.order_type });
+        navigate(appShell ? '/order?view=cart' : '/order', { state: { skipped, reordered: true } });
+      }}
+      className={`inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 font-display font-bold text-surface ${className}`}
+    >
+      <RotateCw size={16} aria-hidden="true" /> Order this again
+    </button>
+  );
+};
 
 /**
  * A pay-first order. Payment and fulfilment are two separate facts and are
@@ -333,7 +432,7 @@ const PaidOrder: React.FC<{
       )}
       {(payment === 'failed' || payment === 'expired') && (
         <div className="mt-5">
-          <Link to="/order" className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-display font-bold text-surface">Order again</Link>
+          <ReorderButton order={order} />
           <WhatsAppFallback lines={order.items} className="mt-4" />
         </div>
       )}
@@ -375,6 +474,7 @@ const PaidOrder: React.FC<{
           {order.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
         </ul>
       )}
+      {order.status === 'completed' && <ReorderButton order={order} className="mt-5" />}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-4 text-sm text-ink/65">
         <span>Checked at {checkedTime.format(checkedAt)}{live ? '. Updates on its own while this page is open.' : ''}</span>
         <button type="button" onClick={onRefresh} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/20 px-4 font-display font-bold text-ink">
@@ -431,8 +531,10 @@ const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: bool
       {!cancelled && (
         <ol className="mt-6 space-y-0" aria-label="Order progress">
           {ORDER_STEPS.map((step, index) => {
-            const done = index < currentIndex;
-            const current = index === currentIndex;
+            // A completed order has every step ticked, the last one included.
+            const finished = result.status === 'completed';
+            const done = index < currentIndex || finished;
+            const current = !finished && index === currentIndex;
             return (
               <li key={step.status} className="relative flex items-center gap-3 pb-4 last:pb-0" aria-current={current ? 'step' : undefined}>
                 {index < ORDER_STEPS.length - 1 && (
@@ -467,6 +569,7 @@ const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: bool
           {result.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
         </ul>
       )}
+      {result.status === 'completed' && <ReorderButton order={result} className="mt-5" />}
       {refresh}
     </article>
   );

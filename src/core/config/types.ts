@@ -218,6 +218,18 @@ export interface RestaurantConfig {
     /** Public path of the signed Android app file, e.g. "/downloads/jimmys.apk" (see docs/restaurant-direct/APP.md). */
     androidApk?: string;
   };
+  /**
+   * Facts only the restaurant can give for the /privacy page (POPIA). Unset
+   * fields are shown as "to be confirmed", never filled in for them.
+   */
+  privacy?: {
+    /** The legal name of the business that runs the restaurant. */
+    operator?: string;
+    /** The POPIA information officer: a name and how to reach them. */
+    informationOfficer?: string;
+    /** How long order and booking records are kept. */
+    retention?: string;
+  };
   booking: BookingConfig;
   specials: {
     intro: string;

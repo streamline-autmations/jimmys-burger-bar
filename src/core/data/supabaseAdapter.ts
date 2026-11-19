@@ -34,6 +34,7 @@ function joinOrderSignal() {
 }
 
 export const supabaseAdapter: DataAdapter = {
+  storedWith: 'Supabase',
   subscribe(listener, onLive) {
     // Only pay-first projects have the order signal; elsewhere the console keeps
     // polling and says so.
@@ -74,6 +75,18 @@ export const supabaseAdapter: DataAdapter = {
   },
   async deletePushSubscription(endpoint) {
     const { error } = await withTimeout(Promise.resolve(supabase.from('staff_push_subscriptions').delete().eq('endpoint', endpoint)));
+    if (error) throw error;
+  },
+  async addGuestPush(reference, email, subscription) {
+    if (!subscription) return false;
+    const { data, error } = await withTimeout(Promise.resolve(supabase.rpc('add_guest_push', {
+      p_reference: reference.trim(), p_email: email.trim(), p_endpoint: subscription.endpoint, p_p256dh: subscription.p256dh, p_auth: subscription.auth,
+    })));
+    if (error) throw error;
+    return data === true;
+  },
+  async removeGuestPush(reference, email, endpoint) {
+    const { error } = await withTimeout(Promise.resolve(supabase.rpc('remove_guest_push', { p_reference: reference.trim(), p_email: email.trim(), p_endpoint: endpoint })));
     if (error) throw error;
   },
   async orderingState() {

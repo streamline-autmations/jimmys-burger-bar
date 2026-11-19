@@ -251,6 +251,11 @@ export type Database = {
         Returns: { reference: string; month: string; food_subtotal: number; delivery: number; refunds: number; payment_state: string; fulfilment_state: string; commission_base: number }[]
       }
       mark_delivery_failed: { Args: { p_order_id: string }; Returns: undefined }
+      add_guest_push: {
+        Args: { p_reference: string; p_email: string; p_endpoint: string; p_p256dh: string; p_auth: string }
+        Returns: boolean
+      }
+      remove_guest_push: { Args: { p_reference: string; p_email: string; p_endpoint: string }; Returns: undefined }
       create_delivery_order: {
         Args: {
           p_order_no: string

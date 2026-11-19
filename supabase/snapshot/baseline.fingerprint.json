@@ -31,6 +31,26 @@
   },
   {
     "kind": "column_grant",
+    "name": "guest_order_push anon",
+    "fingerprint": "3410e145e49c8c24b2274cadf939b5a8"
+  },
+  {
+    "kind": "column_grant",
+    "name": "guest_order_push authenticated",
+    "fingerprint": "3410e145e49c8c24b2274cadf939b5a8"
+  },
+  {
+    "kind": "column_grant",
+    "name": "guest_push_subscriptions anon",
+    "fingerprint": "8375358ee00c595d794f12b783698aa6"
+  },
+  {
+    "kind": "column_grant",
+    "name": "guest_push_subscriptions authenticated",
+    "fingerprint": "8375358ee00c595d794f12b783698aa6"
+  },
+  {
+    "kind": "column_grant",
     "name": "menu_items anon",
     "fingerprint": "879d79b99dd4219bd55e408eed7ce8c6"
   },
@@ -121,6 +141,11 @@
   },
   {
     "kind": "function",
+    "name": "add_guest_push(p_reference text, p_email text, p_endpoint text, p_p256dh text, p_auth text)",
+    "fingerprint": "d5b972782785f6f6a88ecc63e74e5079"
+  },
+  {
+    "kind": "function",
     "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text)",
     "fingerprint": "40efb895f5c6ccbcdabb02cc13222d52"
   },
@@ -168,6 +193,11 @@
     "kind": "function",
     "name": "expire_pending_payments()",
     "fingerprint": "c3d9549d1f71647b39fde8d0da8723e9"
+  },
+  {
+    "kind": "function",
+    "name": "forget_guest_push()",
+    "fingerprint": "8c59652afeacf058a85f67e4142ef4d5"
   },
   {
     "kind": "function",
@@ -226,6 +256,11 @@
   },
   {
     "kind": "function",
+    "name": "queue_guest_push()",
+    "fingerprint": "7a2b813e62135addc900b182930cfd1a"
+  },
+  {
+    "kind": "function",
     "name": "queue_order_push()",
     "fingerprint": "9bfa8b40e8ca22d084850299ab115b26"
   },
@@ -233,6 +268,11 @@
     "kind": "function",
     "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid)",
     "fingerprint": "269c2c2afc55e8c6394a5d160f5ae497"
+  },
+  {
+    "kind": "function",
+    "name": "remove_guest_push(p_reference text, p_email text, p_endpoint text)",
+    "fingerprint": "8a7a5c46895f0908e27707a5a4d0cda6"
   },
   {
     "kind": "function",
@@ -283,6 +323,16 @@
     "kind": "function",
     "name": "upsert_customer(p_name text, p_email text, p_phone text, p_marketing_consent boolean)",
     "fingerprint": "288c30c8fc57995bd2f174def7b54a39"
+  },
+  {
+    "kind": "function_exec",
+    "name": "add_guest_push(p_reference text, p_email text, p_endpoint text, p_p256dh text, p_auth text) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "add_guest_push(p_reference text, p_email text, p_endpoint text, p_p256dh text, p_auth text) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
   {
     "kind": "function_exec",
@@ -382,6 +432,16 @@
   {
     "kind": "function_exec",
     "name": "expire_pending_payments() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "forget_guest_push() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "forget_guest_push() authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -496,6 +556,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "queue_guest_push() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "queue_guest_push() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "queue_order_push() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -513,6 +583,16 @@
     "kind": "function_exec",
     "name": "record_payment_refund(p_reference text, p_refund_id text, p_amount numeric, p_confirmed boolean, p_reviewer uuid) authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "remove_guest_push(p_reference text, p_email text, p_endpoint text) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "remove_guest_push(p_reference text, p_email text, p_endpoint text) authenticated",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
   },
   {
     "kind": "function_exec",
@@ -686,6 +766,16 @@
   },
   {
     "kind": "table",
+    "name": "guest_order_push",
+    "fingerprint": "441c889834b3cac0db933ecbc0fe61be"
+  },
+  {
+    "kind": "table",
+    "name": "guest_push_subscriptions",
+    "fingerprint": "fa568d97c291da1c21433a7f6dc1659d"
+  },
+  {
+    "kind": "table",
     "name": "menu_items",
     "fingerprint": "1c50b625ae035eaa929e3beda613d2ad"
   },
@@ -758,6 +848,26 @@
     "kind": "table_grant",
     "name": "customers authenticated",
     "fingerprint": "85fe4c43704bc5b95d3da94654df1466"
+  },
+  {
+    "kind": "table_grant",
+    "name": "guest_order_push anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "guest_order_push authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "guest_push_subscriptions anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "guest_push_subscriptions authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
   },
   {
     "kind": "table_grant",
@@ -896,6 +1006,11 @@
   },
   {
     "kind": "trigger",
+    "name": "orders.orders_forget_guest_push",
+    "fingerprint": "971a8568c2cee6c6e87e7dfafbe06195"
+  },
+  {
+    "kind": "trigger",
     "name": "orders.orders_guard_payment",
     "fingerprint": "fd967c60d2c6e6c3951ff2ffe908e402"
   },
@@ -903,6 +1018,11 @@
     "kind": "trigger",
     "name": "orders.orders_prepare_payment",
     "fingerprint": "c4b7f518234ccb212e823ad0793fcdff"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.orders_queue_guest_push",
+    "fingerprint": "e940097fd870b1bb78c9e87c77660335"
   },
   {
     "kind": "trigger",

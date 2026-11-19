@@ -94,6 +94,8 @@ function advance(table: 'orders' | 'bookings', id: string, from: string, to: str
     if (!row || row.status !== from || !nextStatuses(from, deliveryRun && 'order_type' in row ? row.order_type : undefined).includes(to)) return false;
     Object.assign(row, patch, { status: to });
     row.updated_at = new Date().toISOString();
+    // As the database does: a finished order's alert subscription is deleted.
+    if (table === 'orders' && (to === 'completed' || to === 'cancelled') && 'order_no' in row && next.alerts) delete next.alerts[row.order_no];
     moved = true;
     return true;
   });
@@ -292,6 +294,31 @@ export const adapter: DataAdapter = {
   async advanceBookingStatus(id, from, to) {
     await settle();
     advance('bookings', id, from, to);
+  },
+
+  // Guest order alerts, simulated: the demo shows the alert on screen
+  // (DemoShell) and never asks the browser for notification permission.
+  pushSimulated: true,
+  async addGuestPush(reference, email) {
+    await settle();
+    let added = false;
+    updateRecords((next) => {
+      const order = next.orders.find((row) => row.order_no.toUpperCase() === reference.trim().toUpperCase());
+      if (!order || !email.includes('@') || !sameContact(order, email) || order.status === 'completed' || order.status === 'cancelled') return false;
+      next.alerts = { ...next.alerts, [order.order_no]: next.alerts?.[order.order_no] ?? [] };
+      added = true;
+      return true;
+    });
+    return added;
+  },
+  async removeGuestPush(reference) {
+    await settle();
+    updateRecords((next) => {
+      const key = Object.keys(next.alerts ?? {}).find((ref) => ref.toUpperCase() === reference.trim().toUpperCase());
+      if (!key || !next.alerts) return false;
+      delete next.alerts[key];
+      return true;
+    });
   },
 
   subscribe(listener, onLive) {

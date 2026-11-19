@@ -1,11 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.109.0';
 import { importVapidKey, pushEndpoint, vapidHeaders } from './vapid.mjs';
 
-// GET: the VAPID public key, for the kitchen screen's opt-in.
+// GET: the VAPID public key, for the kitchen screen's and the guest's opt-in.
 // POST {order_id}: called by queue_order_push (pg_net) when an order becomes
 // paid. It claims the order_push row first, so it sends at most once per order
 // however often it is called; a caller who did not come from the trigger finds
 // nothing to claim. The push has no payload: the device shows generic text.
+// POST {order_id, status}: called by queue_guest_push when an order reaches
+// 'ready' (or 'out_for_delivery'). Same claim-first rule on guest_order_push,
+// sent only to that order's own guest_push_subscriptions.
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Access-Control-Allow-Methods': 'GET, OPTIONS' };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cors } });
@@ -21,20 +24,28 @@ Deno.serve(async (request: Request) => {
 
     const body = await request.text();
     if (body.length > 1024) return json({ error: 'INVALID_PAYLOAD' }, 400);
-    let orderId: unknown;
-    try { orderId = JSON.parse(body)?.order_id; } catch { /* falls through */ }
+    let parsed: { order_id?: unknown; status?: unknown } | null = null;
+    try { parsed = JSON.parse(body); } catch { /* falls through */ }
+    const orderId = parsed?.order_id;
+    const status = parsed?.status;
     if (typeof orderId !== 'string' || !UUID.test(orderId)) return json({ error: 'INVALID_PAYLOAD' }, 400);
+    if (status !== undefined && status !== 'ready' && status !== 'out_for_delivery') return json({ error: 'INVALID_PAYLOAD' }, 400);
+    const guest = status !== undefined;
 
     // Everything that can fail runs BEFORE the claim, so a failure leaves the
-    // order unsent and a later call can still deliver it.
+    // alert unsent and a later call can still deliver it.
     const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
     const key = await importVapidKey(publicKey, env('VAPID_PRIVATE_KEY'));
     const subject = env('VAPID_SUBJECT');
-    const { data: rows, error: readError } = await db.from('staff_push_subscriptions').select('endpoint');
+    const { data: rows, error: readError } = guest
+      ? await db.from('guest_push_subscriptions').select('endpoint').eq('order_id', orderId)
+      : await db.from('staff_push_subscriptions').select('endpoint');
     if (readError) throw Error('DATABASE_UNAVAILABLE');
 
-    const { data: claimed, error: claimError } = await db.from('order_push').update({ sent_at: new Date().toISOString() })
-      .eq('order_id', orderId).is('sent_at', null).select('order_id');
+    const dedupe = guest
+      ? db.from('guest_order_push').update({ sent_at: new Date().toISOString() }).eq('order_id', orderId).eq('status', status).is('sent_at', null).select('order_id')
+      : db.from('order_push').update({ sent_at: new Date().toISOString() }).eq('order_id', orderId).is('sent_at', null).select('order_id');
+    const { data: claimed, error: claimError } = await dedupe;
     if (claimError) throw Error('DATABASE_UNAVAILABLE');
     if (!claimed?.length) return json({ result: 'nothing_to_send' });
 
@@ -49,15 +60,19 @@ Deno.serve(async (request: Request) => {
           failed += 1;
           // 404/410: the browser dropped this subscription (unsubscribed, site data cleared).
           if (response.status === 404 || response.status === 410) gone.push(endpoint);
-          console.log(JSON.stringify({ event: 'push_refused', status: response.status, host: new URL(endpoint).hostname }));
+          console.log(JSON.stringify({ event: 'push_refused', status: response.status, host: new URL(endpoint).hostname, guest }));
         }
       } catch {
         failed += 1;
       }
     }));
-    if (gone.length) await db.from('staff_push_subscriptions').delete().in('endpoint', gone);
-    await db.from('order_push').update({ delivered, failed }).eq('order_id', orderId);
-    console.log(JSON.stringify({ event: 'push_sent', delivered, failed, removed: gone.length }));
+    if (gone.length) {
+      if (guest) await db.from('guest_push_subscriptions').delete().eq('order_id', orderId).in('endpoint', gone);
+      else await db.from('staff_push_subscriptions').delete().in('endpoint', gone);
+    }
+    if (guest) await db.from('guest_order_push').update({ delivered, failed }).eq('order_id', orderId).eq('status', status);
+    else await db.from('order_push').update({ delivered, failed }).eq('order_id', orderId);
+    console.log(JSON.stringify({ event: 'push_sent', guest, delivered, failed, removed: gone.length }));
     return json({ result: 'sent', delivered, failed });
   } catch (failure) {
     const code = failure instanceof Error && /^[A-Z_]+$/.test(failure.message) ? failure.message : 'INTERNAL';

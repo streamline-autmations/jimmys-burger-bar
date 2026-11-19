@@ -10,17 +10,62 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3, CalendarDays, ChefHat, ChevronUp, Home, LayoutDashboard, RotateCcw, Search,
-  ShoppingBag, Sparkles, Users, X,
+  ShoppingBag, Smartphone, Sparkles, Users, X,
 } from 'lucide-react';
 import { config } from './config';
 import { restaurantDate } from '../core/tenant';
 import { latestTime, openDates, tradingHours } from '../lib/tradingHours';
-import { resetRecords } from './store';
+import { resetRecords, subscribeRecords, updateRecords } from './store';
+import { setAppShellPreview, useAppShell } from '../lib/appShell';
 import { useCartStore } from '../lib/cartStore';
 import { EmailPreviews } from './EmailPreviews';
 import { WeekInNumbers } from './WeekInNumbers';
 
 const STRIP_HEIGHT = 40;
+/** The presenter's "Show as installed app" choice, for this tab only. Demo build only. */
+const APP_PREVIEW_KEY = 'rd-demo-app-shell';
+const readAppPreview = () => { try { return sessionStorage.getItem(APP_PREVIEW_KEY) === '1'; } catch { return false; } };
+// Applied before the first render, so a reload mid-demo stays in the app view.
+setAppShellPreview(readAppPreview());
+
+type SimulatedAlert = { reference: string; title: string };
+
+/**
+ * The guest's order alert, simulated: the real one is a payload-free Web Push
+ * (20261119120000). Fires once per status, like the server's dedupe row, and
+ * only in a customer-facing window, never on the staff console that caused it.
+ */
+function useSimulatedAlerts(onAdmin: boolean): [SimulatedAlert | null, () => void] {
+  const [alert, setAlert] = useState<SimulatedAlert | null>(null);
+  useEffect(() => {
+    if (onAdmin) return;
+    const check = () => {
+      const due: SimulatedAlert[] = [];
+      updateRecords((next) => {
+        let changed = false;
+        for (const [reference, sent] of Object.entries(next.alerts ?? {})) {
+          const order = next.orders.find((row) => row.order_no === reference);
+          const status = order?.status;
+          if (!order || !status || sent.includes(status)) continue;
+          if (status !== 'ready' && !(status === 'out_for_delivery' && order.order_type === 'delivery')) continue;
+          sent.push(status);
+          changed = true;
+          due.push({ reference, title: `Your order at ${config.venue.name} is ready` });
+        }
+        return changed;
+      });
+      if (due.length) setAlert(due[due.length - 1]);
+    };
+    check();
+    return subscribeRecords(check);
+  }, [onAdmin]);
+  useEffect(() => {
+    if (!alert) return;
+    const timer = window.setTimeout(() => setAlert(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [alert]);
+  return [alert, () => setAlert(null)];
+}
 
 /** The presenter's stand-in customer. Unmistakably fictional, like every seeded guest. */
 const PRESENTER_GUEST = {
@@ -234,12 +279,26 @@ export const DemoShell: React.FC = () => {
       for (const key of Object.keys(sessionStorage)) {
         if (key.startsWith(`${config.slug}-`) || key.startsWith('rd-demo-')) sessionStorage.removeItem(key);
       }
+      // The app's "My orders", remembered details and alert switches belong to the demo tenant too.
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(`${config.slug}-`)) localStorage.removeItem(key);
+      }
     } catch { /* storage blocked */ }
     // A full reload clears the in-memory cart and any half-finished form.
     window.location.assign('/');
   };
 
   const onAdmin = location.pathname.startsWith('/admin');
+  const appPreview = useAppShell();
+  const [simulatedAlert, dismissAlert] = useSimulatedAlerts(onAdmin);
+  const toggleAppPreview = () => {
+    const next = !appPreview;
+    try { if (next) sessionStorage.setItem(APP_PREVIEW_KEY, '1'); else sessionStorage.removeItem(APP_PREVIEW_KEY); } catch { /* this tab only */ }
+    setAppShellPreview(next);
+    setOpen(false);
+    navigate(next ? '/order' : '/');
+    say(next ? 'Showing the installed app: menu first, three tabs. Best viewed at phone width.' : 'Back to the website in a browser.');
+  };
 
   return (
     <>
@@ -249,6 +308,7 @@ export const DemoShell: React.FC = () => {
         html[data-rd-demo] { --admin-bottom-inset: ${STRIP_HEIGHT}px; }
         html[data-rd-demo] nav.fixed.bottom-0 { bottom: ${STRIP_HEIGHT}px; }
         html[data-rd-demo] .fixed.bottom-6 { bottom: calc(1.5rem + ${STRIP_HEIGHT}px); }
+        html[data-rd-demo] [data-above-tabbar] { bottom: calc(80px + ${STRIP_HEIGHT}px + env(safe-area-inset-bottom)) !important; }
         /* Embedded maps carry their own outbound links, out of reach of the click guard. */
         html[data-rd-demo] iframe { pointer-events: none; }
       `}</style>
@@ -334,6 +394,15 @@ export const DemoShell: React.FC = () => {
               )}
               <button
                 type="button"
+                aria-pressed={appPreview}
+                onClick={toggleAppPreview}
+                className={`flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${appPreview ? 'bg-ink text-accent' : 'bg-paper text-ink hover:bg-accent/20'}`}
+              >
+                <Smartphone size={15} aria-hidden="true" />
+                {appPreview ? 'Back to the website view' : 'Show as installed app'}
+              </button>
+              <button
+                type="button"
                 onClick={() => { setOpen(false); setShowWeek(true); }}
                 className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-surface transition-colors hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
@@ -353,6 +422,26 @@ export const DemoShell: React.FC = () => {
             <p className="mt-4 text-xs leading-relaxed text-ink/65">
               Tip: keep the kitchen queue open in a second window. Orders placed on the customer site appear there straight away.
             </p>
+          </div>
+        </div>
+      )}
+
+      {simulatedAlert && (
+        <div className="fixed inset-x-0 top-3 z-[303] flex justify-center px-3" role="status" aria-live="polite">
+          <div className="flex w-full max-w-sm items-start gap-3 rounded-2xl bg-surface/95 p-3 pr-2 text-ink shadow-[0_18px_40px_-16px_rgb(var(--color-ink)/0.55)] ring-1 ring-ink/10 backdrop-blur">
+            <img src="/images/app/icon-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl ring-1 ring-ink/10" />
+            <button
+              type="button"
+              onClick={() => { dismissAlert(); navigate(`/track?ref=${encodeURIComponent(simulatedAlert.reference)}`); }}
+              className="min-w-0 flex-1 text-left focus:outline-none"
+            >
+              <span className="flex items-center gap-2 text-[11px] font-semibold text-ink/55">{config.venue.name} <span aria-hidden="true">·</span> now <span className="rounded-full bg-accent px-1.5 text-[10px] font-extrabold uppercase tracking-wide text-ink">Simulated</span></span>
+              <span className="block font-display text-sm font-extrabold leading-snug">{simulatedAlert.title}</span>
+              <span className="block text-xs text-ink/70">Tap to see the latest on your order.</span>
+            </button>
+            <button type="button" onClick={dismissAlert} aria-label="Dismiss alert" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-paper">
+              <X size={15} aria-hidden="true" />
+            </button>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@ import { readSession, writeSession } from '../lib/sessionDraft';
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, ArrowLeft, PartyPopper, Download, MessageCircle, Search, WifiOff, Clock3 } from 'lucide-react';
 import { config } from '../config';
 import { formatMoney, menuPrice, toStoredAmount, storageKey, copy, payFirst, orderCategories, orderCtaLabel } from '../core/tenant';
@@ -31,6 +31,9 @@ import { MenuThumb } from '../components/MenuThumb';
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { InstallApp } from '../components/InstallApp';
 import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
+import { useAppShell } from '../lib/appShell';
+import { TAB_BAR_HEIGHT } from '../components/AppShell';
+import { forgetEverything, orderAgain, readDetails, rememberOrder, useSavedOrders } from '../lib/orderHistory';
 
 type Step = 'browse' | 'checkout' | 'confirmed';
 type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'suburb' | 'address';
@@ -88,11 +91,33 @@ export const Order: React.FC = () => {
   const online = useOnlineStatus();
 
   const [previousReference, setPreviousReference] = useState(() => readSession(PENDING_KEY));
-  const [step, setStep] = useState<Step>('browse');
+  // In the installed app the Cart tab is a URL (?view=cart), so the tab bar and
+  // the phone's back button agree with the screen. The browser site keeps its
+  // own in-page steps, unchanged.
+  const appShell = useAppShell();
+  const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const [localStep, setLocalStep] = useState<Step>('browse');
+  const step: Step = appShell && localStep !== 'confirmed' ? (params.get('view') === 'cart' ? 'checkout' : 'browse') : localStep;
+  const setStep = (next: Step) => {
+    setLocalStep(next);
+    if (appShell && next !== 'confirmed' && next !== step) setParams(next === 'checkout' ? { view: 'cart' } : {});
+  };
+  // Order again: the dishes My orders could not put back, named once on arrival.
+  const arrival = location.state as { skipped?: string[]; reordered?: boolean } | null;
+  // Shown only on the cart screen it arrived with: going back to the menu drops the navigation state.
+  const [skippedNow, setSkippedNow] = useState<string[] | null>(null);
+  useEffect(() => { if (step !== 'checkout') setSkippedNow(null); }, [step]);
+  const skipped = arrival?.skipped ?? [];
+  const reordered = !!arrival?.reordered || skippedNow !== null;
+  const savedOrders = useSavedOrders();
+  // The app remembers the last order's contact details on this phone; the browser site never does.
+  const [remembered] = useState(() => (appShell ? readDetails() : null));
+  const [prefilled, setPrefilled] = useState(!!remembered);
   const [activeCategory, setActiveCategory] = useState(menu.categories[0].name);
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerName, setCustomerName] = useState(remembered?.name ?? '');
+  const [customerPhone, setCustomerPhone] = useState(remembered?.phone ?? '');
+  const [customerEmail, setCustomerEmail] = useState(remembered?.email ?? '');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [deliverySuburb, setDeliverySuburb] = useState('');
@@ -241,17 +266,21 @@ export const Order: React.FC = () => {
   // Without this, moving to the next step while scrolled down leaves the
   // new (shorter) step's top content stranded above the viewport.
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [step]);
+    // The app's tabs jump; the browser site keeps its own scrolling, unchanged.
+    if (appShell) window.scrollTo({ top: 0, behavior: 'instant' });
+    else window.scrollTo(0, 0);
+  }, [step, appShell]);
 
   useEffect(() => {
     if (step !== 'browse') return;
 
+    // The app has no navbar above the category rail, so its sections settle higher.
+    const threshold = appShell ? 90 : 190;
     const updateActiveCategory = () => {
       let current = orderCategories[0]?.name ?? '';
       orderCategories.forEach((category) => {
         const section = document.getElementById(`order-${category.name}`);
-        if (section && section.getBoundingClientRect().top <= 190) {
+        if (section && section.getBoundingClientRect().top <= threshold) {
           current = category.name;
         }
       });
@@ -261,7 +290,7 @@ export const Order: React.FC = () => {
     updateActiveCategory();
     window.addEventListener('scroll', updateActiveCategory, { passive: true });
     return () => window.removeEventListener('scroll', updateActiveCategory);
-  }, [orderCategories, step]);
+  }, [orderCategories, step, appShell]);
 
   useEffect(() => {
     const activeButton = categoryRailRef.current?.querySelector<HTMLElement>(
@@ -274,7 +303,7 @@ export const Order: React.FC = () => {
     setActiveCategory(name);
     const element = document.getElementById(`order-${name}`);
     if (element) {
-      const offset = 210;
+      const offset = appShell ? 80 : 210;
       const top = element.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: 'smooth' });
     }
@@ -330,6 +359,12 @@ export const Order: React.FC = () => {
       const created = await db.createOrder(payload);
       clearCheckpoint();
       attemptWasUncertain.current = false;
+      if (appShell && sentDetails.current) {
+        rememberOrder(
+          { reference: created.order_no, email: payload.email, placedAt: created.created_at, orderType: payload.orderType, total: sentDetails.current.total + (paidDelivery ? deliveryFee : 0), items: payload.items.map(({ name, qty }) => ({ name, qty })) },
+          { name: payload.customerName, phone: payload.phone, email: payload.email },
+        );
+      }
       // Left the page mid-send: the order is saved, but the cart on screen may
       // already be a new one, so it is not cleared from here.
       if (!mounted.current || !sentDetails.current) return;
@@ -430,8 +465,10 @@ export const Order: React.FC = () => {
     discardAttempt();
     setPreviousReference(null);
     setPlacedOrder(null);
-    setCustomerName('');
-    setCustomerPhone(''); setCustomerEmail(''); setDeliveryAddress(''); setDeliveryNotes(''); setDeliverySuburb('');
+    const details = appShell ? readDetails() : null;
+    setPrefilled(!!details);
+    setCustomerName(details?.name ?? '');
+    setCustomerPhone(details?.phone ?? ''); setCustomerEmail(details?.email ?? ''); setDeliveryAddress(''); setDeliveryNotes(''); setDeliverySuburb('');
     setRequestedTime('');
     form.reset();
     setStep('browse');
@@ -459,8 +496,21 @@ export const Order: React.FC = () => {
     return <UnconfirmedRequest noun="order" reference={previousReference} onStartAgain={startNewOrder} className="min-h-screen pb-24 pt-32" />;
   }
 
+  const forgetDetails = () => {
+    forgetEverything();
+    setPrefilled(false);
+    setCustomerName(''); setCustomerPhone(''); setCustomerEmail('');
+    form.reset();
+  };
+
   const contactFields = (
     <>
+      {appShell && prefilled && (
+        <p className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl bg-paper px-4 py-2.5 text-sm text-ink/75 ring-1 ring-ink/10">
+          <span>Filled in from your last order on this phone.</span>
+          <button type="button" onClick={forgetDetails} className="min-h-11 font-display font-bold text-primary underline underline-offset-2">Forget my details</button>
+        </p>
+      )}
       <FormField id={FIELD_IDS.name} label="Your name" required error={form.visible.name} hint={payFirst ? 'Shown on your order ticket, so staff know whose it is.' : undefined}>
         {(control) => <input {...control} type="text" autoComplete="name" maxLength={100} value={customerName} onChange={(e) => setCustomerName(e.target.value)} onBlur={() => form.blur('name')} className="form-input" />}
       </FormField>
@@ -561,7 +611,7 @@ export const Order: React.FC = () => {
   );
 
   return (
-    <div className="pt-28 min-h-screen pb-28 lg:pb-16">
+    <div className={`${appShell ? 'pt-3' : 'pt-28'} min-h-screen pb-28 lg:pb-16`}>
       <AnimatePresence mode="wait">
         {step === 'browse' && (
           <motion.div
@@ -572,10 +622,10 @@ export const Order: React.FC = () => {
             transition={{ duration: 0.3 }}
           >
             <div className="max-w-7xl mx-auto px-4 md:px-8">
-              <div className="max-w-xl mb-8">
+              <div className={`max-w-xl ${appShell ? 'mb-6' : 'mb-8'}`}>
                 <span className="font-script text-2xl text-primary">skip the queue</span>
-                <h1 className="font-display text-4xl md:text-6xl font-extrabold text-ink mt-1 mb-4">{orderCtaLabel}</h1>
-                <p className="text-ink/60 text-lg">
+                <h1 className={`font-display font-extrabold text-ink mt-1 ${appShell ? 'text-4xl mb-2' : 'text-4xl md:text-6xl mb-4'}`}>{orderCtaLabel}</h1>
+                <p className={`text-ink/60 ${appShell ? 'text-base' : 'text-lg'}`}>
                   {payFirst
                     ? `Choose your food, pay online, then collect at ${config.venue.address}.`
                     : `${copy.order.intro} Choose a requested time and wait for the restaurant to confirm it.`}
@@ -588,11 +638,11 @@ export const Order: React.FC = () => {
                 </p>
               )}
               {shop.paused && <PausedNotice lines={lines} total={total} className="mb-6 max-w-xl" />}
-              <InstallApp placement="order" className="mb-8 max-w-xl" />
+              {!appShell && <InstallApp placement="order" className="mb-8 max-w-xl" />}
             </div>
 
             {/* Category tabs */}
-            <div className={`sticky ${stickyBelowHeader ? 'top-[64px]' : 'top-0'} z-30 bg-surface/95 backdrop-blur-md border-y border-ink/10 py-3 transition-[top] duration-300`}>
+            <div className={`sticky ${stickyBelowHeader && !appShell ? 'top-[64px]' : 'top-0'} z-30 bg-surface/95 backdrop-blur-md border-y border-ink/10 py-3 transition-[top] duration-300`}>
               <div ref={categoryRailRef} className="max-w-7xl mx-auto px-4 md:px-8 flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide" aria-label="Order categories">
                 {orderCategories.map((cat) => (
                   <button
@@ -715,7 +765,8 @@ export const Order: React.FC = () => {
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.25 }}
                   onClick={() => setStep('checkout')}
-                  className="lg:hidden fixed bottom-6 left-4 right-4 z-40 bg-ink text-paper rounded-full py-4 px-6 flex items-center justify-between font-display font-bold shadow-xl shadow-ink/25"
+                  {...(appShell ? { 'data-above-tabbar': '', style: { bottom: `calc(${TAB_BAR_HEIGHT + 12}px + env(safe-area-inset-bottom))` } } : {})}
+                  className={`lg:hidden fixed ${appShell ? 'bg-primary ring-2 ring-accent' : 'bottom-6 bg-ink'} left-4 right-4 z-40 text-paper rounded-full py-4 px-6 flex items-center justify-between font-display font-bold shadow-xl shadow-ink/25`}
                 >
                   <span className="flex items-center gap-2">
                     <ShoppingBag size={18} />
@@ -728,7 +779,44 @@ export const Order: React.FC = () => {
           </motion.div>
         )}
 
-        {step === 'checkout' && (
+        {step === 'checkout' && appShell && count === 0 && (
+          <motion.div
+            key="empty-cart"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="max-w-xl mx-auto px-4 md:px-8"
+          >
+            <span className="block font-script text-2xl text-primary">your cart</span>
+            <h1 className="font-display text-4xl font-extrabold text-ink mt-1 mb-6">Nothing in it yet</h1>
+            {skipped.length > 0 && <SkippedNotice names={skipped} className="mb-6" />}
+            <div className={`${panel} text-center`}>
+              <ShoppingBag size={28} className="mx-auto text-primary" aria-hidden="true" />
+              <p className="mt-3 text-ink/70">Add something from the menu and it shows up here.</p>
+              <Link to="/order" className="mt-5 inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-display font-bold text-surface">Browse the menu</Link>
+            </div>
+            {savedOrders[0] && (
+              <div className={`${panel} mt-6`}>
+                <p className="font-display text-lg font-extrabold text-primary">Your last order</p>
+                <p className="mt-1 text-sm text-ink/70">{savedOrders[0].items.map((item) => `${item.qty}× ${item.name}`).join(', ')}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const left = orderAgain(savedOrders[0]);
+                    setParams({ view: 'cart' }, { replace: true, state: { skipped: left, reordered: true } });
+                    setSkippedNow(left);
+                  }}
+                  className="mt-4 inline-flex min-h-12 items-center rounded-full bg-accent px-6 font-display font-bold text-ink"
+                >
+                  Order again
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {step === 'checkout' && !(appShell && count === 0) && (
           <motion.form
             key="checkout"
             noValidate
@@ -752,6 +840,8 @@ export const Order: React.FC = () => {
             <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">{copy.order.checkoutHeading}</h1>
 
             <ErrorSummary ref={form.summaryRef} items={form.submitted ? summaryItems : []} />
+            {appShell && (skippedNow ?? skipped).length > 0 ? <SkippedNotice names={skippedNow ?? skipped} className="mb-6" />
+              : appShell && reordered && <p role="status" className="mb-6 rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p>}
 
             {payFirst ? (
               <>
@@ -1029,6 +1119,14 @@ export const Order: React.FC = () => {
     </div>
   );
 };
+
+/** Order again could not put every dish back: say which, so nothing is silently dropped. */
+const SkippedNotice: React.FC<{ names: string[]; className?: string }> = ({ names, className = '' }) => (
+  <div role="status" className={`${noticeBox} ${className}`}>
+    <p className="font-display text-base font-bold">{names.length === 1 ? '1 dish is no longer on the menu' : `${names.length} dishes are no longer on the menu`}</p>
+    <p className="mt-1 text-sm">Left out of your cart: {names.join(', ')}. Everything else from that order is in your cart at today's menu prices.</p>
+  </div>
+);
 
 /** Staff have paused online orders. The cart is kept; the only way forward is to wait or to ask directly. */
 const PausedNotice: React.FC<{ lines: CartLine[]; total: number; className?: string }> = ({ lines, total, className = '' }) => (

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Clock3, LoaderCircle, MessageCircle, RotateCw, Search, WifiOff, X } from 'lucide-react';
+import { Bell, BellOff, Check, Clock3, LoaderCircle, MessageCircle, RotateCw, Search, WifiOff, X } from 'lucide-react';
 import { config } from '../config';
 import { copy, formatMoney, orderCtaLabel } from '../core/tenant';
 import { toMinor } from '../core/domain/money';
@@ -15,6 +15,9 @@ import { paymentStartMessage, readPending, submitHostedForm, writePending } from
 import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { Starburst } from '../components/Starburst';
 import { InstallApp } from '../components/InstallApp';
+import { useAppShell } from '../lib/appShell';
+import { findSavedOrder } from '../lib/orderHistory';
+import { alertState, disableAlert, enableAlert, type AlertState } from '../lib/guestPush';
 
 type TrackField = 'reference' | 'contact';
 
@@ -61,9 +64,13 @@ export const Track: React.FC = () => {
   const [reference, setReference] = useState(() => params.get('ref') ?? '');
   // Back from the payment page: this device remembers which order and which
   // email, so the guest lands on their status instead of an empty form.
+  const appShell = useAppShell();
   const [contact, setContact] = useState(() => {
     const saved = readPending();
-    return saved && (!params.get('ref') || saved.reference === params.get('ref')) ? saved.email : '';
+    if (saved && (!params.get('ref') || saved.reference === params.get('ref'))) return saved.email;
+    // The installed app remembers the email each of its own orders was placed with.
+    const ref = params.get('ref');
+    return (appShell && ref && findSavedOrder(ref)?.email) || '';
   });
   // 'return' or 'cancelled', as the payment page sent the guest back. Navigation only: never proof of payment.
   const [arrival] = useState(() => params.get('pay'));
@@ -155,7 +162,7 @@ export const Track: React.FC = () => {
   const loading = state.phase === 'loading';
 
   return (
-    <div className="pt-28 pb-24 min-h-screen">
+    <div className={`${appShell ? 'pt-3' : 'pt-28'} pb-24 min-h-screen`}>
       <div className="max-w-xl mx-auto px-4 md:px-8">
         <motion.div {...fadeInUp} className="mb-8">
           <span className="font-script text-2xl text-primary">{copy.track.eyebrow}</span>
@@ -226,6 +233,7 @@ export const Track: React.FC = () => {
           {state.phase === 'found' && (order && payment
             ? <PaidOrder order={order} payment={payment} arrival={arrival} paying={paying} payError={payError} onPay={() => void payNow()} checkedAt={state.checkedAt} live={pollMs > 0} onRefresh={() => void lookup()} />
             : <Result result={state.result} checkedAt={state.checkedAt} refreshing={loading} onRefresh={() => void lookup()} />)}
+          {order && contact.includes('@') && <OrderAlert order={order} email={contact.trim()} />}
           {/* Right after paying is when the app is worth most: next time it opens on the menu. */}
           {order && payment && !['pending', 'failed', 'expired'].includes(payment) && order.status !== 'cancelled' && (
             <InstallApp placement="after-order" className="mt-8" />
@@ -238,6 +246,72 @@ export const Track: React.FC = () => {
         </p>
       </div>
     </div>
+  );
+};
+
+/**
+ * "Tell me when it is ready": one alert at ready, and for a delivery one more
+ * when it leaves. Offered only while the order is paid (or needs no payment)
+ * and still on its way, and only where it can actually work.
+ */
+const OrderAlert: React.FC<{ order: OrderResult; email: string }> = ({ order, email }) => {
+  const delivery = order.order_type === 'delivery';
+  const paid = !order.payment_status || order.payment_status === 'paid' || order.payment_status === 'not_required';
+  const coming = ['new', 'accepted', 'preparing'].includes(order.status) || (delivery && order.status === 'ready');
+  const [state, setState] = useState<AlertState>(() => alertState(order.reference));
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  if (!paid || !coming || state === 'unavailable') return null;
+
+  const run = async (work: () => Promise<AlertState>) => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      setState(await work());
+    } catch (failure) {
+      setProblem(failure instanceof Error && failure.message === 'ALERT_REFUSED'
+        ? 'This order can no longer get an alert. It may already be ready or collected.'
+        : 'This phone could not switch the alert on just now. Try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const what = delivery ? 'when it is ready and when it leaves' : 'when it is ready to collect';
+
+  return (
+    <section aria-labelledby="order-alert-heading" className="mt-4 flex scroll-mb-28 gap-4 rounded-2xl bg-ink p-5 text-paper">
+      <span className={`mt-0.5 flex h-11 w-11 shrink-0 -rotate-6 items-center justify-center rounded-full ${state === 'on' ? 'bg-accent text-ink' : 'bg-paper/10 text-accent'}`} aria-hidden="true">
+        {state === 'blocked' ? <BellOff size={20} /> : <Bell size={20} />}
+      </span>
+      <div className="min-w-0">
+        <h2 id="order-alert-heading" className="font-display text-lg font-extrabold text-accent">
+          {state === 'on' ? 'Alert is on' : 'Get an alert on this phone'}
+        </h2>
+        {state === 'needs-home-screen' && (
+          <p className="mt-1 text-sm text-paper/85">
+            On iPhone, alerts only work once {config.venue.name} is on your Home Screen (iOS 16.4 or later): tap Share, then Add to Home Screen, then open it from there and track this order again.
+          </p>
+        )}
+        {state === 'blocked' && <p className="mt-1 text-sm text-paper/85">Notifications are switched off for this site. Allow them in your phone's settings to get an alert.</p>}
+        {state === 'off' && (
+          <>
+            <p className="mt-1 text-sm text-paper/85">We send one alert {what}. It shows no name, dish or amount.</p>
+            <button type="button" disabled={busy} onClick={() => void run(() => enableAlert(order.reference, email))} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 font-display text-sm font-bold text-ink disabled:opacity-60">
+              <Bell size={16} aria-hidden="true" /> {busy ? 'Switching on…' : 'Tell me when it is ready'}
+            </button>
+          </>
+        )}
+        {state === 'on' && (
+          <>
+            <p className="mt-1 text-sm text-paper/85">This phone gets an alert {what}.</p>
+            <button type="button" disabled={busy} onClick={() => void run(() => disableAlert(order.reference, email))} className="mt-3 inline-flex min-h-11 items-center rounded-full border border-paper/30 px-5 font-display text-sm font-bold text-paper disabled:opacity-60">
+              Turn off
+            </button>
+          </>
+        )}
+        {problem && <p role="alert" className="mt-3 text-sm font-semibold text-accent">{problem}</p>}
+      </div>
+    </section>
   );
 };
 

@@ -311,7 +311,7 @@ export const DemoShell: React.FC = () => {
         html[data-rd-demo] { --admin-bottom-inset: ${STRIP_HEIGHT}px; }
         html[data-rd-demo] nav.fixed.bottom-0 { bottom: ${STRIP_HEIGHT}px; }
         html[data-rd-demo] .fixed.bottom-6 { bottom: calc(1.5rem + ${STRIP_HEIGHT}px); }
-        html[data-rd-demo] [data-above-tabbar] { bottom: calc(80px + ${STRIP_HEIGHT}px + env(safe-area-inset-bottom)) !important; }
+        html[data-rd-demo] [data-above-tabbar] { bottom: calc(var(--above-tabbar-gap, 80px) + ${STRIP_HEIGHT}px + env(safe-area-inset-bottom)) !important; }
         /* Embedded maps carry their own outbound links, out of reach of the click guard. */
         html[data-rd-demo] iframe { pointer-events: none; }
       `}</style>

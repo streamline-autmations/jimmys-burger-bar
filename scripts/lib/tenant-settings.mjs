@@ -59,6 +59,10 @@ export function validateTenant(infra, config) {
     else if (url !== null && !/^https:\/\/\S+$/.test(url)) problems.push(`webhooks.${kind} must be an https URL or null`);
     else if (url && /PLACEHOLDER/i.test(url)) problems.push(`webhooks.${kind} is still a placeholder`);
   }
+  for (const url of [infra.webhooks?.status, infra.reviewRequests?.optOutUrl]) {
+    if (url != null && !/^https:\/\/[^\s]+$/.test(url)) problems.push('Email updates require an HTTPS webhook URL');
+  }
+  if (infra.reviewRequests?.optOutUrl && !infra.webhooks?.status) problems.push('Review opt-out needs the status email dispatcher');
   const localTime = infra.reviewRequests?.localTime;
   if (localTime !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(localTime ?? '')) problems.push('reviewRequests.localTime must be "HH:MM" or null');
   if (localTime && !infra.webhooks?.review) problems.push('reviewRequests.localTime is set but webhooks.review is null');
@@ -127,6 +131,8 @@ export function settingsSql(infra, config) {
     ['trading_hours', hours.json, 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'],
   ];
   if ('pushUrl' in infra) rows.push(['push.url', infra.pushUrl, 'kitchen-push Edge Function: lock-screen alerts for paid orders']);
+  if ('status' in infra.webhooks) rows.push(['webhook.status', infra.webhooks.status, 'Single-use tickets for guest email updates']);
+  if ('optOutUrl' in infra.reviewRequests) rows.push(['email.review_optout_url', infra.reviewRequests.optOutUrl, 'Review email preferences confirmation page']);
   if (infra.kitchen) rows.push(['kitchen.escalation', JSON.stringify(infra.kitchen.escalation), 'Tenant kitchen escalation contact']);
   if (infra.payfastSecretNames) rows.push(['payments.secret_names', JSON.stringify(paymentSecretNames(infra)), 'Environment variable names only, never credentials']);
   const delivery = config.ordering?.deliveryPreview;
@@ -170,5 +176,5 @@ delete from public.app_settings where key in (${unset.map(sqlText).join(', ')});
 -- One review job per project, whatever it was named before${review ? ` (${infra.reviewRequests.localTime} ${config.timezone} is ${review.expression} UTC)` : ''}.
 select cron.unschedule(jobid) from cron.job where command ~* 'send_review_requests';
 ${cron}
-${infra.payments ? "-- Preserve a manager's runtime pause when regenerating settings.\ninsert into public.app_settings(key,value,description) values('ordering.paused','false','Pause new online payments') on conflict(key) do nothing;\nselect cron.schedule('restaurant-direct-payment-expiry', '*/5 * * * *', 'select public.expire_pending_payments()');\n" : ''}`;
+${infra.webhooks.status ? "select cron.schedule('notification-email-retry', '* * * * *', 'select public.post_notification_emails()');\n" : infra.webhooks.status === null ? "select cron.unschedule(jobid) from cron.job where jobname='notification-email-retry';\n" : ''}${infra.payments ? "-- Preserve a manager's runtime pause when regenerating settings.\ninsert into public.app_settings(key,value,description) values('ordering.paused','false','Pause new online payments') on conflict(key) do nothing;\nselect cron.schedule('restaurant-direct-payment-expiry', '*/5 * * * *', 'select public.expire_pending_payments()');\n" : ''}`;
 }

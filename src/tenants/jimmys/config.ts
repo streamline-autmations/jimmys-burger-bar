@@ -264,6 +264,8 @@ export const jimmys = defineRestaurant({
   // ---- Food menu ----------------------------------------------------------
   // Jimmy's supplied menu board and price workbook.
   menu: {
+    // Jimmy's own designed menu. Without `pdf`, the site builds a plain PDF from the board.
+    pdf: "/jimmys-menu.pdf",
     categories: [
       {
         name: "Breakfast",
@@ -642,6 +644,13 @@ export const jimmys = defineRestaurant({
         caption: "Straight from the bar.",
         video: "/videos/drinks-pour-loop.mp4",
       },
+      // Posters Christiaan made 2026-11-20 (Images/Mobile-app-promos). Pictures only: none of these
+      // specials is an orderable menu item, so the cart charges menu prices (Christiaan accepted this).
+      promos: [
+        { src: "/images/promos/friday-skaap-card.webp", full: "/images/promos/friday-skaap.webp", alt: "Friday special: Italian style skaap and slaai, only R145, while stocks last" },
+        { src: "/images/promos/burger-special-card.webp", full: "/images/promos/burger-special.webp", alt: "Burger special on Mondays and Wednesdays: 2 chicken or 120g beef burgers, only R120" },
+        { src: "/images/promos/coffee-and-cars-card.webp", full: "/images/promos/coffee-and-cars.webp", alt: "Coffee and Cars, first Sunday of every month from 9am, at 57 Loch Street" },
+      ],
     },
   },
 

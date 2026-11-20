@@ -348,7 +348,21 @@ test('server refusals carry a reason the customer can act on', () => {
   assert.equal(reason('menu item unavailable: Free Lobster'), 'menu');
   assert.equal(reason('menu item not served at that time: Breakfast Bun'), 'served');
   assert.equal(reason('requested time is in the past'), 'time');
-  assert.equal(reason('order total does not match its items'), undefined);
+  assert.equal(reason('order total does not match its items'), 'total');
+  assert.equal(reason('invalid order total'), 'total');
+});
+
+test('a backend that cannot take the order is a plain refusal with its own reason, never an uncertain retry', () => {
+  // PostgREST answers 404 PGRST202 when create_delivery_order is not in the database the site is pointed at.
+  const missing = submission.classifySubmission({ code: 'PGRST202', message: 'Could not find the function public.create_delivery_order(p_order_no) in the schema cache' });
+  assert.equal(missing.kind, 'rejected', 'the server answered, so nothing was saved');
+  assert.equal(missing.reason, 'unavailable');
+  assert.equal(submission.classifySubmission({ code: 'PGRST301', message: 'JWT expired' }).reason, 'unavailable');
+  // No code at all (dropped connection, proxy HTML) still cannot be told apart from "it may have landed".
+  const lost = submission.classifySubmission({ message: 'Failed to fetch' });
+  assert.equal(lost.kind, 'uncertain');
+  assert.equal(lost.reason, undefined);
+  assert.equal(submission.classifySubmission({ message: '<html>502 Bad Gateway</html>' }).kind, 'uncertain');
 });
 
 // ---------------------------------------------------------------------------

@@ -25,8 +25,10 @@ export type SubmissionFailure = 'rejected' | 'throttled' | 'uncertain';
  * `menu`: an item's price or availability changed since the page loaded.
  * `served`: an item is not served at the requested time (e.g. breakfast after 12).
  * `time`: the requested time has already passed.
+ * `total`: the order total disagreed with the database's own sum, so the prices could not be confirmed.
+ * `unavailable`: the backend cannot take this kind of order at all (PostgREST, e.g. function not found).
  */
-export type RefusalReason = 'menu' | 'served' | 'time' | 'paused' | 'hours' | 'zone' | 'deliveryHours' | 'minimum';
+export type RefusalReason = 'menu' | 'served' | 'time' | 'paused' | 'hours' | 'zone' | 'deliveryHours' | 'minimum' | 'total' | 'unavailable';
 
 export class SubmissionError extends Error {
   constructor(
@@ -85,6 +87,7 @@ export function classifySubmission(error: unknown, savedConstraint?: string): Su
       : text.includes('delivery_out_of_zone') ? 'zone'
       : text.includes('delivery_closed') ? 'deliveryHours'
       : text.includes('delivery_minimum') ? 'minimum'
+      : text.includes('order total does not match') || text.includes('invalid order total') ? 'total'
       : undefined;
     return new SubmissionError('rejected', false, error, reason);
   }
@@ -92,7 +95,8 @@ export function classifySubmission(error: unknown, savedConstraint?: string): Su
   // Postgres data or permission errors (class 22, 23, 42) and PostgREST's own
   // request errors are all answered refusals.
   if (/^(22|23|42)/.test(code) || code.startsWith('PGRST')) {
-    return new SubmissionError('rejected', false, error);
+    // PGRST* is PostgREST refusing before our function ran (function not found, schema cache, JWT): not the guest's details.
+    return new SubmissionError('rejected', false, error, code.startsWith('PGRST') ? 'unavailable' : undefined);
   }
 
   // No code at all: fetch failed, a proxy returned HTML, or the response was

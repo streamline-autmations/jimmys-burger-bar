@@ -23,6 +23,8 @@ export const AddressSearch: React.FC<{
   const [active, setActive] = useState(-1);
   // The list on screen answers an earlier query until the next one lands; the keyboard must not pick from it.
   const [fresh, setFresh] = useState(true);
+  // The lookup service refused or could not be reached: the field stays a plain text box, and says so.
+  const [lookupFailed, setLookupFailed] = useState(false);
   // Only search what the guest typed, not what a pick wrote into the field.
   const typed = useRef(false);
   const pending = useRef<AbortController | null>(null);
@@ -34,8 +36,8 @@ export const AddressSearch: React.FC<{
     pending.current = abort;
     const timer = setTimeout(() => {
       findAddresses(value, near, abort.signal)
-        .then((found) => { if (abort.signal.aborted) return; setSuggestions(found); setActive(-1); setFresh(true); })
-        .catch(() => { if (!abort.signal.aborted) { setSuggestions([]); setFresh(true); } });
+        .then((found) => { if (abort.signal.aborted) return; setSuggestions(found); setActive(-1); setFresh(true); setLookupFailed(false); })
+        .catch(() => { if (!abort.signal.aborted) { setSuggestions([]); setFresh(true); setLookupFailed(true); } });
     }, DEBOUNCE_MS);
     return () => { clearTimeout(timer); abort.abort(); };
   }, [value, near]);
@@ -91,6 +93,7 @@ export const AddressSearch: React.FC<{
         placeholder={placeholder}
         className="form-input"
       />
+      {lookupFailed && !expanded && <p role="status" className="mt-1.5 text-xs font-medium text-ink/70">Address suggestions are not available right now. Type your full street address and choose your suburb below.</p>}
       <p role="status" className="sr-only">
         {expanded ? `${suggestions.length} address suggestions. Use the up and down arrow keys, then Enter to choose.` : ''}
       </p>

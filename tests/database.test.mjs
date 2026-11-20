@@ -82,7 +82,7 @@ test('the fingerprint notices drift that keeps definitions identical', async () 
 test('generated seed files apply cleanly, twice', async () => {
   await db.exec(fs.readFileSync('supabase/seed/settings.jimmys.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/seed/menu.jimmys.sql', 'utf8'));
-  const jobs = (await db.query(`select schedule, command from cron.job`)).rows;
+  const jobs = (await db.query(`select schedule, command from cron.job where jobname='restaurant-direct-review-requests'`)).rows;
   assert.deepEqual(jobs, [{ schedule: '0 18 * * *', command: 'select public.send_review_requests()' }], 'exactly one review job');
   assert.equal((await one(`select value from public.app_settings where key = 'timezone'`)).value, 'Africa/Johannesburg');
   assert.ok((await one(`select count(*)::int n from public.menu_items where available`)).n >= 40);
@@ -261,7 +261,7 @@ test('booking spam from one contact is throttled', async () => {
 test('the nightly job sends one review request per completed order', async () => {
   const placed = (await createOrder(order({ email: 'review@example.com' }))).rows[0];
   await db.query(`update public.orders set status = 'completed', completed_at = now() where id = $1`, [placed.id]);
-  const sent = async () => (await one(`select count(*)::int n from public.notification_log where kind = 'review' and reference = (select order_no from public.orders where id = $1)`, [placed.id])).n;
+  const sent = async () => (await one(`select count(*)::int n from public.notification_email_queue where event_key = 'review.order' and subject_id = $1`, [placed.id])).n;
   await db.query(`select public.send_review_requests()`);
   assert.equal(await sent(), 1);
   await db.query(`select public.send_review_requests()`);
@@ -529,7 +529,7 @@ test('the health check passes its security rows on a correctly built project', a
   for (const name of [
     'timezone setting is a real zone', 'phone country code setting', 'menu loaded', 'at least one staff member',
     'row level security on every table', 'the public has no table-wide privileges',
-    'the public can only insert booking form columns', 'the public can only call create_order and lookup_request',
+    'the public can only insert booking form columns', 'only expected guest and email ticket functions are public',
     'future tables and functions start closed', 'no duplicate or inactive review jobs',
   ]) {
     assert.ok(byName[name], `missing check: ${name}`);

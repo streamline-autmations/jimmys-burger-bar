@@ -61,6 +61,16 @@
   },
   {
     "kind": "column_grant",
+    "name": "notification_email_queue anon",
+    "fingerprint": "236fc2be70ae890923280e2915158dbc"
+  },
+  {
+    "kind": "column_grant",
+    "name": "notification_email_queue authenticated",
+    "fingerprint": "236fc2be70ae890923280e2915158dbc"
+  },
+  {
+    "kind": "column_grant",
     "name": "notification_log anon",
     "fingerprint": "7236ec2ffd0ae3113db00b001ec66a38"
   },
@@ -121,6 +131,16 @@
   },
   {
     "kind": "column_grant",
+    "name": "review_email_preferences anon",
+    "fingerprint": "a133f8caa75756a38fe0df143f460804"
+  },
+  {
+    "kind": "column_grant",
+    "name": "review_email_preferences authenticated",
+    "fingerprint": "a133f8caa75756a38fe0df143f460804"
+  },
+  {
+    "kind": "column_grant",
     "name": "staff anon",
     "fingerprint": "e7b60500266e3a522836053782e707c6"
   },
@@ -153,6 +173,11 @@
     "kind": "function",
     "name": "bookings_upsert_customer()",
     "fingerprint": "e52ac4d5c2bb9d4624757a420bc4f0fb"
+  },
+  {
+    "kind": "function",
+    "name": "claim_notification_email(p_ticket uuid)",
+    "fingerprint": "c72c99887e97608ec0beb1318c2a89c5"
   },
   {
     "kind": "function",
@@ -191,8 +216,18 @@
   },
   {
     "kind": "function",
+    "name": "enqueue_review_email(p_id uuid, p_email text, p_type text)",
+    "fingerprint": "3b7b27102677a5a3a196291f5055d10a"
+  },
+  {
+    "kind": "function",
     "name": "expire_pending_payments()",
     "fingerprint": "c3d9549d1f71647b39fde8d0da8723e9"
+  },
+  {
+    "kind": "function",
+    "name": "finish_notification_email(p_receipt uuid)",
+    "fingerprint": "0e9b8ed63cf00fbdb9b1e725016b38d7"
   },
   {
     "kind": "function",
@@ -227,7 +262,7 @@
   {
     "kind": "function",
     "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb)",
-    "fingerprint": "05a492684b472cb4331811bdbdf93a81"
+    "fingerprint": "18fec5c3823afe6ceccbb1e5767c9c82"
   },
   {
     "kind": "function",
@@ -251,6 +286,11 @@
   },
   {
     "kind": "function",
+    "name": "post_notification_emails()",
+    "fingerprint": "b41b8b96c3c75735c5229adff81e52fe"
+  },
+  {
+    "kind": "function",
     "name": "prepare_order_payment()",
     "fingerprint": "e319037fd7dc34a56573e9cd1bcffa81"
   },
@@ -258,6 +298,11 @@
     "kind": "function",
     "name": "queue_guest_push()",
     "fingerprint": "7a2b813e62135addc900b182930cfd1a"
+  },
+  {
+    "kind": "function",
+    "name": "queue_notification_email()",
+    "fingerprint": "1118b553ea09ee4062360a92ec7ecd39"
   },
   {
     "kind": "function",
@@ -282,7 +327,7 @@
   {
     "kind": "function",
     "name": "send_review_requests()",
-    "fingerprint": "14b88327e39e4e4fdb37cf92a4197037"
+    "fingerprint": "63d5fc1e324632613f0edbf4fec727cb"
   },
   {
     "kind": "function",
@@ -313,6 +358,11 @@
     "kind": "function",
     "name": "signal_order_change()",
     "fingerprint": "8364ed11115519228fbf7c57eab72974"
+  },
+  {
+    "kind": "function",
+    "name": "stop_review_emails(p_token uuid)",
+    "fingerprint": "942e05138a900ef8a4fab849890043b8"
   },
   {
     "kind": "function",
@@ -352,6 +402,16 @@
   {
     "kind": "function_exec",
     "name": "bookings_upsert_customer() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "claim_notification_email(p_ticket uuid) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "claim_notification_email(p_ticket uuid) authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -426,12 +486,32 @@
   },
   {
     "kind": "function_exec",
+    "name": "enqueue_review_email(p_id uuid, p_email text, p_type text) anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "enqueue_review_email(p_id uuid, p_email text, p_type text) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "expire_pending_payments() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
     "kind": "function_exec",
     "name": "expire_pending_payments() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "finish_notification_email(p_receipt uuid) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "finish_notification_email(p_receipt uuid) authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -546,6 +626,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "post_notification_emails() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "post_notification_emails() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "prepare_order_payment() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -562,6 +652,16 @@
   {
     "kind": "function_exec",
     "name": "queue_guest_push() authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "queue_notification_email() anon",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
+    "name": "queue_notification_email() authenticated",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
   {
@@ -676,6 +776,16 @@
   },
   {
     "kind": "function_exec",
+    "name": "stop_review_emails(p_token uuid) anon",
+    "fingerprint": "b326b5062b2f0e69046810717534cb09"
+  },
+  {
+    "kind": "function_exec",
+    "name": "stop_review_emails(p_token uuid) authenticated",
+    "fingerprint": "68934a3e9455fa72420237eb05902327"
+  },
+  {
+    "kind": "function_exec",
     "name": "throttle_booking_inserts() anon",
     "fingerprint": "68934a3e9455fa72420237eb05902327"
   },
@@ -781,6 +891,11 @@
   },
   {
     "kind": "table",
+    "name": "notification_email_queue",
+    "fingerprint": "6b335ac6de3e43e930192d6e5ef6a8fc"
+  },
+  {
+    "kind": "table",
     "name": "notification_log",
     "fingerprint": "ce94cd82f41ba60674aed16b4e86ddee"
   },
@@ -808,6 +923,11 @@
     "kind": "table",
     "name": "payment_transactions",
     "fingerprint": "3711fc7d0735873f5c524ac78ad6fce0"
+  },
+  {
+    "kind": "table",
+    "name": "review_email_preferences",
+    "fingerprint": "25ce375978a25f99c59f7a332a64381a"
   },
   {
     "kind": "table",
@@ -881,6 +1001,16 @@
   },
   {
     "kind": "table_grant",
+    "name": "notification_email_queue anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "notification_email_queue authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
     "name": "notification_log anon",
     "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
   },
@@ -941,6 +1071,16 @@
   },
   {
     "kind": "table_grant",
+    "name": "review_email_preferences anon",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
+    "name": "review_email_preferences authenticated",
+    "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "kind": "table_grant",
     "name": "staff anon",
     "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
   },
@@ -996,6 +1136,16 @@
   },
   {
     "kind": "trigger",
+    "name": "bookings.notification_email_booking",
+    "fingerprint": "fa51322d73a94843bc69f8599f46b0b1"
+  },
+  {
+    "kind": "trigger",
+    "name": "orders.notification_email_order",
+    "fingerprint": "7c93597063094dcbb62704740cce4ab8"
+  },
+  {
+    "kind": "trigger",
     "name": "orders.orders_enforce_status",
     "fingerprint": "e2942679a78c380792c4aa5b903e53c9"
   },
@@ -1048,5 +1198,10 @@
     "kind": "trigger",
     "name": "orders.orders_signal_change",
     "fingerprint": "7e8a1345a107d4f687fa086fb48806aa"
+  },
+  {
+    "kind": "trigger",
+    "name": "payment_events.notification_email_refund",
+    "fingerprint": "daadbe33987210b9699a66f5b119cc77"
   }
 ]

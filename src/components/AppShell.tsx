@@ -3,7 +3,7 @@ import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { ReceiptText, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { config } from '../config';
-import { copy, todayHoursLabel } from '../core/tenant';
+import { todayHoursLabel } from '../core/tenant';
 import { EASE, STAMP_EASE } from '../lib/motion';
 import { selectCartCount, useCartStore } from '../lib/cartStore';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -105,10 +105,8 @@ const TopBar: React.FC = () => (
       <Link to="/order" aria-label={`${config.venue.name} menu`} className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
         <Logo className="h-11 w-auto" />
       </Link>
-      <div className="min-w-0 text-right leading-tight">
-        <p className="font-script text-lg text-primary">{copy.brand.tagline.toLowerCase()}</p>
-        <p className="truncate text-xs font-bold text-ink/70">{todayHoursLabel()}</p>
-      </div>
+      {/* The brand line now lives once, on the menu's picture band. The bar keeps today's hours. */}
+      <p className="min-w-0 truncate rounded-full bg-accent/25 px-3 py-1.5 text-[13px] font-bold text-ink">{todayHoursLabel()}</p>
     </div>
   </header>
 );

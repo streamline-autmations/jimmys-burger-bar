@@ -209,6 +209,8 @@ export interface PagesConfig {
     /** `video` loops over `image`; reduced-motion visitors get `image` only. */
     food: { description: string; caption: string; image: PhotoRef; video?: string };
     drinks: { description: string; caption: string; video?: string; image?: PhotoRef };
+    /** Promo posters shown as a strip on the installed app's menu. `src` is the small card, `full` opens on tap. Omit for none. */
+    promos?: { src: string; full: string; alt: string }[];
   };
 }
 
@@ -248,7 +250,7 @@ export interface RestaurantConfig {
     fridays: Special[];
     event: { title: string; schedule: string; description: string; image: string };
   };
-  menu: { categories: MenuCategory[]; featured: MenuItem[]; extrasNote?: string };
+  menu: { categories: MenuCategory[]; featured: MenuItem[]; extrasNote?: string; pdf?: string };
   drinks: { intro: string; categories: MenuCategory[] };
   testimonials: Testimonial[];
   pages: PagesConfig;

@@ -1,8 +1,26 @@
 # Automatic messages for Jimmy's: plan
 
-Written 2026-11-20. **Planning only.** No code, n8n, database or message was touched to write this.
-Audience: Christiaan, to take to Jimmy's. Sections 1 to 3 are what exists and what to send; 4 to 6 are the
-research (WhatsApp, email, POPIA); 7 to 9 are the build phases, the decisions and the cost.
+## Email rollout on 20 November 2026
+
+Jimmy’s approved the branded emails and requested accepted, preparing and ready updates by email. The order and booking receipt workflows now render the shared templates. Staff copies use the existing recipient, Christiaan’s inbox. New status emails go to the saved guest address. Production uses the existing collection schema. Pay-first receipts, refund events and the delivery dispatch step are available with the corresponding payment and delivery features.
+
+| Moment | Guest email |
+|---|---|
+| Order received | Request receipt, or payment receipt when the payment record is verified |
+| Kitchen accepts or starts preparing | Acceptance with the saved ETA if present, then a preparation update |
+| Kitchen marks ready | Collection instructions, table-order wording or ready-for-dispatch wording according to the order type |
+| Delivery leaves, order completes or an eligible order is cancelled | The matching status and tracking reference |
+| Refund pending or recorded | The amount on that individual refund event |
+| Table booking requested, confirmed or cancelled | The matching booking details. The initial request still awaits confirmation. |
+| Nightly review invitation | The Google review link and a working opt-out that stops future review invitations |
+
+Run `npm run emails:preview` and open `notification-previews.local/index.html` for 18 examples. Each example has HTML, dark preview and plain text. Mail clients that honor the dark-mode rules show navy, warm white and gold. In-client color overrides can change the result.
+
+The staging rehearsal delivered guest and staff receipts and the accepted, preparing, ready and completed sequence to Christiaan. The review preference form was exercised from its link through database suppression. Browser checks covered all 18 examples in both modes at 390px and 1440px. For configuration, recovery and workflow regeneration see [the notification runbook](../NOTIFICATIONS.md#branded-emails).
+
+## Original planning notes
+
+Sections 1 through 10 below are the pre-rollout research and channel proposal. The rollout above supersedes the original email matrix and workflow-access findings. WhatsApp is still a separate phase.
 
 How to read the evidence tags used below:
 
@@ -370,7 +388,7 @@ Nothing below may be invented. Every item is either a database field or a PLACEH
 
 ## 7. Phased build plan
 
-Nothing here is started. Each phase can ship on its own.
+The local email drafts above start the content work for Phase 1. Sender wiring, staging delivery and the later phases are pending.
 
 **Phase 0: read and agree (no build). About 1 day.**
 Open the three n8n workflows (or export JSON) and record who gets what today. Agree the message set in section 2

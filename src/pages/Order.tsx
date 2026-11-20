@@ -116,6 +116,7 @@ export const Order: React.FC = () => {
   // the phone's back button agree with the screen. The browser site keeps its
   // own in-page steps, unchanged.
   const appShell = useAppShell();
+  const orderPhoto = config.pages.order?.image;
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   // Order again from the tracking page lands on the cart, as it does in the app.
@@ -725,14 +726,25 @@ export const Order: React.FC = () => {
             {searching && <h1 className="sr-only">{orderCtaLabel}</h1>}
             <div className={`max-w-7xl mx-auto px-4 md:px-8 ${appShell ? 'empty:hidden [&>*:first-child]:mt-4' : ''}`}>
               {!appShell && (
-                <div className="max-w-xl mb-8">
-                  <span className="font-script text-2xl text-primary">skip the queue</span>
-                  <h1 className="font-display font-extrabold text-ink mt-1 text-4xl md:text-6xl mb-4">{orderCtaLabel}</h1>
-                  <p className="text-ink/60 text-lg">
-                    {payFirst
-                      ? `Choose your food, pay online, then collect at ${config.venue.address}.`
-                      : `${copy.order.intro} Choose a requested time and wait for the restaurant to confirm it.`}
-                  </p>
+                <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8">
+                  <div className="max-w-xl">
+                    <span className="font-script text-2xl text-primary">skip the queue</span>
+                    <h1 className="font-display font-extrabold text-ink mt-1 text-4xl md:text-6xl mb-4">{orderCtaLabel}</h1>
+                    <p className="text-ink/60 text-lg">
+                      {payFirst
+                        ? `Choose your food, pay online, then collect at ${config.venue.address}.`
+                        : `${copy.order.intro} Choose a requested time and wait for the restaurant to confirm it.`}
+                    </p>
+                  </div>
+                  {orderPhoto && (
+                    <img
+                      src={orderPhoto.src}
+                      alt={orderPhoto.alt}
+                      decoding="async"
+                      style={{ objectPosition: orderPhoto.objectPosition }}
+                      className="jimmy-media-frame h-44 w-full rounded-2xl bg-ink object-cover md:h-52 md:w-[40%] md:max-w-md"
+                    />
+                  )}
                 </div>
               )}
               {waiting && !waiting.paid && (

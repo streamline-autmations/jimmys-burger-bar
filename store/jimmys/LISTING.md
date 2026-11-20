@@ -76,7 +76,7 @@ reference" descriptor. Target audience: 18 and over is the safe choice for a bar
 
 | File | Size | Source |
 |---|---|---|
-| `icon-512.png` | 512x512 | Jimmy's real logo (`public/images/logo.png`), unaltered, on white |
+| `icon-512.png` | 512x512 | Christiaan-supplied app icon artwork (logo on a navy starburst over golden yellow, updated 2026-11-20). Same file as `public/images/app/icon-512.png` |
 | `feature-graphic-1024x500.png` | 1024x500 | Real photo `public/images/gallery/burger-macro.jpg`, the real logo, the brand's own tagline "Good food. Good people." and the real address |
 | `screenshots/1-menu.jpg` | 1080x1920 | App shell, menu tab. **Contains AI-generated breakfast photos** (CLAUDE.md table): retake after the real shoot |
 | `screenshots/2-burgers.jpg` | 1080x1920 | App shell, burgers with the checkout bar. **Contains AI-generated burger photos**: retake after the real shoot |

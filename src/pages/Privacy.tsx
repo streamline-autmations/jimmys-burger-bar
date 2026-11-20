@@ -83,9 +83,9 @@ export const Privacy: React.FC = () => {
           <Section title="Why we use it">
             <ul>
               <li>to make your order and hand it over, and to contact you if there is a problem with it;</li>
-              <li>to email you a confirmation, and to let you check your order with its reference and your email or phone number;</li>
+              <li>to email you an order or booking receipt and updates as its status changes, and to let you check your order with its reference and your email or phone number;</li>
               <li>to recognise a returning guest by email or phone, so staff see your earlier orders and bookings;</li>
-              <li>after you have been, we may send one email asking how it was.</li>
+              <li>after you have been, we may send one email asking how it was. Use “Stop review emails” in the invitation to stop future requests.</li>
             </ul>
             <p>We do not send marketing, and we do not sell or rent your details to anyone.</p>
           </Section>
@@ -95,7 +95,7 @@ export const Privacy: React.FC = () => {
               {db.storedWith
                 ? <li><strong>{db.storedWith}</strong> stores orders{config.features.reservations ? ' and bookings' : ''} in its cloud database for us.</li>
                 : <li>In this demonstration, orders{config.features.reservations ? ' and bookings' : ''} are fictional and stay in this browser.</li>}
-              <li><strong>Our notification service</strong> receives each new order{config.features.reservations ? ' and booking' : ''} so it can email the confirmation and alert staff. It is run for {name} by Streamline Automations, which built this website.</li>
+              <li><strong>Our notification service</strong> receives each new order{config.features.reservations ? ' and booking' : ''} and status changes so it can email you and alert staff. It is run for {name} by Streamline Automations, which built this website.</li>
               {payFirst && <li><strong>Payfast</strong> takes your payment on its own page. Your card or bank details go to Payfast, never to us.</li>}
               {addressLookup && (addressProvider() === 'geoapify'
                 ? <li><strong>Geoapify</strong>, the address search we use, receives the street address you type into the delivery address box, with your device's internet address, to suggest matching addresses. Nothing else is sent with it.</li>

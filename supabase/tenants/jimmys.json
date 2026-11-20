@@ -7,9 +7,11 @@
   "webhooks": {
     "order": "https://dockerfile-1n82.onrender.com/webhook/jimmys-order",
     "booking": "https://dockerfile-1n82.onrender.com/webhook/jimmys-booking",
-    "review": "https://dockerfile-1n82.onrender.com/webhook/jimmys-review-request"
+    "review": "https://dockerfile-1n82.onrender.com/webhook/jimmys-review-request",
+    "status": "https://dockerfile-1n82.onrender.com/webhook/jimmys-email-status"
   },
   "reviewRequests": {
-    "localTime": "20:00"
+    "localTime": "20:00",
+    "optOutUrl": "https://dockerfile-1n82.onrender.com/webhook/jimmys-email-stop"
   }
 }

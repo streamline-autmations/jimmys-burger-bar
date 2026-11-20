@@ -285,12 +285,12 @@ test('every orderable category cutoff is a valid 24h time', () => {
 const orderable = load('src/core/menu/orderable.ts');
 const { resolveCopy } = load('src/core/config/copy.ts');
 
-const orderableFromConfig = () => {
-  const copyForTenant = resolveCopy(config.copy);
-  return orderable.orderableItems(orderable.orderableCategories(config.menu.categories, {
+const orderableFromConfig = (tenant = config) => {
+  const copyForTenant = resolveCopy(tenant.copy);
+  return orderable.orderableItems(orderable.orderableCategories(tenant.menu.categories, {
     label: copyForTenant.order.softDrinksLabel,
     note: copyForTenant.order.softDrinksNote,
-    items: config.ordering.nonAlcoholicDrinks,
+    items: tenant.ordering.nonAlcoholicDrinks,
   }));
 };
 
@@ -316,7 +316,7 @@ test('seed prices round exactly as the cart does', () => {
 
 test('menu seed escapes quotes and keeps decimal prices exact', () => {
   const sql = orderable.menuItemsSql([{ name: "Jimmy's Breakfast", category: 'Breakfast', price: 25.5, availableUntil: '12:00', extras: [] }], 'test');
-  assert.match(sql, /'Jimmy''s Breakfast', 'Breakfast', 25\.50, '12:00', '\[\]'::jsonb/);
+  assert.match(sql, /'Jimmy''s Breakfast', 'Breakfast', 25\.50, '12:00'\)/);
 });
 
 test('an empty menu seed emits a valid availability update without an empty VALUES list', () => {
@@ -348,7 +348,21 @@ test('server refusals carry a reason the customer can act on', () => {
   assert.equal(reason('menu item unavailable: Free Lobster'), 'menu');
   assert.equal(reason('menu item not served at that time: Breakfast Bun'), 'served');
   assert.equal(reason('requested time is in the past'), 'time');
-  assert.equal(reason('order total does not match its items'), undefined);
+  assert.equal(reason('order total does not match its items'), 'total');
+  assert.equal(reason('invalid order total'), 'total');
+});
+
+test('a backend that cannot take the order is a plain refusal with its own reason, never an uncertain retry', () => {
+  // PostgREST answers 404 PGRST202 when create_delivery_order is not in the database the site is pointed at.
+  const missing = submission.classifySubmission({ code: 'PGRST202', message: 'Could not find the function public.create_delivery_order(p_order_no) in the schema cache' });
+  assert.equal(missing.kind, 'rejected', 'the server answered, so nothing was saved');
+  assert.equal(missing.reason, 'unavailable');
+  assert.equal(submission.classifySubmission({ code: 'PGRST301', message: 'JWT expired' }).reason, 'unavailable');
+  // No code at all (dropped connection, proxy HTML) still cannot be told apart from "it may have landed".
+  const lost = submission.classifySubmission({ message: 'Failed to fetch' });
+  assert.equal(lost.kind, 'uncertain');
+  assert.equal(lost.reason, undefined);
+  assert.equal(submission.classifySubmission({ message: '<html>502 Bad Gateway</html>' }).kind, 'uncertain');
 });
 
 // ---------------------------------------------------------------------------
@@ -380,7 +394,7 @@ test('every seeded guest is unmistakably fictional', () => {
 });
 
 test('seeded orders use real menu prices and consistent totals', () => {
-  const menu = new Map(orderableFromConfig().map((item) => [item.name, item]));
+  const menu = new Map(orderableFromConfig(load('src/demo/config.ts').config).map((item) => [item.name, item]));
   for (const order of seedModule.createSeed(new Date()).orders) {
     let sum = 0;
     for (const item of order.order_items) {
@@ -499,6 +513,9 @@ test('demo order checks match create_order exactly', async () => {
   await refused({ orderNo: 'JB-V3', total: 100.004, items: [{ name: 'Beef Burger', qty: 1, unit_price: 100 }] });
   await refused({ orderNo: 'JB-V4', total: 99.99, items: [{ name: 'Beef Burger', qty: 1, unit_price: 99.99 }] });
   await refused({ orderNo: 'JB-V5', total: 100, items: Array.from({ length: 101 }, () => ({ name: 'Beef Burger', qty: 1, unit_price: 100 })) });
+  for (const extras of [{}, '', [null], [false], Array(21).fill({ name: 'Extra Bacon', price: 25 })]) {
+    await refused({ orderNo: 'JB-BAD-EXTRAS', total: 100, items: [{ name: 'Beef Burger', qty: 1, unit_price: 100, extras }] });
+  }
   demoStore.resetRecords();
 });
 

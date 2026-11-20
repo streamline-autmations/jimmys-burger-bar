@@ -4,8 +4,9 @@
 // (https://apidocs.geoapify.com/docs/geocoding/address-autocomplete), limited to
 // South Africa and ordered by distance from the restaurant. Without the key (the
 // demo build has no env vars) it falls back to Photon, the OpenStreetMap search
-// run by komoot, which needs no account. If the keyed service errors, the guest
-// gets a plain text field: nothing is silently re-sent to a second provider.
+// run by komoot, which needs no account. If the keyed service errors (it answers 401 to any origin
+// not on the key's allowed list in the Geoapify dashboard), the guest gets a plain text field and a one-line note:
+// nothing is silently re-sent to a second provider.
 // shortcut: Photon's public server is fair-use with no SLA, and OSM knows most
 // local streets but few house numbers; a typed leading number is kept aside, the
 // street is searched, and the number is put back on the pick. Geoapify matches
@@ -109,9 +110,14 @@ export function toSuggestions(features: PhotonFeature[], typedNumber: string): A
   });
 }
 
-const json = async (res: Response) => (res.ok ? res.json() : {});
+/** A refused lookup (401 from an origin the key does not allow, a 5xx) is an error, not "no matches", so the box can say so. */
+const json = async (res: Response) => {
+  if (res.ok) return res.json();
+  console.warn(`[address search] ${addressProvider()} answered ${res.status}; suggestions are off for this page.`);
+  throw Object.assign(new Error(`address lookup failed (${res.status})`), { status: res.status });
+};
 
-/** Up to six suggestions for what the guest has typed. Empty below three characters; rejects on abort or network failure. */
+/** Up to six suggestions for what the guest has typed. Empty below three characters; rejects on abort, network failure or a refused lookup (error.status). */
 export async function findAddresses(typed: string, near: { lat: number; lon: number }, signal?: AbortSignal): Promise<AddressSuggestion[]> {
   const text = typed.trim();
   if (text.length < MIN_CHARS) return [];

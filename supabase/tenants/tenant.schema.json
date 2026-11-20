@@ -61,6 +61,13 @@
             "string",
             "null"
           ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^https://"
         }
       }
     },
@@ -78,6 +85,13 @@
           ],
           "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
           "description": "Restaurant-local time the daily review emails go out, or null for none."
+        },
+        "optOutUrl": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^https://"
         }
       }
     },
@@ -115,7 +129,10 @@
       "type": "boolean"
     },
     "pushUrl": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^https://[a-z0-9]+\\.supabase\\.co/functions/v1/kitchen-push$",
       "description": "The kitchen-push Edge Function URL. Set it to send lock-screen alerts to opted-in staff phones when an order is paid; null or absent switches them off."
     },

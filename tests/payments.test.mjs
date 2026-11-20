@@ -43,6 +43,9 @@ test('extras are paid for: the Payfast amount is the server total, and a changed
  const o={ref,email};
  assert.equal((await begin(o)).result.amount,'145.00','Payfast is asked for dish + extras');
  await assert.rejects(paid(o,'7'+seq,'COMPLETE',100),/PAYMENT_AMOUNT_MISMATCH/,'the dish price alone is not enough');
+ await db.exec("update public.menu_items set available=false where name='Extra Bacon'");
+ try { await assert.rejects(begin(o), /PAYMENT_UNAVAILABLE/, 'a topping sold out after the order'); }
+ finally { await db.exec("update public.menu_items set available=true where name='Extra Bacon'"); }
  await db.exec(`update public.menu_items set extras='[{"name":"Extra Bacon","price":30},{"name":"Extra Egg","price":20}]'::jsonb where name='Beef Burger'`);
  try { await assert.rejects(begin(o),/PAYMENT_UNAVAILABLE/,'an extra that changed price since the order'); }
  finally { await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql','utf8')); }

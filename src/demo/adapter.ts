@@ -130,7 +130,10 @@ export const adapter: DataAdapter = {
       // Extras are priced from the menu like the dish: an unknown, repeated or re-priced one is refused.
       let extrasSum = 0;
       const seen = new Set<string>();
-      for (const extra of line.extras ?? []) {
+      const extras = line.extras ?? [];
+      if (!Array.isArray(extras) || extras.length > 20) throw new SubmissionError('rejected');
+      for (const extra of extras) {
+        if (!extra || typeof extra !== 'object' || Array.isArray(extra)) throw new SubmissionError('rejected');
         const offered = item.extras.find((candidate) => candidate.name === extra.name);
         if (!offered || seen.has(extra.name) || offered.price !== extra.price) throw new SubmissionError('rejected', false, undefined, 'menu');
         seen.add(extra.name);

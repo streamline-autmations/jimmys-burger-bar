@@ -7,10 +7,12 @@
 // Only reachable through vite-plugin-demo.ts with VITE_DEMO=1.
 
 import { jimmys } from '../tenants/jimmys/config';
+import { previewMenu } from '../tenants/jimmys-staging/previewMenu';
 import { defineRestaurant } from '../core/config/define';
 
 export const config = defineRestaurant({
   ...jimmys,
+  menu: previewMenu,
   // Separate browser storage from the real site: a presenter who also uses
   // jimmysburgerbar.co.za in the same browser never mixes carts or references.
   slug: 'jimmys-demo',

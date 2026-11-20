@@ -267,6 +267,12 @@ as the strips begin to lift (it had been on screen for ~1s after landing).
   localStorage (`src/lib/orderHistory.ts`), app mode only, with "Forget my details". The
   demo's "Show as installed app" control uses `setAppShellPreview`; nothing in a production
   build calls it. Docs: `docs/restaurant-direct/APP.md`.
+  **Menu intro band (2026-11-20):** the app's Menu screen opens on `MenuIntro`, a compact muted loop of
+  the same real chicken-burger clip as the Food & Drinks header (`config.pages.menu.food`: Christiaan's
+  iPhone `IMG_0471`, no new media), poster first, video mounted late, never with reduced motion or Data
+  Saver. The Pacifico tagline lives ONLY there; the top bar keeps logo + today's hours. Search is a
+  circular button left of the category rail. The Friday specials posters are NOT used in the app: the
+  artwork has dates baked in ("4 July 2025", "Friday 31 October") and the specials are not orderable.
 - **Guest order-ready alerts (staging only, 2026-11-19):** migration
   `20261119120000_guest_order_push.sql` + the `kitchen-push` function's `{order_id, status}`
   path. Same rules as the kitchen alerts: no payload, ever; subscriptions only via

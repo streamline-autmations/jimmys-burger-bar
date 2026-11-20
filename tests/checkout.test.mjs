@@ -113,8 +113,14 @@ test('suggestions start at three characters and an aborted or failed search is a
   assert.equal(calls.length, 0, 'nothing is sent below three characters');
   await geo.findAddresses('6 L', near);
   assert.equal(calls.length, 1);
+  // A refused key (an origin the Geoapify dashboard does not allow answers 401) used to look exactly like "no matches".
+  // It must surface as an error carrying the status, so the box can say suggestions are unavailable instead of staying silently empty.
   mockFetch({ message: 'Invalid apiKey' }, 401);
-  assert.deepEqual(await geo.findAddresses('6 Laura', near), [], 'a rejected key leaves a plain text field');
+  await assert.rejects(geo.findAddresses('6 Laura', near), (error) => error.status === 401 && /401/.test(error.message));
+  mockFetch({}, 503);
+  await assert.rejects(geo.findAddresses('6 Laura', near), (error) => error.status === 503);
+  mockFetch({ results: [] });
+  assert.deepEqual(await geo.findAddresses('6 Laura', near), [], 'a real "no matches" is still just an empty list');
   const stopped = new AbortController(); stopped.abort();
   globalThis.fetch = async (_url, init) => { if (init.signal.aborted) throw new DOMException('aborted', 'AbortError'); return new Response('{}'); };
   await assert.rejects(geo.findAddresses('6 Laura', near, stopped.signal), /abort/i);

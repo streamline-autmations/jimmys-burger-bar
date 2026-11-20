@@ -143,10 +143,12 @@ checks(sort, check_name, ok, detail) as (
       and not has_column_privilege('anon', 'public.bookings', 'created_at', 'INSERT'),
     coalesce((select string_agg(item, ' ' order by item) from anon_column_level), 'nothing')
   union all
-  select 53, 'the public can only call create_order and lookup_request',
-    coalesce((select string_agg(name, ',' order by name) from anon_functions), '') in ('create_order,lookup_request', 'create_order,lookup_request,ordering_state', 'create_delivery_order,create_order,lookup_request,ordering_state',
+  select 53, 'only expected guest and email ticket functions are public',
+    coalesce((select string_agg(name, ',' order by name) from anon_functions where name not in ('claim_notification_email','finish_notification_email','stop_review_emails')), '') in ('create_order,lookup_request', 'create_order,lookup_request,ordering_state', 'create_delivery_order,create_order,lookup_request,ordering_state',
       -- 20261119120000: guest order alerts, guarded by the same reference + email proof as lookup_request.
-      'add_guest_push,create_delivery_order,create_order,lookup_request,ordering_state,remove_guest_push'),
+      'add_guest_push,create_delivery_order,create_order,lookup_request,ordering_state,remove_guest_push')
+      and (select count(*) from anon_functions where name in ('claim_notification_email','finish_notification_email','stop_review_emails'))
+          = case when to_regclass('public.notification_email_queue') is null then 0 else 3 end,
     coalesce((select string_agg(name, ', ' order by name) from anon_functions), 'nothing')
   union all
   select 54, 'future tables and functions start closed',

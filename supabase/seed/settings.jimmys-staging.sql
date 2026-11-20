@@ -9,6 +9,8 @@ values
   ('phone.country_code', '27', 'Country code used to match local and international forms of one phone number'),
   ('trading_hours', '{"weekly":{"0":null,"1":["09:00","20:00"],"2":["09:00","20:00"],"3":["09:00","21:00"],"4":["09:00","21:00"],"5":["09:00","24:00"],"6":["09:00","24:00"]},"exceptions":{}}', 'Opening hours from venue.hours and venue.closures; orders and bookings outside them are refused'),
   ('push.url', 'https://cagcpwlzqpolojpgewtw.supabase.co/functions/v1/kitchen-push', 'kitchen-push Edge Function: lock-screen alerts for paid orders'),
+  ('webhook.status', 'https://dockerfile-1n82.onrender.com/webhook/jimmys-stage-email-status-47a53966-598c-43f8-8438-b7aad4e10024', 'Single-use tickets for guest email updates'),
+  ('email.review_optout_url', 'https://dockerfile-1n82.onrender.com/webhook/jimmys-stage-email-stop-6b52848a-9577-4136-ad31-0b861fa5c160', 'Review email preferences confirmation page'),
   ('payments.secret_names', '{"merchant_id":"PAYFAST_MERCHANT_ID","merchant_key":"PAYFAST_MERCHANT_KEY","passphrase":"PAYFAST_PASSPHRASE","mode":"PAYFAST_MODE"}', 'Environment variable names only, never credentials'),
   ('delivery.zone', '{"bands":[{"fee":39,"suburbs":["Meyerton central","Meyerton Park","Riversdale","Kookrus"]},{"fee":49,"suburbs":["Rothdene","Henley on Klip","Daleside"]}],"hours":["11:00","19:30"],"minimum":null}', 'Delivery preview: suburbs, example fees and hours create_delivery_order prices from'),
   ('payments.provider', 'payfast', 'Hosted payment provider'),
@@ -26,6 +28,7 @@ delete from public.app_settings where key in ('webhook.order', 'webhook.booking'
 -- One review job per project, whatever it was named before.
 select cron.unschedule(jobid) from cron.job where command ~* 'send_review_requests';
 -- Review requests are switched off for this restaurant.
+select cron.schedule('notification-email-retry', '* * * * *', 'select public.post_notification_emails()');
 -- Preserve a manager's runtime pause when regenerating settings.
 insert into public.app_settings(key,value,description) values('ordering.paused','false','Pause new online payments') on conflict(key) do nothing;
 select cron.schedule('restaurant-direct-payment-expiry', '*/5 * * * *', 'select public.expire_pending_payments()');

@@ -82,7 +82,7 @@ test('the fingerprint notices drift that keeps definitions identical', async () 
 test('generated seed files apply cleanly, twice', async () => {
   await db.exec(fs.readFileSync('supabase/seed/settings.jimmys.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/seed/menu.jimmys.sql', 'utf8'));
-  const jobs = (await db.query(`select schedule, command from cron.job`)).rows;
+  const jobs = (await db.query(`select schedule, command from cron.job where jobname='restaurant-direct-review-requests'`)).rows;
   assert.deepEqual(jobs, [{ schedule: '0 18 * * *', command: 'select public.send_review_requests()' }], 'exactly one review job');
   assert.equal((await one(`select value from public.app_settings where key = 'timezone'`)).value, 'Africa/Johannesburg');
   assert.ok((await one(`select count(*)::int n from public.menu_items where available`)).n >= 40);
@@ -261,7 +261,7 @@ test('booking spam from one contact is throttled', async () => {
 test('the nightly job sends one review request per completed order', async () => {
   const placed = (await createOrder(order({ email: 'review@example.com' }))).rows[0];
   await db.query(`update public.orders set status = 'completed', completed_at = now() where id = $1`, [placed.id]);
-  const sent = async () => (await one(`select count(*)::int n from public.notification_log where kind = 'review' and reference = (select order_no from public.orders where id = $1)`, [placed.id])).n;
+  const sent = async () => (await one(`select count(*)::int n from public.notification_email_queue where event_key = 'review.order' and subject_id = $1`, [placed.id])).n;
   await db.query(`select public.send_review_requests()`);
   assert.equal(await sent(), 1);
   await db.query(`select public.send_review_requests()`);
@@ -420,6 +420,7 @@ const EGG = { name: 'Extra Egg', price: 20 };
 const withExtras = (extras, extra = {}) => order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras }], total: 2 * (100 + extras.reduce((sum, e) => sum + e.price, 0)), ...extra });
 
 test('an extra is accepted at the database price and charged on every unit', async () => {
+  await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
   const o = withExtras([BACON, EGG]);
   const placed = (await createOrder(o)).rows[0];
   assert.equal(Number((await one(`select total from public.orders where id = $1`, [placed.id])).total), 290, '2 x (100 + 25 + 20)');
@@ -435,6 +436,7 @@ test('an extra is accepted at the database price and charged on every unit', asy
 });
 
 test('extras the database does not allow are refused', async () => {
+  await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
   const refused = async (o, pattern, label) => {
     await db.exec('savepoint probe');
     await assert.rejects(createOrder(o), pattern, label);
@@ -452,12 +454,15 @@ test('extras the database does not allow are refused', async () => {
     await refused(order({ items: [{ name: 'Beef Burger', qty: 1, unit_price: 100, extras: 'Extra Bacon' }], total: 125 }), /invalid extras/, 'extras that are not a list');
     await refused(order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [BACON] }], total: 200 }), /does not match/, 'extras left out of the total');
     await refused(order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [BACON] }], total: 225 }), /does not match/, 'extras charged once instead of per unit');
+    await db.exec("update public.menu_items set available = false where name = 'Extra Bacon'");
+    await refused(withExtras([BACON]), /extra unavailable/, 'a sold-out board extra');
   } finally {
     await db.exec('rollback');
   }
 });
 
 test('a retry with extras is a no-op, and the guest and staff see the extras', async () => {
+  await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
   const o = withExtras([BACON]);
   const first = (await createOrder(o)).rows[0];
   const again = (await createOrder(o)).rows[0];
@@ -472,12 +477,22 @@ test('a retry with extras is a no-op, and the guest and staff see the extras', a
   assert.deepEqual(staffSees, [BACON]);
 });
 
-test('the extras patch also applies without the gated hardening migration', async () => {
+test('legacy Jimmy’s accepts a plain order before the extras migrations and upgrades without payment functions', async () => {
   const bare = await createDatabase({
     baseline: false,
-    files: [...migrationFiles().filter((file) => !file.includes('20260915130000_harden_public_writes')), 'supabase/seed/settings.jimmys.sql', 'supabase/seed/menu.jimmys.sql'],
+    files: [migrationFiles()[0], 'supabase/seed/menu.jimmys.sql'],
   });
   try {
+    const plain = order();
+    await bare.query(`select * from public.create_order($1,$2,$3,$4,'collection',null,null,null,$5,$6,false,$7::jsonb)`,
+      [plain.ref, plain.name, plain.email, plain.phone, plain.time, plain.total, JSON.stringify(plain.items)]);
+    for (const file of [
+      'supabase/migrations/20261120120000_order_extras.sql',
+      'supabase/migrations/20261120130000_extra_availability.sql',
+    ]) {
+      await bare.exec(fs.readFileSync(file, 'utf8'));
+    }
+    await bare.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
     const o = withExtras([BACON]);
     const placed = (await bare.query(`select * from public.create_order($1,$2,$3,$4,'collection',null,null,null,$5,$6,false,$7::jsonb)`,
       [o.ref, o.name, o.email, o.phone, o.time, o.total, JSON.stringify(o.items)])).rows[0];
@@ -514,7 +529,7 @@ test('the health check passes its security rows on a correctly built project', a
   for (const name of [
     'timezone setting is a real zone', 'phone country code setting', 'menu loaded', 'at least one staff member',
     'row level security on every table', 'the public has no table-wide privileges',
-    'the public can only insert booking form columns', 'the public can only call create_order and lookup_request',
+    'the public can only insert booking form columns', 'only expected guest and email ticket functions are public',
     'future tables and functions start closed', 'no duplicate or inactive review jobs',
   ]) {
     assert.ok(byName[name], `missing check: ${name}`);

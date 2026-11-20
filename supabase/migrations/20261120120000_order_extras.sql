@@ -90,13 +90,14 @@ end $do$;
 -- between placing the order and paying is refused like a changed dish price.
 do $do$
 declare
-  f text := pg_get_functiondef('public.begin_payment(text,text,text,text)'::regprocedure);
+  f text := pg_get_functiondef(to_regprocedure('public.begin_payment(text,text,text,text)'));
   old_part text := $a$m.price <> i.unit_price or$a$;
   new_part text := $b$m.price <> i.unit_price or exists (
       select 1 from jsonb_array_elements(i.extras) as e(v) where not exists (
         select 1 from jsonb_array_elements(m.extras) as a(v)
         where a.v->>'name' = e.v->>'name' and (a.v->>'price')::numeric = (e.v->>'price')::numeric)) or$b$;
 begin
+  if f is null then return; end if; -- Pay-on-collection projects have no payment functions.
   if (length(f) - length(replace(f, old_part, ''))) <> length(old_part) then
     raise exception 'unrecognised begin_payment price check (expected exactly one match)';
   end if;
@@ -106,10 +107,11 @@ end $do$;
 -- mark_order_paid: the order webhook after payment carries the extras too.
 do $do$
 declare
-  f text := pg_get_functiondef('public.mark_order_paid(text,text,text,numeric,jsonb)'::regprocedure);
+  f text := pg_get_functiondef(to_regprocedure('public.mark_order_paid(text,text,text,numeric,jsonb)'));
   old_part text := $a$jsonb_build_object('name',name,'qty',qty,'unit_price',unit_price)$a$;
   new_part text := $b$jsonb_build_object('name',name,'qty',qty,'unit_price',unit_price,'extras',extras)$b$;
 begin
+  if f is null then return; end if; -- Pay-on-collection projects have no payment functions.
   if (length(f) - length(replace(f, old_part, ''))) <> length(old_part) then
     raise exception 'unrecognised mark_order_paid webhook lines (expected exactly one match)';
   end if;

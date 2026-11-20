@@ -8,10 +8,12 @@
   "webhooks": {
     "order": null,
     "booking": null,
-    "review": null
+    "review": null,
+    "status": "https://dockerfile-1n82.onrender.com/webhook/jimmys-stage-email-status-47a53966-598c-43f8-8438-b7aad4e10024"
   },
   "reviewRequests": {
-    "localTime": null
+    "localTime": null,
+    "optOutUrl": "https://dockerfile-1n82.onrender.com/webhook/jimmys-stage-email-stop-6b52848a-9577-4136-ad31-0b861fa5c160"
   },
   "payments": {
     "provider": "payfast",

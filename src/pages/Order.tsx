@@ -20,6 +20,9 @@ import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage'
 import { collectionSlots, contactFieldErrors, latestTime, openDates, restaurantDate, restaurantInstant, slotFieldErrors, tradingHours } from '../lib/tradingHours';
 import { asapSlot, earliestSlot, openNow, type Slot } from '../lib/asap';
 import { CartScreen } from '../components/order/CartScreen';
+import { DockedBar } from '../components/order/DockedBar';
+import { MenuIntro } from '../components/order/MenuIntro';
+import { MenuSearch, SearchButton, filterCategories } from '../components/order/MenuSearch';
 import { CustomiseSheet } from '../components/order/CustomiseSheet';
 import { extrasOf, unitPrice } from '../core/menu/extras';
 import { WhenField, type WhenMode } from '../components/order/WhenField';
@@ -117,21 +120,20 @@ export const Order: React.FC = () => {
   const location = useLocation();
   // Order again from the tracking page lands on the cart, as it does in the app.
   const [localStep, setLocalStep] = useState<Step>(() => ((location.state as { reordered?: boolean } | null)?.reordered ? 'cart' : 'browse'));
-  const [confirmationKey, setConfirmationKey] = useState<string | null>(null);
   const view = params.get('view');
-  const tabStep: Step = view === 'cart' ? 'cart' : view === 'checkout' ? 'checkout' : 'browse';
-  const step: Step = !appShell ? localStep : confirmationKey === location.key ? 'confirmed' : tabStep;
+  const tabStep: Step = view === 'cart' ? 'cart' : view === 'checkout' ? 'checkout'
+    : view === 'confirmed' && localStep === 'confirmed' ? 'confirmed' : 'browse';
+  const routeStep = appShell ? tabStep : localStep;
   const setStep = (next: Step) => {
     setLocalStep(next);
-    if (!appShell) return;
-    setConfirmationKey(next === 'confirmed' ? location.key : null);
-    if (next !== 'confirmed' && next !== step) setParams(next === 'cart' ? { view: 'cart' } : next === 'checkout' ? { view: 'checkout' } : {});
+    if (appShell && next !== routeStep) {
+      setParams(next === 'browse' ? {} : { view: next }, { replace: next === 'confirmed' });
+    }
   };
   // Order again: the dishes My orders could not put back, named once on arrival.
   const arrival = location.state as { skipped?: string[]; reordered?: boolean } | null;
   // Shown only on the cart screen it arrived with: going back to the menu drops the navigation state.
   const [skippedNow, setSkippedNow] = useState<string[] | null>(null);
-  useEffect(() => { if (step !== 'cart') setSkippedNow(null); }, [step]);
   // Take the reorder hand-off once, then drop it from history, so a reload or Back
   // does not reopen checkout with the old notice.
   useEffect(() => {
@@ -172,7 +174,14 @@ export const Order: React.FC = () => {
   const [unpaid, setUnpaid] = useState<{ reference: string; email: string; message: string } | null>(null);
   const [redirecting, setRedirecting] = useState(false);
   const [waiting, setWaiting] = useState(() => (payFirst ? readPending() : null));
+  const locked = isSubmitting || redirecting || !!unpaid || failure?.kind === 'uncertain';
+  // Menu and Cart share this mounted route. Tab navigation must respect a pending attempt.
+  const step = locked ? 'checkout' : routeStep;
+  useEffect(() => { if (step !== 'cart') setSkippedNow(null); }, [step]);
   const categoryRailRef = useRef<HTMLDivElement>(null);
+  // Menu search (installed app only): a field that replaces the category rail and filters the list.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const noticeRef = useRef<HTMLDivElement>(null);
   const confirmedHeadingRef = useRef<HTMLHeadingElement>(null);
   const [placedOrder, setPlacedOrder] = useState<{
@@ -258,6 +267,8 @@ export const Order: React.FC = () => {
     };
     if (count === 0) found.cart = 'Add at least one item to your order.';
     const gone = lines.find((line) => soldOut.has(line.name));
+    const missingExtra = lines.flatMap((line) => line.extras).find((extra) => soldOut.has(extra.name));
+    if (missingExtra) found.cart = `${missingExtra.name} is sold out. Edit your cart to remove it.`;
     if (gone) found.cart = `${gone.name} is sold out. Remove it to continue.`;
     if (orderType === 'table' && !tableNumber.trim()) found.table = 'Enter your table number.';
     if (orderType === 'delivery' && !deliveryAddress.trim() && deliverySuburb !== NOT_LISTED) found.address = 'Enter the delivery address.';
@@ -284,8 +295,6 @@ export const Order: React.FC = () => {
   const summaryItems = FIELD_ORDER
     .filter((field) => form.visible[field])
     .map((field) => ({ fieldId: FIELD_IDS[field], message: form.visible[field]! }));
-
-  const locked = isSubmitting || redirecting || !!unpaid || failure?.kind === 'uncertain';
 
   // A chosen time that has since passed moves to the first one left that day.
   useEffect(() => {
@@ -345,6 +354,10 @@ export const Order: React.FC = () => {
   }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, timing, deliveryAddress, deliverySuburb, orderType, tableNumber, count]);
 
   const orderCategories = ORDER_CATEGORIES;
+  const searching = appShell && searchOpen;
+  const shownCategories = searching ? filterCategories(orderCategories, query) : orderCategories;
+  const openSearch = () => { window.scrollTo({ top: 0, behavior: 'instant' }); setSearchOpen(true); };
+  const closeSearch = () => { setSearchOpen(false); setQuery(''); };
 
   // Order.tsx runs its own browse -> checkout -> confirmed flow without a
   // route change, so App.tsx's route-level ScrollToTop never fires here.
@@ -478,8 +491,11 @@ export const Order: React.FC = () => {
         sentPayload.current = null;
         sentDetails.current = null;
       }
+      // The refusal behind a "not sent" notice, for whoever is testing: the server's own code and text, never the guest's details.
+      const refusal = (failed as { cause?: { code?: string; message?: string } }).cause;
+      console.warn('[order] not sent:', failed.kind, failed.reason ?? 'no reason', refusal?.code, refusal?.message);
       if (!mounted.current) return;
-      if (failed.reason === 'paused' || failed.reason === 'menu') loadShop();
+      if (failed.reason === 'paused' || failed.reason === 'menu' || failed.reason === 'total') loadShop();
       setFailure({
         kind: stillUncertain ? 'uncertain' : failed.kind,
         offline: failed.offline,
@@ -495,6 +511,8 @@ export const Order: React.FC = () => {
           : failed.reason === 'zone' ? 'We cannot deliver to that suburb, so nothing was saved. Your cart is still here, and you can collect instead.'
           : failed.reason === 'deliveryHours' ? 'Delivery is not running at the time you chose, so nothing was saved. Choose another time or collect instead.'
           : failed.reason === 'minimum' ? 'This order is below the delivery minimum, so nothing was saved. Add something or collect instead.'
+          : failed.reason === 'total' ? `We could not confirm the price of this order, so nothing was saved. Refresh the menu and try again. If it happens again, please phone ${config.venue.name}.`
+          : failed.reason === 'unavailable' ? `Online ordering is not working for this order right now, so nothing was saved. Your cart is still here. Please phone or WhatsApp ${config.venue.name} to order.`
           : failed.kind === 'rejected' ? copy.order.rejected
           : failed.offline ? 'The connection dropped while sending, so we could not confirm your order arrived.'
           : 'The connection timed out before we heard back, so we cannot tell whether your order arrived.',
@@ -701,16 +719,22 @@ export const Order: React.FC = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="max-w-7xl mx-auto px-4 md:px-8">
-              <div className={`max-w-xl ${appShell ? 'mb-6' : 'mb-8'}`}>
-                <span className="font-script text-2xl text-primary">skip the queue</span>
-                <h1 className={`font-display font-extrabold text-ink mt-1 ${appShell ? 'text-4xl mb-2' : 'text-4xl md:text-6xl mb-4'}`}>{orderCtaLabel}</h1>
-                <p className={`text-ink/60 ${appShell ? 'text-base' : 'text-lg'}`}>
-                  {payFirst
-                    ? `Choose your food, pay online, then collect at ${config.venue.address}.`
-                    : `${copy.order.intro} Choose a requested time and wait for the restaurant to confirm it.`}
-                </p>
-              </div>
+            {appShell && !searching && (
+              <MenuIntro heading={orderCtaLabel} caption={payFirst ? `Pay online, then collect at ${config.venue.address}.` : undefined} />
+            )}
+            {searching && <h1 className="sr-only">{orderCtaLabel}</h1>}
+            <div className={`max-w-7xl mx-auto px-4 md:px-8 ${appShell ? 'empty:hidden [&>*:first-child]:mt-4' : ''}`}>
+              {!appShell && (
+                <div className="max-w-xl mb-8">
+                  <span className="font-script text-2xl text-primary">skip the queue</span>
+                  <h1 className="font-display font-extrabold text-ink mt-1 text-4xl md:text-6xl mb-4">{orderCtaLabel}</h1>
+                  <p className="text-ink/60 text-lg">
+                    {payFirst
+                      ? `Choose your food, pay online, then collect at ${config.venue.address}.`
+                      : `${copy.order.intro} Choose a requested time and wait for the restaurant to confirm it.`}
+                  </p>
+                </div>
+              )}
               {waiting && !waiting.paid && (
                 <p className={`${noticeBox} mb-6 max-w-xl text-sm`}>
                   <span className="font-display text-base font-bold">Order {waiting.reference} is waiting for payment.</span>{' '}
@@ -723,33 +747,50 @@ export const Order: React.FC = () => {
 
             {/* Category tabs */}
             <div className={`sticky ${stickyBelowHeader && !appShell ? 'top-[64px]' : 'top-0'} z-30 bg-surface/95 backdrop-blur-md border-y border-ink/10 py-3 transition-[top] duration-300`}>
-              <div ref={categoryRailRef} className="max-w-7xl mx-auto px-4 md:px-8 flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide" aria-label="Order categories">
-                {orderCategories.map((cat) => (
-                  <button
-                    key={cat.name}
-                    data-category={cat.name}
-                    onClick={() => scrollToCategory(cat.name)}
-                    className={`relative shrink-0 px-4 py-2 rounded-full font-display font-bold text-sm transition-colors duration-200 active:scale-[0.96] ${
-                      activeCategory === cat.name ? 'text-surface' : 'bg-paper text-ink/60 hover:text-ink'
-                    }`}
-                  >
-                    {activeCategory === cat.name && (
-                      <motion.span
-                        layoutId="order-tab-pill"
-                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                        className="absolute inset-0 bg-primary rounded-full -z-10"
-                      />
-                    )}
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+              {(() => {
+                const rail = (
+                  <div ref={categoryRailRef} className={`flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide ${appShell ? 'min-w-0 flex-1' : 'max-w-7xl mx-auto px-4 md:px-8'}`} aria-label="Order categories">
+                    {orderCategories.map((cat) => (
+                      <button
+                        key={cat.name}
+                        data-category={cat.name}
+                        onClick={() => scrollToCategory(cat.name)}
+                        className={`relative shrink-0 px-4 py-2 rounded-full font-display font-bold text-sm transition-colors duration-200 active:scale-[0.96] ${
+                          activeCategory === cat.name ? 'text-surface' : 'bg-paper text-ink/70 hover:text-ink'
+                        }`}
+                      >
+                        {activeCategory === cat.name && (
+                          <motion.span
+                            layoutId="order-tab-pill"
+                            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                            className="absolute inset-0 bg-primary rounded-full -z-10"
+                          />
+                        )}
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                );
+                if (!appShell) return rail;
+                return (
+                  <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 md:px-8">
+                    {searching ? <MenuSearch value={query} onChange={setQuery} onClose={closeSearch} /> : <><SearchButton onClick={openSearch} />{rail}</>}
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className={`max-w-7xl mx-auto px-4 md:px-8 ${appShell ? 'py-6' : 'py-12'} grid grid-cols-1 lg:grid-cols-3 gap-8 items-start`}>
               {/* Menu list */}
               <div className="lg:col-span-2 space-y-6">
-                {orderCategories.map((category) => (
+                {searching && (
+                  <p role="status" className="font-display text-sm font-bold text-ink/75">
+                    {shownCategories.length === 0
+                      ? `Nothing on the menu matches “${query.trim()}”.`
+                      : query.trim() ? `${shownCategories.reduce((sum, category) => sum + category.items.length, 0)} on the menu` : ''}
+                  </p>
+                )}
+                {shownCategories.map((category) => (
                   <section
                     key={category.name}
                     id={`order-${category.name}`}
@@ -777,7 +818,7 @@ export const Order: React.FC = () => {
                                   <h3 className="font-display font-bold text-ink leading-snug">{item.name}</h3>
                                   <span className="font-display font-bold text-ink whitespace-nowrap">{formatMoney(menuPrice(item.price))}</span>
                                 </div>
-                                <p className="text-sm text-ink/55 leading-relaxed pr-4">{item.description}</p>
+                                <p className="text-sm text-ink/70 leading-relaxed pr-4">{item.description}</p>
                               </div>
 
                               <div className="shrink-0">
@@ -819,7 +860,7 @@ export const Order: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => setCustomising({ name: item.name, price, key: null })}
-                                    className="mt-1 flex min-h-11 w-full items-center justify-end font-display text-sm font-bold text-primary underline underline-offset-2 hover:text-ink"
+                                    className={`mt-1 flex min-h-11 w-full items-center ${appShell ? 'justify-start' : 'justify-end'} font-display text-sm font-bold text-primary underline underline-offset-2 hover:text-ink`}
                                   >
                                     Customise<span className="sr-only"> {item.name}</span>
                                   </button>
@@ -851,7 +892,8 @@ export const Order: React.FC = () => {
 
             {/* Mobile checkout pill */}
             <AnimatePresence>
-              {count > 0 && (
+              {appShell && count > 0 && <DockedBar key="docked" className="lg:hidden" count={count} total={total} action="View cart" onAction={() => setStep('cart')} />}
+              {!appShell && count > 0 && (
                 <motion.button
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -888,6 +930,8 @@ export const Order: React.FC = () => {
               soldOut={soldOut}
               customisable={customisableDishes}
               appShell={appShell}
+              orderType={orderType}
+              asap={wantsAsap}
               notice={skipped.length > 0 ? <SkippedNotice names={skipped} />
                 : reordered ? <p role="status" className="rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p> : null}
               locked={locked}
@@ -910,8 +954,8 @@ export const Order: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="max-w-xl mx-auto px-4 md:px-8"
           >
-            <span className="block font-script text-2xl text-primary">your cart</span>
-            <h1 className="font-display text-4xl font-extrabold text-ink mt-1 mb-6">Nothing in it yet</h1>
+            <span aria-hidden="true" className="mb-2 block h-1.5 w-10 -rotate-3 rounded-full bg-accent" />
+            <h1 className="font-display text-[2.5rem] font-extrabold uppercase leading-none tracking-tight text-ink mb-6">Nothing in it yet</h1>
             {skipped.length > 0 && <SkippedNotice names={skipped} className="mb-6" />}
             <div className={`${panel} text-center`}>
               <ShoppingBag size={28} className="mx-auto text-primary" aria-hidden="true" />
@@ -995,7 +1039,11 @@ export const Order: React.FC = () => {
                             control={control}
                             near={DELIVERY.addressSearch}
                             value={deliveryAddress}
-                            onChange={setDeliveryAddress}
+                            onChange={(value) => {
+                              setDeliveryAddress(value);
+                              if (autoSuburb.current) setDeliverySuburb('');
+                              autoSuburb.current = '';
+                            }}
                             onBlur={() => form.blur('address')}
                             onPick={(picked) => {
                               setDeliveryAddress(picked.label);
@@ -1011,7 +1059,7 @@ export const Order: React.FC = () => {
                       </FormField>
                       <FormField id={FIELD_IDS.suburb} label="Suburb" required error={form.visible.suburb} hint="We fill this in from your address when we recognise it. We deliver to a short list of nearby suburbs.">
                         {(control) => (
-                          <select {...control} value={deliverySuburb} onChange={(e) => setDeliverySuburb(e.target.value)} onBlur={() => form.blur('suburb')} className="form-input">
+                          <select {...control} value={deliverySuburb} onChange={(e) => { autoSuburb.current = ''; setDeliverySuburb(e.target.value); }} onBlur={() => form.blur('suburb')} className="form-input">
                             <option value="">Choose your suburb</option>
                             {DELIVERY.bands.map((zone) => (
                               <optgroup key={zone.label} label={`${zone.label}, ${formatMoney(menuPrice(zone.fee))} example fee`}>
@@ -1124,7 +1172,7 @@ export const Order: React.FC = () => {
                   retrying={isSubmitting}
                   onRetry={retry}
                   onDiscard={discardAttempt}
-                  onReload={failure.reason === 'menu' ? () => window.location.reload() : undefined}
+                  onReload={failure.reason === 'menu' || failure.reason === 'total' ? () => window.location.reload() : undefined}
                 />
                 {paidDelivery && (failure.reason === 'zone' || failure.reason === 'deliveryHours' || failure.reason === 'minimum') && <div className="mt-3">{collectInstead}</div>}
               </div>
@@ -1232,7 +1280,7 @@ export const Order: React.FC = () => {
           <CustomiseSheet
             key="customise"
             dish={{ name: customising.name, price: customising.price }}
-            offered={dishExtras.get(customising.name) ?? []}
+            offered={(dishExtras.get(customising.name) ?? []).filter((extra) => !soldOut.has(extra.name))}
             initial={customising.key ? (lines.find((line) => line.key === customising.key)?.extras ?? []).map((extra) => extra.name) : []}
             qty={customising.key ? (lines.find((line) => line.key === customising.key)?.qty ?? 1) : 1}
             mode={customising.key ? 'edit' : 'add'}

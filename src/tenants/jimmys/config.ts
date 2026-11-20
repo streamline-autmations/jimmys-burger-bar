@@ -36,9 +36,7 @@ const icedDrinks = [
 const heinekenZero = { name: "Heineken Zero", price: 30 };
 const savannah = { name: "Savannah", detail: "Dry, Lite, Neat or Non-Alcoholic", price: 35 };
 
-// Jimmy's printed Extras and Extra Sauces boards, in board order. One list: the
-// two board categories show it, and the Customise sheet offers a subset per
-// category through extrasNamed, so a price can never differ between the two.
+// Jimmy's printed Extras and Extra Sauces boards, sold as standalone items.
 // Extras photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
 // AI-imagery override and logged there. Swap for real photos when shot.
 const extraBoard = [
@@ -69,22 +67,6 @@ const sauceBoard = [
   { name: "Extra Pepper Sauce", price: 30, image: "/images/menu/extra-sauces/extra-pepper-sauce.webp" },
   { name: "Extra Mushroom Sauce", price: 30, image: "/images/menu/extra-sauces/extra-mushroom-sauce.webp" },
 ];
-const extrasNamed = (...names: string[]) =>
-  names.map((name) => {
-    const found = [...extraBoard, ...sauceBoard].find((extra) => extra.name === name);
-    if (!found) throw new Error(`extrasNamed: "${name}" is not on the Extras boards`);
-    return { name: found.name, price: found.price };
-  });
-
-// UNCONFIRMED (tell Christiaan before go-live): Jimmy's has not said which extras
-// go with which dishes. This split follows the board's own wording (breakfast
-// items, burger toppings, sauces with steak and chicken) and is an assumption to
-// confirm with them. Categories not listed here (Wraps, Toasted Sandwiches,
-// Salads, Small Plates, Platters) offer no Customise until Jimmy's says what applies.
-const breakfastExtras = extrasNamed("Extra Bacon", "Extra Egg", "Extra Toast", "Extra Cheese Griller", "Extra Hashbrown", "Extra Vienna", "Extra Pork Banger", "Extra Tomato");
-const burgerExtras = extrasNamed("Extra Patty", "Extra Bacon", "Extra Egg", "Extra Cheese Slice", "Extra Cheddar", "Extra Mozzarella", "Extra Feta", "Extra Cream Cheese", "Extra Jalapeños", "Extra Avocado", "Extra Mushroom", "Extra Guacamole", "Extra Tomato");
-const sauceExtras = extrasNamed("Extra Cheese Sauce", "Extra Pepper Sauce", "Extra Mushroom Sauce");
-
 export const jimmys = defineRestaurant({
   slug: "jimmys",
   // ---- Locale ---------------------------------------------------------------
@@ -285,7 +267,6 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
-        extras: breakfastExtras,
         // Codex generated Avo on Toast, Carb Clever Breakfast, Breakfast Wrap, Eggs
         // Benedict and Mince on Toast (2026-11-19) under the CLAUDE.md AI-imagery override.
         // Breakfast Bun and Breakfast Burger use earlier AI photos. Jimmy's Breakfast
@@ -306,7 +287,6 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Burgers",
-        extras: burgerExtras,
         // Chicken, Smash, Gourmet Beef, Gourmet Chicken and Nacho Burger photos are
         // AI-generated (Codex, 2026-11-19) under the CLAUDE.md AI-imagery override and
         // logged there. Pizza Burger is also AI (2026-09-28). Beef Burger is a real iPhone photo.
@@ -353,7 +333,6 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Steaks",
-        extras: sauceExtras,
         note: "With chips and onion rings or salad",
         items: [
           { name: "200g Rump Steak", price: 140, popular: true, image: "/images/menu/steaks/rump-steak.webp" },
@@ -365,7 +344,6 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
-        extras: sauceExtras,
         // Chicken Wings, Chicken Strips and Chicken Schnitzel (Half) are AI-generated
         // (Codex, 2026-11-19) under the CLAUDE.md override. The Full photo is real.
         note: "With chips, salad or vegetables",

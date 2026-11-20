@@ -78,7 +78,7 @@ export function classifySubmission(error: unknown, savedConstraint?: string): Su
     }
     const reason: RefusalReason | undefined =
       text.includes('not served at that time') ? 'served'
-      : text.includes('menu item unavailable') || text.includes('menu price changed') ? 'menu'
+      : text.includes('menu item unavailable') || text.includes('menu price changed') || text.includes('extra unavailable') || text.includes('extra price changed') ? 'menu'
       : text.includes('requested time is in the past') ? 'time'
       : text.includes('ordering_paused') ? 'paused'
       : text.includes('outside trading hours') ? 'hours'

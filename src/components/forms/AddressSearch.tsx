@@ -34,7 +34,7 @@ export const AddressSearch: React.FC<{
     pending.current = abort;
     const timer = setTimeout(() => {
       findAddresses(value, near, abort.signal)
-        .then((found) => { setSuggestions(found); setActive(-1); setFresh(true); })
+        .then((found) => { if (abort.signal.aborted) return; setSuggestions(found); setActive(-1); setFresh(true); })
         .catch(() => { if (!abort.signal.aborted) { setSuggestions([]); setFresh(true); } });
     }, DEBOUNCE_MS);
     return () => { clearTimeout(timer); abort.abort(); };
@@ -48,11 +48,10 @@ export const AddressSearch: React.FC<{
     onPick(suggestion);
   };
 
-  const expanded = open && suggestions.length > 0;
+  const expanded = open && fresh && suggestions.length > 0;
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!fresh && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter')) {
-      // Enter still submits nothing from the stale list; the form's own Enter handling is untouched.
-      if (e.key !== 'Enter') e.preventDefault();
+      e.preventDefault();
       return;
     }
     if (!expanded) {
@@ -63,9 +62,9 @@ export const AddressSearch: React.FC<{
       e.preventDefault();
       const n = suggestions.length;
       setActive((i) => (i < 0 ? (e.key === 'ArrowDown' ? 0 : n - 1) : (i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n));
-    } else if (e.key === 'Enter' && active >= 0) {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      pick(suggestions[active]);
+      if (active >= 0) pick(suggestions[active]);
     } else if (e.key === 'Escape') {
       setOpen(false);
     }
@@ -85,7 +84,7 @@ export const AddressSearch: React.FC<{
         autoComplete="address-line1"
         maxLength={250}
         value={value}
-        onChange={(e) => { typed.current = true; setActive(-1); setFresh(false); setOpen(true); onChange(e.target.value); }}
+        onChange={(e) => { typed.current = true; pending.current?.abort(); setSuggestions([]); setActive(-1); setFresh(false); setOpen(true); onChange(e.target.value); }}
         onKeyDown={onKeyDown}
         onFocus={() => setOpen(true)}
         onBlur={() => { setOpen(false); onBlur(); }}

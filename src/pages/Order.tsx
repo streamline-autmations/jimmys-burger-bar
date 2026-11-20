@@ -117,21 +117,20 @@ export const Order: React.FC = () => {
   const location = useLocation();
   // Order again from the tracking page lands on the cart, as it does in the app.
   const [localStep, setLocalStep] = useState<Step>(() => ((location.state as { reordered?: boolean } | null)?.reordered ? 'cart' : 'browse'));
-  const [confirmationKey, setConfirmationKey] = useState<string | null>(null);
   const view = params.get('view');
-  const tabStep: Step = view === 'cart' ? 'cart' : view === 'checkout' ? 'checkout' : 'browse';
-  const step: Step = !appShell ? localStep : confirmationKey === location.key ? 'confirmed' : tabStep;
+  const tabStep: Step = view === 'cart' ? 'cart' : view === 'checkout' ? 'checkout'
+    : view === 'confirmed' && localStep === 'confirmed' ? 'confirmed' : 'browse';
+  const routeStep = appShell ? tabStep : localStep;
   const setStep = (next: Step) => {
     setLocalStep(next);
-    if (!appShell) return;
-    setConfirmationKey(next === 'confirmed' ? location.key : null);
-    if (next !== 'confirmed' && next !== step) setParams(next === 'cart' ? { view: 'cart' } : next === 'checkout' ? { view: 'checkout' } : {});
+    if (appShell && next !== routeStep) {
+      setParams(next === 'browse' ? {} : { view: next }, { replace: next === 'confirmed' });
+    }
   };
   // Order again: the dishes My orders could not put back, named once on arrival.
   const arrival = location.state as { skipped?: string[]; reordered?: boolean } | null;
   // Shown only on the cart screen it arrived with: going back to the menu drops the navigation state.
   const [skippedNow, setSkippedNow] = useState<string[] | null>(null);
-  useEffect(() => { if (step !== 'cart') setSkippedNow(null); }, [step]);
   // Take the reorder hand-off once, then drop it from history, so a reload or Back
   // does not reopen checkout with the old notice.
   useEffect(() => {
@@ -172,6 +171,10 @@ export const Order: React.FC = () => {
   const [unpaid, setUnpaid] = useState<{ reference: string; email: string; message: string } | null>(null);
   const [redirecting, setRedirecting] = useState(false);
   const [waiting, setWaiting] = useState(() => (payFirst ? readPending() : null));
+  const locked = isSubmitting || redirecting || !!unpaid || failure?.kind === 'uncertain';
+  // Menu and Cart share this mounted route. Tab navigation must respect a pending attempt.
+  const step = locked ? 'checkout' : routeStep;
+  useEffect(() => { if (step !== 'cart') setSkippedNow(null); }, [step]);
   const categoryRailRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
   const confirmedHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -258,6 +261,8 @@ export const Order: React.FC = () => {
     };
     if (count === 0) found.cart = 'Add at least one item to your order.';
     const gone = lines.find((line) => soldOut.has(line.name));
+    const missingExtra = lines.flatMap((line) => line.extras).find((extra) => soldOut.has(extra.name));
+    if (missingExtra) found.cart = `${missingExtra.name} is sold out. Edit your cart to remove it.`;
     if (gone) found.cart = `${gone.name} is sold out. Remove it to continue.`;
     if (orderType === 'table' && !tableNumber.trim()) found.table = 'Enter your table number.';
     if (orderType === 'delivery' && !deliveryAddress.trim() && deliverySuburb !== NOT_LISTED) found.address = 'Enter the delivery address.';
@@ -284,8 +289,6 @@ export const Order: React.FC = () => {
   const summaryItems = FIELD_ORDER
     .filter((field) => form.visible[field])
     .map((field) => ({ fieldId: FIELD_IDS[field], message: form.visible[field]! }));
-
-  const locked = isSubmitting || redirecting || !!unpaid || failure?.kind === 'uncertain';
 
   // A chosen time that has since passed moves to the first one left that day.
   useEffect(() => {
@@ -995,7 +998,11 @@ export const Order: React.FC = () => {
                             control={control}
                             near={DELIVERY.addressSearch}
                             value={deliveryAddress}
-                            onChange={setDeliveryAddress}
+                            onChange={(value) => {
+                              setDeliveryAddress(value);
+                              if (autoSuburb.current) setDeliverySuburb('');
+                              autoSuburb.current = '';
+                            }}
                             onBlur={() => form.blur('address')}
                             onPick={(picked) => {
                               setDeliveryAddress(picked.label);
@@ -1011,7 +1018,7 @@ export const Order: React.FC = () => {
                       </FormField>
                       <FormField id={FIELD_IDS.suburb} label="Suburb" required error={form.visible.suburb} hint="We fill this in from your address when we recognise it. We deliver to a short list of nearby suburbs.">
                         {(control) => (
-                          <select {...control} value={deliverySuburb} onChange={(e) => setDeliverySuburb(e.target.value)} onBlur={() => form.blur('suburb')} className="form-input">
+                          <select {...control} value={deliverySuburb} onChange={(e) => { autoSuburb.current = ''; setDeliverySuburb(e.target.value); }} onBlur={() => form.blur('suburb')} className="form-input">
                             <option value="">Choose your suburb</option>
                             {DELIVERY.bands.map((zone) => (
                               <optgroup key={zone.label} label={`${zone.label}, ${formatMoney(menuPrice(zone.fee))} example fee`}>
@@ -1232,7 +1239,7 @@ export const Order: React.FC = () => {
           <CustomiseSheet
             key="customise"
             dish={{ name: customising.name, price: customising.price }}
-            offered={dishExtras.get(customising.name) ?? []}
+            offered={(dishExtras.get(customising.name) ?? []).filter((extra) => !soldOut.has(extra.name))}
             initial={customising.key ? (lines.find((line) => line.key === customising.key)?.extras ?? []).map((extra) => extra.name) : []}
             qty={customising.key ? (lines.find((line) => line.key === customising.key)?.qty ?? 1) : 1}
             mode={customising.key ? 'edit' : 'add'}

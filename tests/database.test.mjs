@@ -420,6 +420,7 @@ const EGG = { name: 'Extra Egg', price: 20 };
 const withExtras = (extras, extra = {}) => order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras }], total: 2 * (100 + extras.reduce((sum, e) => sum + e.price, 0)), ...extra });
 
 test('an extra is accepted at the database price and charged on every unit', async () => {
+  await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
   const o = withExtras([BACON, EGG]);
   const placed = (await createOrder(o)).rows[0];
   assert.equal(Number((await one(`select total from public.orders where id = $1`, [placed.id])).total), 290, '2 x (100 + 25 + 20)');
@@ -435,6 +436,7 @@ test('an extra is accepted at the database price and charged on every unit', asy
 });
 
 test('extras the database does not allow are refused', async () => {
+  await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
   const refused = async (o, pattern, label) => {
     await db.exec('savepoint probe');
     await assert.rejects(createOrder(o), pattern, label);
@@ -452,12 +454,15 @@ test('extras the database does not allow are refused', async () => {
     await refused(order({ items: [{ name: 'Beef Burger', qty: 1, unit_price: 100, extras: 'Extra Bacon' }], total: 125 }), /invalid extras/, 'extras that are not a list');
     await refused(order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [BACON] }], total: 200 }), /does not match/, 'extras left out of the total');
     await refused(order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [BACON] }], total: 225 }), /does not match/, 'extras charged once instead of per unit');
+    await db.exec("update public.menu_items set available = false where name = 'Extra Bacon'");
+    await refused(withExtras([BACON]), /extra unavailable/, 'a sold-out board extra');
   } finally {
     await db.exec('rollback');
   }
 });
 
 test('a retry with extras is a no-op, and the guest and staff see the extras', async () => {
+  await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
   const o = withExtras([BACON]);
   const first = (await createOrder(o)).rows[0];
   const again = (await createOrder(o)).rows[0];
@@ -472,12 +477,22 @@ test('a retry with extras is a no-op, and the guest and staff see the extras', a
   assert.deepEqual(staffSees, [BACON]);
 });
 
-test('the extras patch also applies without the gated hardening migration', async () => {
+test('legacy Jimmy’s accepts a plain order before the extras migrations and upgrades without payment functions', async () => {
   const bare = await createDatabase({
     baseline: false,
-    files: [...migrationFiles().filter((file) => !file.includes('20260915130000_harden_public_writes')), 'supabase/seed/settings.jimmys.sql', 'supabase/seed/menu.jimmys.sql'],
+    files: [migrationFiles()[0], 'supabase/seed/menu.jimmys.sql'],
   });
   try {
+    const plain = order();
+    await bare.query(`select * from public.create_order($1,$2,$3,$4,'collection',null,null,null,$5,$6,false,$7::jsonb)`,
+      [plain.ref, plain.name, plain.email, plain.phone, plain.time, plain.total, JSON.stringify(plain.items)]);
+    for (const file of [
+      'supabase/migrations/20261120120000_order_extras.sql',
+      'supabase/migrations/20261120130000_extra_availability.sql',
+    ]) {
+      await bare.exec(fs.readFileSync(file, 'utf8'));
+    }
+    await bare.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql', 'utf8'));
     const o = withExtras([BACON]);
     const placed = (await bare.query(`select * from public.create_order($1,$2,$3,$4,'collection',null,null,null,$5,$6,false,$7::jsonb)`,
       [o.ref, o.name, o.email, o.phone, o.time, o.total, JSON.stringify(o.items)])).rows[0];

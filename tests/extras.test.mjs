@@ -51,10 +51,11 @@ test('config: extras are validated at load', () => {
   assert.equal(extras.extrasProblems('dish', [{ name: 'A', price: 99999 }]).length, 1, 'an absurd price');
 });
 
-test("Jimmy's offers extras on burgers, breakfast, steaks and chicken at the printed Extras board prices, and Jimmy's staging inherits them", () => {
+test("Live offers standalone extras only; preview tenants customise at board prices", () => {
   const board = new Map(jimmys.menu.categories.filter((category) => category.name === 'Extras' || category.name === 'Extra Sauces').flatMap((category) => category.items.map((item) => [item.name, item.price])));
   assert.ok(board.size >= 20, 'the Extras boards are still on the menu');
-  for (const config of [jimmys, staging]) {
+  assert.ok(itemsOf(jimmys).every((item) => item.extras.length === 0));
+  for (const config of [load('src/demo/config.ts').config, staging]) {
     const items = new Map(itemsOf(config).map((item) => [item.name, item]));
     assert.deepEqual(items.get('Beef Burger').extras.find((extra) => extra.name === 'Extra Bacon'), { name: 'Extra Bacon', price: 25 });
     assert.ok(items.get('Jimmy\'s Breakfast').extras.length > 0);
@@ -129,8 +130,8 @@ test('a saved cart restores: the old name-and-quantity format, and extras re-pri
   globalThis.sessionStorage = { getItem: (key) => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value), removeItem: (key) => saved.delete(key) };
   try {
     const restore = (value) => {
-      saved.set('jimmys-cart', JSON.stringify(value));
-      return loadWithEnv('src/lib/cartStore.ts', { VITE_TENANT: 'jimmys' }).selectCartLines(loadWithEnv('src/lib/cartStore.ts', { VITE_TENANT: 'jimmys' }).useCartStore.getState());
+      saved.set('jimmys-staging-cart', JSON.stringify(value));
+      return loadWithEnv('src/lib/cartStore.ts', { VITE_TENANT: 'jimmys-staging' }).selectCartLines(loadWithEnv('src/lib/cartStore.ts', { VITE_TENANT: 'jimmys-staging' }).useCartStore.getState());
     };
     // Before extras the session held { dish name: quantity }.
     const old = restore({ 'Smash Burger': 2, 'Retired Burger': 1, Coke: 100 });

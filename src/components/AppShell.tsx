@@ -36,7 +36,7 @@ const TABS = [
 ] as const;
 
 const activeTab = (pathname: string, search: string): string | null => {
-  if (pathname === '/order') return ['cart', 'checkout'].includes(new URLSearchParams(search).get('view') ?? '') ? 'cart' : 'menu';
+  if (pathname === '/order') return ['cart', 'checkout', 'confirmed'].includes(new URLSearchParams(search).get('view') ?? '') ? 'cart' : 'menu';
   if (pathname === '/orders' || pathname === '/track') return 'orders';
   if (pathname === '/menu') return 'menu';
   return null;

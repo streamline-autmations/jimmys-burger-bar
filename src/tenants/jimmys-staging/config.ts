@@ -1,4 +1,5 @@
 import { jimmys } from '../jimmys/config';
+import { previewMenu } from './previewMenu';
 import { defineRestaurant } from '../../core/config/define';
 import type { SectionSpec } from '../../brand/sections/types';
 
@@ -12,6 +13,7 @@ const sections = jimmys.sections.map((section) => {
 
 export const config = defineRestaurant({
   ...jimmys,
+  menu: previewMenu,
   slug: 'jimmys-staging',
   ordering: {
     ...jimmys.ordering,

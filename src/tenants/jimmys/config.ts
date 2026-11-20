@@ -361,10 +361,11 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Desserts",
-        // Ice Cream & Chocolate Sauce is AI-generated (Codex, 2026-11-19) under the
-        // CLAUDE.md override. Italian Kisses and Affogato use real photos.
+        // Cake of the Day (Codex, 2026-11-20) and Ice Cream & Chocolate Sauce (Codex,
+        // 2026-11-19) are AI-generated under the CLAUDE.md AI-imagery override.
+        // Italian Kisses and Affogato use real photos.
         items: [
-          { name: "Cake of the Day", price: 50 },
+          { name: "Cake of the Day", price: 50, image: "/images/menu/desserts/cake-of-the-day.webp" },
           { name: "Ice Cream & Chocolate Sauce", price: 35, image: "/images/menu/desserts/ice-cream-and-chocolate-sauce.webp" },
           { name: "Italian Kisses (4 pieces)", price: 60, image: "/images/menu/desserts/italian-kisses.webp" },
           { name: "Affogato", description: "Ice cream and espresso", price: 50, popular: true, image: "/images/menu/desserts/affogato.webp" },
@@ -372,40 +373,44 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Extras",
+        // Extras photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Extra Bacon", price: 25 },
-          { name: "Extra Egg", price: 20 },
-          { name: "Extra Toast", price: 15 },
-          { name: "Extra Cheese Griller", price: 30 },
-          { name: "Extra Hashbrown", price: 30 },
-          { name: "Extra Vienna", price: 25 },
-          { name: "Extra Pork Banger", price: 30 },
-          { name: "Extra Patty", price: 35 },
-          { name: "Extra Russian", price: 35 },
-          { name: "Extra Cheese Slice", price: 15 },
-          { name: "Extra Cheddar", price: 30 },
-          { name: "Extra Mozzarella", price: 30 },
-          { name: "Extra Feta", price: 30 },
-          { name: "Extra Cream Cheese", price: 35 },
-          { name: "Extra Jalapeños", price: 20 },
-          { name: "Extra Avocado", description: "Seasonal", price: 30 },
-          { name: "Extra Mushroom", price: 30 },
-          { name: "Extra Guacamole", price: 30 },
-          { name: "Extra Tomato", price: 10 },
+          { name: "Extra Bacon", price: 25, image: "/images/menu/extras/extra-bacon.webp" },
+          { name: "Extra Egg", price: 20, image: "/images/menu/extras/extra-egg.webp" },
+          { name: "Extra Toast", price: 15, image: "/images/menu/extras/extra-toast.webp" },
+          { name: "Extra Cheese Griller", price: 30, image: "/images/menu/extras/extra-cheese-griller.webp" },
+          { name: "Extra Hashbrown", price: 30, image: "/images/menu/extras/extra-hashbrown.webp" },
+          { name: "Extra Vienna", price: 25, image: "/images/menu/extras/extra-vienna.webp" },
+          { name: "Extra Pork Banger", price: 30, image: "/images/menu/extras/extra-pork-banger.webp" },
+          { name: "Extra Patty", price: 35, image: "/images/menu/extras/extra-patty.webp" },
+          { name: "Extra Russian", price: 35, image: "/images/menu/extras/extra-russian.webp" },
+          { name: "Extra Cheese Slice", price: 15, image: "/images/menu/extras/extra-cheese-slice.webp" },
+          { name: "Extra Cheddar", price: 30, image: "/images/menu/extras/extra-cheddar.webp" },
+          { name: "Extra Mozzarella", price: 30, image: "/images/menu/extras/extra-mozzarella.webp" },
+          { name: "Extra Feta", price: 30, image: "/images/menu/extras/extra-feta.webp" },
+          { name: "Extra Cream Cheese", price: 35, image: "/images/menu/extras/extra-cream-cheese.webp" },
+          { name: "Extra Jalapeños", price: 20, image: "/images/menu/extras/extra-jalapenos.webp" },
+          { name: "Extra Avocado", description: "Seasonal", price: 30, image: "/images/menu/extras/extra-avocado.webp" },
+          { name: "Extra Mushroom", price: 30, image: "/images/menu/extras/extra-mushroom.webp" },
+          { name: "Extra Guacamole", price: 30, image: "/images/menu/extras/extra-guacamole.webp" },
+          { name: "Extra Tomato", price: 10, image: "/images/menu/extras/extra-tomato.webp" },
         ]
       },
       {
         name: "Extra Sauces",
+        // Extra Sauces photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
+        // AI-imagery override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Extra Cheese Sauce", price: 30 },
-          { name: "Extra Pepper Sauce", price: 30 },
-          { name: "Extra Mushroom Sauce", price: 30 },
+          { name: "Extra Cheese Sauce", price: 30, image: "/images/menu/extra-sauces/extra-cheese-sauce.webp" },
+          { name: "Extra Pepper Sauce", price: 30, image: "/images/menu/extra-sauces/extra-pepper-sauce.webp" },
+          { name: "Extra Mushroom Sauce", price: 30, image: "/images/menu/extra-sauces/extra-mushroom-sauce.webp" },
         ]
       },
     ],
-    // The old featured Smash Burger photo predates the menu's peppers and onions.
+    // The featured Smash Burger uses the same AI source as its menu thumbnail.
     featured: [
-      { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce, with chips", price: 110 },
+      { name: "Smash Burger", description: "2 smashed patties, cheese, peppers, onions and Jimmy's sauce, with chips", price: 110, image: "/images/menu/burgers/smash-burger-v2-large.jpg" },
       { name: "Warrior Platter", description: "Steak strips, Russian, wings, chicken strips, salad, chips and onion rings", price: 385, image: "/images/menu/warrior-platter.jpeg" },
       { name: "Jimmy's Breakfast", description: "2 eggs, 2 bacon, toast, grilled tomato and chips. Served until 12pm.", price: 80, image: "/images/gallery/breakfast-plate.jpg" },
     ],

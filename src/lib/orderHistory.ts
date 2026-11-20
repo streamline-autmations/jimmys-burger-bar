@@ -1,6 +1,8 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import { menuPrice, orderCategories, storageKey } from '../core/tenant';
 import type { Minor } from '../core/domain/money';
+import type { Extra } from '../core/config/types';
+import { extrasOf, lineKey, pickExtras } from '../core/menu/extras';
 import { useCartStore, type CartLine, type OrderType } from './cartStore';
 import { writePending } from './payment';
 
@@ -20,7 +22,8 @@ export interface SavedOrder {
   orderType: OrderType;
   /** Minor units, as the cart showed it. */
   total: Minor;
-  items: { name: string; qty: number }[];
+  /** Extras are names only: prices at reorder time come from today's menu. */
+  items: { name: string; qty: number; extras?: string[] }[];
 }
 
 const DETAILS = storageKey('guest-details');
@@ -83,25 +86,30 @@ export function useSavedDetails(): GuestDetails | null {
  * menu (or no longer priced) is left out and named, never silently swapped.
  */
 export function rebuildCart(
-  items: { name: string; qty: number }[],
-  menu: { name: string; price: Minor }[],
+  items: { name: string; qty: number; extras?: readonly string[] }[],
+  menu: { name: string; price: Minor; /** What the dish offers today. */ extras?: Extra[] }[],
 ): { lines: CartLine[]; skipped: string[] } {
-  const today = new Map(menu.filter((item) => item.price > 0).map((item) => [item.name, item.price]));
+  const today = new Map(menu.filter((item) => item.price > 0).map((item) => [item.name, item]));
   const lines: CartLine[] = [];
   const skipped: string[] = [];
-  for (const { name, qty } of items) {
-    const price = today.get(name);
-    if (price === undefined) { if (!skipped.includes(name)) skipped.push(name); continue; }
-    const existing = lines.find((line) => line.name === name);
+  const skip = (label: string) => { if (!skipped.includes(label)) skipped.push(label); };
+  for (const { name, qty, extras: wanted = [] } of items) {
+    const dish = today.get(name);
+    if (!dish) { skip(name); continue; }
+    // An extra the dish no longer offers is left off and named; the dish itself still goes in.
+    const extras = pickExtras(dish.extras ?? [], wanted);
+    for (const extra of wanted) if (!extras.some((kept) => kept.name === extra)) skip(`${extra} on ${name}`);
+    const key = lineKey(name, extras);
+    const existing = lines.find((line) => line.key === key);
     if (existing) existing.qty = Math.min(99, existing.qty + qty);
-    else lines.push({ name, price, qty: Math.min(99, Math.max(1, Math.floor(qty))) });
+    else lines.push({ key, name, price: dish.price, qty: Math.min(99, Math.max(1, Math.floor(qty))), extras });
   }
   return { lines, skipped };
 }
 
 /** Replaces the cart with a past order at today's prices. Returns the dishes left out. */
 export function orderAgain(order: Pick<SavedOrder, 'items' | 'orderType'>): string[] {
-  const menu = orderCategories.flatMap((category) => category.items.map((item) => ({ name: item.name, price: menuPrice(item.price) })));
+  const menu = orderCategories.flatMap((category) => category.items.map((item) => ({ name: item.name, price: menuPrice(item.price), extras: extrasOf(item, category) })));
   const { lines, skipped } = rebuildCart(order.items, menu);
   useCartStore.getState().replaceLines(lines);
   useCartStore.getState().setOrderType(order.orderType);

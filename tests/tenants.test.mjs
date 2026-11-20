@@ -311,7 +311,7 @@ test('order again uses today\'s prices and names every dish it had to leave out'
     [{ name: 'Smash Burger', qty: 2 }, { name: 'Retired Burger', qty: 1 }, { name: 'Chips', qty: 1 }, { name: 'Market Fish', qty: 1 }, { name: 'Smash Burger', qty: 1 }],
     menu,
   );
-  assert.deepEqual(lines, [{ name: 'Smash Burger', price: 11000, qty: 3 }, { name: 'Chips', price: 3500, qty: 1 }]);
+  assert.deepEqual(lines, [{ key: 'Smash Burger', name: 'Smash Burger', price: 11000, qty: 3, extras: [] }, { key: 'Chips', name: 'Chips', price: 3500, qty: 1, extras: [] }]);
   assert.deepEqual(skipped, ['Retired Burger', 'Market Fish'], 'an unpriced dish is left out too, never added at R0');
   assert.equal(rebuildCart([{ name: 'Chips', qty: 500 }], menu).lines[0].qty, 99, 'capped like the cart');
 });

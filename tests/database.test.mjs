@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { test, before } from 'node:test';
 import fs from 'node:fs';
-import { createDatabase, fingerprint, asRole } from './db/harness.mjs';
+import { createDatabase, fingerprint, asRole, migrationFiles } from './db/harness.mjs';
 import { dailyCronUtc, validateTenant, settingsSql, tradingHoursJson } from '../scripts/lib/tenant-settings.mjs';
 import { buildCompareSql, currentFingerprint } from '../scripts/db-fingerprint.mjs';
 
@@ -409,6 +409,84 @@ test('booking requests outside what the form allows are refused', async () => {
   const staffInsert = await asRole(db, 'postgres', async () => (await one(`insert into public.bookings (name, email, phone, guests, booking_date, booking_time, status)
     values ('Import Example', 'import@example.com', '082 300 0003', 2, '${openDay(2)}', '19:00', 'confirmed') returning status`)).status);
   assert.equal(staffInsert, 'confirmed', 'the project owner can still import confirmed bookings');
+});
+
+// ---------------------------------------------------------------------------
+// Extras ("Extra Bacon") are priced by the server, like dishes.
+// ---------------------------------------------------------------------------
+
+const BACON = { name: 'Extra Bacon', price: 25 };
+const EGG = { name: 'Extra Egg', price: 20 };
+const withExtras = (extras, extra = {}) => order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras }], total: 2 * (100 + extras.reduce((sum, e) => sum + e.price, 0)), ...extra });
+
+test('an extra is accepted at the database price and charged on every unit', async () => {
+  const o = withExtras([BACON, EGG]);
+  const placed = (await createOrder(o)).rows[0];
+  assert.equal(Number((await one(`select total from public.orders where id = $1`, [placed.id])).total), 290, '2 x (100 + 25 + 20)');
+  const line = await one(`select unit_price, extras from public.order_items where order_id = $1`, [placed.id]);
+  assert.equal(Number(line.unit_price), 100, 'unit_price stays the dish price');
+  assert.deepEqual(line.extras, [BACON, EGG]);
+  const queued = await one(`select q.body from public.notification_log l join net.http_request_queue q on q.id = l.request_id where l.reference = $1`, [o.ref]);
+  assert.deepEqual(queued.body.items[0].extras, [BACON, EGG], 'the order webhook carries the extras');
+  assert.equal(Number(queued.body.total), 290);
+
+  const plain = (await createOrder(order())).rows[0];
+  assert.deepEqual((await one(`select extras from public.order_items where order_id = $1`, [plain.id])).extras, [], 'a dish without extras stores none');
+});
+
+test('extras the database does not allow are refused', async () => {
+  const refused = async (o, pattern, label) => {
+    await db.exec('savepoint probe');
+    await assert.rejects(createOrder(o), pattern, label);
+    await db.exec('rollback to savepoint probe');
+  };
+  await db.exec('begin');
+  try {
+    await refused(withExtras([{ name: 'Extra Bacon', price: 0.01 }]), /extra price changed/, 'a R0.01 extra');
+    await refused(withExtras([{ name: 'Extra Bacon' }]), /extra price changed/, 'an extra with no price');
+    await refused(withExtras([{ name: 'Extra Bacon', price: '25' }]), /extra price changed/, 'a price sent as text');
+    await refused(withExtras([{ name: 'Extra Lobster', price: 10 }]), /extra unavailable/, 'an invented extra');
+    await refused(order({ items: [{ name: 'Coke', qty: 1, unit_price: 22, extras: [BACON] }], total: 47 }), /extra unavailable/, 'an extra on a dish that offers none');
+    await refused(order({ items: [{ name: '200g Rump Steak', qty: 1, unit_price: 140, extras: [BACON] }], total: 165 }), /extra unavailable/, 'a burger extra on a steak');
+    await refused(withExtras([BACON, BACON], { total: 250 }), /extra repeated/, 'the same extra twice');
+    await refused(order({ items: [{ name: 'Beef Burger', qty: 1, unit_price: 100, extras: 'Extra Bacon' }], total: 125 }), /invalid extras/, 'extras that are not a list');
+    await refused(order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [BACON] }], total: 200 }), /does not match/, 'extras left out of the total');
+    await refused(order({ items: [{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [BACON] }], total: 225 }), /does not match/, 'extras charged once instead of per unit');
+  } finally {
+    await db.exec('rollback');
+  }
+});
+
+test('a retry with extras is a no-op, and the guest and staff see the extras', async () => {
+  const o = withExtras([BACON]);
+  const first = (await createOrder(o)).rows[0];
+  const again = (await createOrder(o)).rows[0];
+  assert.equal(again.id, first.id, 'same reference and email returns the existing order');
+  assert.equal((await one(`select count(*)::int n from public.order_items where order_id = $1`, [first.id])).n, 1, 'no second set of lines');
+  assert.equal(Number((await one(`select total from public.orders where id = $1`, [first.id])).total), 250);
+  assert.equal((await one(`select count(*)::int n from public.notification_log where reference = $1`, [o.ref])).n, 1, 'no second notification');
+
+  const tracked = (await one(`select public.lookup_request($1, $2) r`, [o.ref, o.email])).r;
+  assert.deepEqual(tracked.items, [{ name: 'Beef Burger', qty: 2, extras: [BACON] }]);
+  const staffSees = await asRole(db, 'authenticated', async () => (await one(`select extras from public.order_items where order_id = $1`, [first.id])).extras, { userId: STAFF_ID });
+  assert.deepEqual(staffSees, [BACON]);
+});
+
+test('the extras patch also applies without the gated hardening migration', async () => {
+  const bare = await createDatabase({
+    baseline: false,
+    files: [...migrationFiles().filter((file) => !file.includes('20260915130000_harden_public_writes')), 'supabase/seed/settings.jimmys.sql', 'supabase/seed/menu.jimmys.sql'],
+  });
+  try {
+    const o = withExtras([BACON]);
+    const placed = (await bare.query(`select * from public.create_order($1,$2,$3,$4,'collection',null,null,null,$5,$6,false,$7::jsonb)`,
+      [o.ref, o.name, o.email, o.phone, o.time, o.total, JSON.stringify(o.items)])).rows[0];
+    assert.equal(Number((await bare.query(`select total from public.orders where id = $1`, [placed.id])).rows[0].total), 250);
+    await assert.rejects(bare.query(`select * from public.create_order($1,$2,$3,$4,'collection',null,null,null,$5,$6,false,$7::jsonb)`,
+      ['JB-BARE0001', o.name, 'bare@example.com', o.phone, o.time, 2, JSON.stringify([{ name: 'Beef Burger', qty: 2, unit_price: 100, extras: [{ name: 'Extra Bacon', price: 0.01 }] }])]), /extra price changed/);
+  } finally {
+    await bare.close();
+  }
 });
 
 test('orders are rate limited per contact, and a retry is never throttled', async () => {

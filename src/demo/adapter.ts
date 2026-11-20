@@ -15,6 +15,7 @@ import { SubmissionError } from '../core/data/submission';
 import { config } from './config';
 import { copy, deliveryRun, restaurantDate, restaurantDayBounds } from '../core/tenant';
 import { orderableCategories, orderableItems } from '../core/menu/orderable';
+import { readExtras } from '../core/menu/extras';
 import { nextStatuses } from '../pages/admin/operations';
 import { readRecords, subscribeRecords, updateRecords } from './store';
 import { SEED_ORDER_PREFIX } from './seed';
@@ -126,7 +127,16 @@ export const adapter: DataAdapter = {
       const item = menu.get(line.name);
       if (!item || item.price !== line.unit_price) throw new SubmissionError('rejected', false, undefined, 'menu');
       if (item.availableUntil && requestedLocal >= item.availableUntil) throw new SubmissionError('rejected', false, undefined, 'served');
-      total = Math.round((total + line.qty * item.price) * 100) / 100;
+      // Extras are priced from the menu like the dish: an unknown, repeated or re-priced one is refused.
+      let extrasSum = 0;
+      const seen = new Set<string>();
+      for (const extra of line.extras ?? []) {
+        const offered = item.extras.find((candidate) => candidate.name === extra.name);
+        if (!offered || seen.has(extra.name) || offered.price !== extra.price) throw new SubmissionError('rejected', false, undefined, 'menu');
+        seen.add(extra.name);
+        extrasSum += offered.price;
+      }
+      total = Math.round((total + line.qty * (item.price + extrasSum)) * 100) / 100;
     }
     // Exact, like the database: a total a fraction of a cent off is refused.
     if (order.total !== total) throw new SubmissionError('rejected');
@@ -162,7 +172,7 @@ export const adapter: DataAdapter = {
         marketing_consent: false,
         created_at: now,
         updated_at: now,
-        order_items: order.items.map((line) => ({ id: crypto.randomUUID(), order_id: id, name: line.name, qty: line.qty, unit_price: line.unit_price })),
+        order_items: order.items.map((line) => ({ id: crypto.randomUUID(), order_id: id, name: line.name, qty: line.qty, unit_price: line.unit_price, extras: line.extras ?? [] })),
       });
       return true;
     });
@@ -253,7 +263,7 @@ export const adapter: DataAdapter = {
         order_type: order.order_type as 'collection' | 'delivery' | 'table',
         requested_time: order.requested_time, total: order.total, eta: order.eta,
         created_at: order.created_at, updated_at: order.updated_at,
-        items: order.order_items.map((item) => ({ name: item.name, qty: item.qty })),
+        items: order.order_items.map((item) => ({ name: item.name, qty: item.qty, extras: readExtras(item.extras) })),
       };
     }
     const booking = records.bookings.find((row) => row.id.toUpperCase() === ref);

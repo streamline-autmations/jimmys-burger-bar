@@ -17,6 +17,7 @@ import { Starburst } from '../components/Starburst';
 import { InstallApp } from '../components/InstallApp';
 import { useAppShell } from '../lib/appShell';
 import { findSavedOrder, orderAgain } from '../lib/orderHistory';
+import { readExtras } from '../core/menu/extras';
 import { alertState, disableAlert, enableAlert, type AlertState } from '../lib/guestPush';
 
 type TrackField = 'reference' | 'contact';
@@ -332,11 +333,22 @@ const ContactLine: React.FC<{ reference: string }> = ({ reference }) => (
 type OrderResult = Extract<LookupResult, { kind: 'order' }>;
 const checkedTime = new Intl.DateTimeFormat(config.locale, { timeZone: config.timezone, hour: '2-digit', minute: '2-digit' });
 
+/** One dish on the guest's order, with the extras they added and what each cost. */
+const TrackItem: React.FC<{ item: { name: string; qty: number; extras?: unknown } }> = ({ item }) => {
+  const extras = readExtras(item.extras);
+  return (
+    <li>
+      <span className="font-bold text-primary">{item.qty}×</span> {item.name}
+      {extras.length > 0 && <span className="block pl-6 text-ink/70">+ {extras.map((extra) => `${extra.name} ${formatMoney(toMinor(extra.price))}`).join(', ')}</span>}
+    </li>
+  );
+};
+
 /**
  * Order again from the tracking page: the same dishes at today's prices, straight
  * to checkout. Anything no longer on the menu is named there, never swapped.
  */
-const ReorderButton: React.FC<{ order: { items: { name: string; qty: number }[]; order_type: 'collection' | 'delivery' | 'table' }; className?: string }> = ({ order, className = '' }) => {
+const ReorderButton: React.FC<{ order: { items: { name: string; qty: number; extras?: { name: string }[] }[]; order_type: 'collection' | 'delivery' | 'table' }; className?: string }> = ({ order, className = '' }) => {
   const navigate = useNavigate();
   const appShell = useAppShell();
   if (order.items.length === 0) return null;
@@ -344,7 +356,7 @@ const ReorderButton: React.FC<{ order: { items: { name: string; qty: number }[];
     <button
       type="button"
       onClick={() => {
-        const skipped = orderAgain({ items: order.items, orderType: order.order_type });
+        const skipped = orderAgain({ items: order.items.map((item) => ({ name: item.name, qty: item.qty, extras: readExtras(item.extras).map((extra) => extra.name) })), orderType: order.order_type });
         navigate(appShell ? '/order?view=cart' : '/order', { state: { skipped, reordered: true } });
       }}
       className={`inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 font-display font-bold text-surface ${className}`}
@@ -471,7 +483,7 @@ const PaidOrder: React.FC<{
       </dl>
       {order.items.length > 0 && (
         <ul className="mt-4 rounded-xl bg-paper/70 px-4 py-3 text-sm text-ink/80">
-          {order.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
+          {order.items.map((item, index) => <TrackItem key={`${item.name}-${index}`} item={item} />)}
         </ul>
       )}
       {order.status === 'completed' && <ReorderButton order={order} className="mt-5" />}
@@ -566,7 +578,7 @@ const Result: React.FC<{ result: LookupResult; checkedAt: Date; refreshing: bool
       </dl>
       {result.items.length > 0 && (
         <ul className="mt-4 rounded-xl bg-paper/70 px-4 py-3 text-sm text-ink/80">
-          {result.items.map((item) => <li key={item.name}><span className="font-bold text-primary">{item.qty}×</span> {item.name}</li>)}
+          {result.items.map((item, index) => <TrackItem key={`${item.name}-${index}`} item={item} />)}
         </ul>
       )}
       {result.status === 'completed' && <ReorderButton order={result} className="mt-5" />}

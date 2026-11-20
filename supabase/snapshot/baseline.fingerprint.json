@@ -52,12 +52,12 @@
   {
     "kind": "column_grant",
     "name": "menu_items anon",
-    "fingerprint": "879d79b99dd4219bd55e408eed7ce8c6"
+    "fingerprint": "e673ecec16696c0f47bd856be7eadea4"
   },
   {
     "kind": "column_grant",
     "name": "menu_items authenticated",
-    "fingerprint": "879d79b99dd4219bd55e408eed7ce8c6"
+    "fingerprint": "e673ecec16696c0f47bd856be7eadea4"
   },
   {
     "kind": "column_grant",
@@ -72,12 +72,12 @@
   {
     "kind": "column_grant",
     "name": "order_items anon",
-    "fingerprint": "303860d008582c663bbac8df22fc73f4"
+    "fingerprint": "0ac1c7b913a0e4103b8f02cdac3013ef"
   },
   {
     "kind": "column_grant",
     "name": "order_items authenticated",
-    "fingerprint": "b68a31fef43084c34adae74b897b9c51"
+    "fingerprint": "6b256614cff9b89824b5bcb455c020da"
   },
   {
     "kind": "column_grant",
@@ -147,7 +147,7 @@
   {
     "kind": "function",
     "name": "begin_payment(p_reference text, p_contact text, p_restaurant text, p_mode text)",
-    "fingerprint": "40efb895f5c6ccbcdabb02cc13222d52"
+    "fingerprint": "d42cc36bcf7155a6802f108e61b915eb"
   },
   {
     "kind": "function",
@@ -167,7 +167,7 @@
   {
     "kind": "function",
     "name": "create_order(p_order_no text, p_customer_name text, p_email text, p_phone text, p_order_type text, p_table_number text, p_delivery_address text, p_delivery_notes text, p_requested_time timestamp with time zone, p_total numeric, p_marketing_consent boolean, p_items jsonb)",
-    "fingerprint": "94973d5bf79cd593b0210a48e1a06a7d"
+    "fingerprint": "220d77d524170260b1420bcc3db98a7d"
   },
   {
     "kind": "function",
@@ -217,7 +217,7 @@
   {
     "kind": "function",
     "name": "lookup_request(p_reference text, p_contact text)",
-    "fingerprint": "e1df84efcba037997c97657b73cea05e"
+    "fingerprint": "54b345864a9c3e8f1c50634c9520e2d3"
   },
   {
     "kind": "function",
@@ -227,7 +227,7 @@
   {
     "kind": "function",
     "name": "mark_order_paid(p_reference text, p_transaction text, p_status text, p_amount numeric, p_raw jsonb)",
-    "fingerprint": "72417d5b940475bbcb71f4b4c5c0bfed"
+    "fingerprint": "05a492684b472cb4331811bdbdf93a81"
   },
   {
     "kind": "function",
@@ -777,7 +777,7 @@
   {
     "kind": "table",
     "name": "menu_items",
-    "fingerprint": "1c50b625ae035eaa929e3beda613d2ad"
+    "fingerprint": "9dcfcd2f74e2b5d87965a34d2f70180f"
   },
   {
     "kind": "table",
@@ -787,7 +787,7 @@
   {
     "kind": "table",
     "name": "order_items",
-    "fingerprint": "6917b3a6713dd2960bf1c7e1e0c4c9dd"
+    "fingerprint": "04a2900d30ed72b9d93084636866dad9"
   },
   {
     "kind": "table",

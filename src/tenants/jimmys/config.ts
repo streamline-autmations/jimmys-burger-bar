@@ -36,6 +36,55 @@ const icedDrinks = [
 const heinekenZero = { name: "Heineken Zero", price: 30 };
 const savannah = { name: "Savannah", detail: "Dry, Lite, Neat or Non-Alcoholic", price: 35 };
 
+// Jimmy's printed Extras and Extra Sauces boards, in board order. One list: the
+// two board categories show it, and the Customise sheet offers a subset per
+// category through extrasNamed, so a price can never differ between the two.
+// Extras photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
+// AI-imagery override and logged there. Swap for real photos when shot.
+const extraBoard = [
+  { name: "Extra Bacon", price: 25, image: "/images/menu/extras/extra-bacon.webp" },
+  { name: "Extra Egg", price: 20, image: "/images/menu/extras/extra-egg.webp" },
+  { name: "Extra Toast", price: 15, image: "/images/menu/extras/extra-toast.webp" },
+  { name: "Extra Cheese Griller", price: 30, image: "/images/menu/extras/extra-cheese-griller.webp" },
+  { name: "Extra Hashbrown", price: 30, image: "/images/menu/extras/extra-hashbrown.webp" },
+  { name: "Extra Vienna", price: 25, image: "/images/menu/extras/extra-vienna.webp" },
+  { name: "Extra Pork Banger", price: 30, image: "/images/menu/extras/extra-pork-banger.webp" },
+  { name: "Extra Patty", price: 35, image: "/images/menu/extras/extra-patty.webp" },
+  { name: "Extra Russian", price: 35, image: "/images/menu/extras/extra-russian.webp" },
+  { name: "Extra Cheese Slice", price: 15, image: "/images/menu/extras/extra-cheese-slice.webp" },
+  { name: "Extra Cheddar", price: 30, image: "/images/menu/extras/extra-cheddar.webp" },
+  { name: "Extra Mozzarella", price: 30, image: "/images/menu/extras/extra-mozzarella.webp" },
+  { name: "Extra Feta", price: 30, image: "/images/menu/extras/extra-feta.webp" },
+  { name: "Extra Cream Cheese", price: 35, image: "/images/menu/extras/extra-cream-cheese.webp" },
+  { name: "Extra Jalapeños", price: 20, image: "/images/menu/extras/extra-jalapenos.webp" },
+  { name: "Extra Avocado", description: "Seasonal", price: 30, image: "/images/menu/extras/extra-avocado.webp" },
+  { name: "Extra Mushroom", price: 30, image: "/images/menu/extras/extra-mushroom.webp" },
+  { name: "Extra Guacamole", price: 30, image: "/images/menu/extras/extra-guacamole.webp" },
+  { name: "Extra Tomato", price: 10, image: "/images/menu/extras/extra-tomato.webp" },
+];
+// Extra Sauces photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
+// AI-imagery override and logged there. Swap for real photos when shot.
+const sauceBoard = [
+  { name: "Extra Cheese Sauce", price: 30, image: "/images/menu/extra-sauces/extra-cheese-sauce.webp" },
+  { name: "Extra Pepper Sauce", price: 30, image: "/images/menu/extra-sauces/extra-pepper-sauce.webp" },
+  { name: "Extra Mushroom Sauce", price: 30, image: "/images/menu/extra-sauces/extra-mushroom-sauce.webp" },
+];
+const extrasNamed = (...names: string[]) =>
+  names.map((name) => {
+    const found = [...extraBoard, ...sauceBoard].find((extra) => extra.name === name);
+    if (!found) throw new Error(`extrasNamed: "${name}" is not on the Extras boards`);
+    return { name: found.name, price: found.price };
+  });
+
+// UNCONFIRMED (tell Christiaan before go-live): Jimmy's has not said which extras
+// go with which dishes. This split follows the board's own wording (breakfast
+// items, burger toppings, sauces with steak and chicken) and is an assumption to
+// confirm with them. Categories not listed here (Wraps, Toasted Sandwiches,
+// Salads, Small Plates, Platters) offer no Customise until Jimmy's says what applies.
+const breakfastExtras = extrasNamed("Extra Bacon", "Extra Egg", "Extra Toast", "Extra Cheese Griller", "Extra Hashbrown", "Extra Vienna", "Extra Pork Banger", "Extra Tomato");
+const burgerExtras = extrasNamed("Extra Patty", "Extra Bacon", "Extra Egg", "Extra Cheese Slice", "Extra Cheddar", "Extra Mozzarella", "Extra Feta", "Extra Cream Cheese", "Extra Jalapeños", "Extra Avocado", "Extra Mushroom", "Extra Guacamole", "Extra Tomato");
+const sauceExtras = extrasNamed("Extra Cheese Sauce", "Extra Pepper Sauce", "Extra Mushroom Sauce");
+
 export const jimmys = defineRestaurant({
   slug: "jimmys",
   // ---- Locale ---------------------------------------------------------------
@@ -236,6 +285,7 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
+        extras: breakfastExtras,
         // Codex generated Avo on Toast, Carb Clever Breakfast, Breakfast Wrap, Eggs
         // Benedict and Mince on Toast (2026-11-19) under the CLAUDE.md AI-imagery override.
         // Breakfast Bun and Breakfast Burger use earlier AI photos. Jimmy's Breakfast
@@ -256,6 +306,7 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Burgers",
+        extras: burgerExtras,
         // Chicken, Smash, Gourmet Beef, Gourmet Chicken and Nacho Burger photos are
         // AI-generated (Codex, 2026-11-19) under the CLAUDE.md AI-imagery override and
         // logged there. Pizza Burger is also AI (2026-09-28). Beef Burger is a real iPhone photo.
@@ -302,6 +353,7 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Steaks",
+        extras: sauceExtras,
         note: "With chips and onion rings or salad",
         items: [
           { name: "200g Rump Steak", price: 140, popular: true, image: "/images/menu/steaks/rump-steak.webp" },
@@ -313,6 +365,7 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
+        extras: sauceExtras,
         // Chicken Wings, Chicken Strips and Chicken Schnitzel (Half) are AI-generated
         // (Codex, 2026-11-19) under the CLAUDE.md override. The Full photo is real.
         note: "With chips, salad or vegetables",
@@ -371,42 +424,8 @@ export const jimmys = defineRestaurant({
           { name: "Affogato", description: "Ice cream and espresso", price: 50, popular: true, image: "/images/menu/desserts/affogato.webp" },
         ]
       },
-      {
-        name: "Extras",
-        // Extras photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
-        items: [
-          { name: "Extra Bacon", price: 25, image: "/images/menu/extras/extra-bacon.webp" },
-          { name: "Extra Egg", price: 20, image: "/images/menu/extras/extra-egg.webp" },
-          { name: "Extra Toast", price: 15, image: "/images/menu/extras/extra-toast.webp" },
-          { name: "Extra Cheese Griller", price: 30, image: "/images/menu/extras/extra-cheese-griller.webp" },
-          { name: "Extra Hashbrown", price: 30, image: "/images/menu/extras/extra-hashbrown.webp" },
-          { name: "Extra Vienna", price: 25, image: "/images/menu/extras/extra-vienna.webp" },
-          { name: "Extra Pork Banger", price: 30, image: "/images/menu/extras/extra-pork-banger.webp" },
-          { name: "Extra Patty", price: 35, image: "/images/menu/extras/extra-patty.webp" },
-          { name: "Extra Russian", price: 35, image: "/images/menu/extras/extra-russian.webp" },
-          { name: "Extra Cheese Slice", price: 15, image: "/images/menu/extras/extra-cheese-slice.webp" },
-          { name: "Extra Cheddar", price: 30, image: "/images/menu/extras/extra-cheddar.webp" },
-          { name: "Extra Mozzarella", price: 30, image: "/images/menu/extras/extra-mozzarella.webp" },
-          { name: "Extra Feta", price: 30, image: "/images/menu/extras/extra-feta.webp" },
-          { name: "Extra Cream Cheese", price: 35, image: "/images/menu/extras/extra-cream-cheese.webp" },
-          { name: "Extra Jalapeños", price: 20, image: "/images/menu/extras/extra-jalapenos.webp" },
-          { name: "Extra Avocado", description: "Seasonal", price: 30, image: "/images/menu/extras/extra-avocado.webp" },
-          { name: "Extra Mushroom", price: 30, image: "/images/menu/extras/extra-mushroom.webp" },
-          { name: "Extra Guacamole", price: 30, image: "/images/menu/extras/extra-guacamole.webp" },
-          { name: "Extra Tomato", price: 10, image: "/images/menu/extras/extra-tomato.webp" },
-        ]
-      },
-      {
-        name: "Extra Sauces",
-        // Extra Sauces photos are AI-generated (Codex, 2026-11-20) under the CLAUDE.md
-        // AI-imagery override and logged there. Swap for real photos when shot.
-        items: [
-          { name: "Extra Cheese Sauce", price: 30, image: "/images/menu/extra-sauces/extra-cheese-sauce.webp" },
-          { name: "Extra Pepper Sauce", price: 30, image: "/images/menu/extra-sauces/extra-pepper-sauce.webp" },
-          { name: "Extra Mushroom Sauce", price: 30, image: "/images/menu/extra-sauces/extra-mushroom-sauce.webp" },
-        ]
-      },
+      { name: "Extras", items: extraBoard },
+      { name: "Extra Sauces", items: sauceBoard },
     ],
     // The featured Smash Burger uses the same AI source as its menu thumbnail.
     featured: [

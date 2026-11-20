@@ -16,6 +16,7 @@ import { AdminStatusBadge } from './AdminStatusBadge';
 import { Fact, ProgressRail, QueueFilter, QueueRow, QueueToolbar, TicketActions, TicketPlaceholder, WorkspaceSplit, type SavedChange } from './AdminWorkspace';
 import { dishPhoto } from './dishPhotos';
 import { ORDER_STATUSES, type Order, type OrderItem, type OrderStatus } from './types';
+import { describeLine, readExtras, storedLineTotal } from '../../core/menu/extras';
 
 type OrderWithItems = Order & { order_items: OrderItem[] };
 type OrderFilter = 'all' | OrderStatus;
@@ -52,7 +53,7 @@ const VIEWS = [
   { value: 'all', label: 'All dates' },
 ];
 
-const itemSummary = (items: OrderItem[]) => items.map((item) => `${item.qty}× ${item.name}`).join(', ');
+const itemSummary = (items: OrderItem[]) => items.map((item) => describeLine(item)).join(', ');
 
 // No photo: a quiet tile keeps the names aligned. A dish never borrows another's photo.
 const Thumb: React.FC<{ name: string }> = ({ name }) => {
@@ -142,8 +143,11 @@ const OrderTicket: React.FC<{ order: OrderWithItems; actions: React.ReactNode; d
                 <li key={item.id} className="flex items-center gap-3 py-2.5">
                   <Thumb name={item.name} />
                   <span className="w-9 shrink-0 font-display text-lg font-bold text-primary tabular-nums">{item.qty}×</span>
-                  <span className="min-w-0 flex-1 font-semibold leading-snug text-ink">{item.name}</span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums text-ink/75">{money(item.qty * item.unit_price)}</span>
+                  <span className="min-w-0 flex-1 font-semibold leading-snug text-ink">
+                    {item.name}
+                    {readExtras(item.extras).map((extra) => <span key={extra.name} className="block text-sm font-medium text-ink/75">+ {extra.name} {money(extra.price)}</span>)}
+                  </span>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-ink/75">{money(storedLineTotal(item))}</span>
                 </li>
               ))}
             </ul>

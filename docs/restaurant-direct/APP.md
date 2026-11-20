@@ -32,7 +32,8 @@ shell; in a browser nothing changes. Decided once per launch from display mode
 (`src/lib/appShell.ts`, `src/components/AppShell.tsx`):
 
 - **Three tabs**: Menu (`/order`), Cart (`/order?view=cart`), My orders (`/orders`). The
-  phone's back button moves between them. The cart count lands on the tab like a price sticker.
+  phone's back button moves between them. Checkout is the next screen after the cart
+  (`/order?view=checkout`) and keeps the Cart tab lit. The cart count lands on the tab like a price sticker.
 - **No marketing home page, no navbar, footer or route curtain.** `/` goes to the menu.
 - **My orders** lists the orders placed from that phone, with live status from the same
   reference + email check as `/track`, and **Order again**: the same dishes at today's

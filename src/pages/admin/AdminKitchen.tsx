@@ -12,6 +12,7 @@ import { chime, enableSound, soundReady } from './kitchenAlert';
 import { disablePush, enablePush, errorCode, initialPushState, pushState, type PushState } from './kitchenPush';
 import { useAdminResource } from './useAdminResource';
 import type { OrderStatus, OrderWithItems } from './types';
+import { describeLine, readExtras } from '../../core/menu/extras';
 
 // The orders queue as a kitchen screen: the POS window and the chef's phone.
 // Realtime only says "something changed"; every change is re-read from the
@@ -55,7 +56,7 @@ const riderUrl = (order: OrderWithItems) => {
     `Address: ${[order.delivery_address, order.delivery_suburb].filter(Boolean).join(', ')}`,
     ...(order.delivery_notes ? [`Note: ${order.delivery_notes}`] : []),
     'Items:',
-    ...order.order_items.map((item) => `${item.qty}x ${item.name}`),
+    ...order.order_items.map((item) => describeLine(item, 'x')),
   ].join('\n');
   return `https://wa.me/${(delivery?.dispatcher.whatsapp ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
 };
@@ -140,7 +141,11 @@ const Ticket: React.FC<{
           {order.order_items.map((item) => (
             <li key={item.id} className="flex gap-2">
               <span className="w-9 shrink-0 font-display font-bold tabular-nums">{item.qty}×</span>
-              <span className="min-w-0">{item.name}</span>
+              <span className="min-w-0">
+                {item.name}
+                {/* The kitchen cooks from this list, so every extra is spelled out under its dish. */}
+                {readExtras(item.extras).map((extra) => <span key={extra.name} className="block text-base font-bold leading-snug lg:text-lg">+ {extra.name}</span>)}
+              </span>
             </li>
           ))}
         </ul>

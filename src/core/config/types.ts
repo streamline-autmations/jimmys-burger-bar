@@ -22,6 +22,13 @@ export interface MediaSource {
   posterMobile?: string;
 }
 
+/** A paid add-on to a dish ("Extra Bacon"). The server prices it from menu_items.extras, never from the browser. */
+export interface Extra {
+  name: string;
+  /** Human decimal, like a menu price. */
+  price: number;
+}
+
 export interface MenuItem {
   name: string;
   description?: string;
@@ -37,12 +44,16 @@ export interface MenuItem {
    * has approved and logged a generated one.
    */
   image?: string;
+  /** Extras this dish offers. Replaces the category's list; `[]` turns them off for this dish. */
+  extras?: Extra[];
 }
 
 export interface MenuCategory {
   name: string;
   note?: string;
   items: MenuItem[];
+  /** Extras offered on every dish in the category that does not set its own. Names are unique per dish. */
+  extras?: Extra[];
   /** Only orderable within this window, e.g. breakfast until noon. */
   availableUntil?: string;
 }

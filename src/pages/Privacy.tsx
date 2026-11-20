@@ -4,19 +4,20 @@ import { config } from '../config';
 import { payFirst } from '../core/tenant';
 import { useAppShell } from '../lib/appShell';
 import { data as db } from '../core/data';
+import { addressProvider } from '../lib/addressSearch';
 
 // Privacy notice and data-deletion instructions (Google Play needs a public URL
 // for both). Written from what the code actually stores and sends:
 //   orders/bookings  -> create_order / create_booking; the host is named by the data adapter (storedWith)
 //   notifications    -> the order/booking/review webhooks (supabase/tenants/<slug>.json)
 //   payment          -> Payfast hosted checkout (supabase/functions/payfast)
-//   address lookup   -> Photon (src/lib/addressSearch.ts)
+//   address lookup   -> Geoapify when VITE_GEOAPIFY_KEY is set, else Photon (src/lib/addressSearch.ts)
 //   order alerts     -> guest_push_subscriptions (20261119120000), deleted on completion
 //   device storage   -> cartStore, payment.ts, installApp.ts, orderHistory.ts, App.tsx
 // Anything only the restaurant can confirm comes from config.privacy and is
 // shown as "to be confirmed" until it is filled in. Never invent it here.
 
-const UPDATED = '19 November 2026';
+const UPDATED = '20 November 2026';
 
 /** PLACEHOLDER: a fact the restaurant has not confirmed yet. Visible on purpose, so it cannot ship unnoticed. */
 const ToConfirm: React.FC<{ what: string }> = ({ what }) => (
@@ -96,7 +97,9 @@ export const Privacy: React.FC = () => {
                 : <li>In this demonstration, orders{config.features.reservations ? ' and bookings' : ''} are fictional and stay in this browser.</li>}
               <li><strong>Our notification service</strong> receives each new order{config.features.reservations ? ' and booking' : ''} so it can email the confirmation and alert staff. It is run for {name} by Streamline Automations, which built this website.</li>
               {payFirst && <li><strong>Payfast</strong> takes your payment on its own page. Your card or bank details go to Payfast, never to us.</li>}
-              {addressLookup && <li><strong>Photon</strong> (by komoot) receives the street address you type, to suggest a match. Nothing else is sent with it.</li>}
+              {addressLookup && (addressProvider() === 'geoapify'
+                ? <li><strong>Geoapify</strong>, the address search we use, receives the street address you type into the delivery address box, with your device's internet address, to suggest matching addresses. Nothing else is sent with it.</li>
+                : <li><strong>Photon</strong> (by komoot) receives the street address you type into the delivery address box, with your device's internet address, to suggest a match. Nothing else is sent with it.</li>)}
               <li><strong>Google</strong> serves the fonts on this site{config.features.reservations ? ' and the map on the Visit page' : ''}, so it sees your device's internet address when they load.</li>
               <li><strong>Vercel</strong> hosts the website and keeps short technical logs, such as internet addresses, to keep it running.</li>
             </ul>

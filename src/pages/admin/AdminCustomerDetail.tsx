@@ -19,13 +19,14 @@ import {
   titleCase,
 } from './adminUtils';
 import { useAdminResource } from './useAdminResource';
+import { describeLine } from '../../core/menu/extras';
 
 const backLinkClass =
   'inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50';
 
 const itemSummary = (order: OrderWithItems) =>
   order.order_items.length > 0
-    ? order.order_items.map((item) => `${item.qty}× ${item.name}`).join(', ')
+    ? order.order_items.map((item) => describeLine(item)).join(', ')
     : 'No items found';
 
 const countLabel = (count: number, singular: string, plural = `${singular}s`) =>

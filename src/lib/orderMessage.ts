@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { restaurantDate } from '../core/tenant';
 import { formatCartMoney, type CartLine, type OrderType } from './cartStore';
+import { describeLine, unitPrice } from '../core/menu/extras';
 
 interface BuildOrderMessageArgs {
   orderNo: string;
@@ -32,7 +33,7 @@ export const buildOrderWhatsAppUrl = ({
       : orderType === 'delivery' ? 'Delivery request' : 'Collection request';
 
   const itemLines = lines
-    .map((line) => `${line.qty}x ${line.name}: ${formatCartMoney(line.qty * line.price)}`)
+    .map((line) => `${describeLine(line, 'x')}: ${formatCartMoney(line.qty * unitPrice(line))}`)
     .join('\n');
 
   const messageParts = [

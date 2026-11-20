@@ -304,8 +304,8 @@ test('orderable item names are unique, because the server prices by name', () =>
   const names = orderableFromConfig().map((item) => item.name);
   assert.equal(new Set(names).size, names.length);
   assert.throws(() => orderable.menuItemsSql([
-    { name: 'Dup', category: 'A', price: 1, availableUntil: null },
-    { name: 'Dup', category: 'B', price: 2, availableUntil: null },
+    { name: 'Dup', category: 'A', price: 1, availableUntil: null, extras: [] },
+    { name: 'Dup', category: 'B', price: 2, availableUntil: null, extras: [] },
   ], 'test'), /Duplicate/);
 });
 
@@ -315,8 +315,8 @@ test('seed prices round exactly as the cart does', () => {
 });
 
 test('menu seed escapes quotes and keeps decimal prices exact', () => {
-  const sql = orderable.menuItemsSql([{ name: "Jimmy's Breakfast", category: 'Breakfast', price: 25.5, availableUntil: '12:00' }], 'test');
-  assert.match(sql, /'Jimmy''s Breakfast', 'Breakfast', 25\.50, '12:00'/);
+  const sql = orderable.menuItemsSql([{ name: "Jimmy's Breakfast", category: 'Breakfast', price: 25.5, availableUntil: '12:00', extras: [] }], 'test');
+  assert.match(sql, /'Jimmy''s Breakfast', 'Breakfast', 25\.50, '12:00', '\[\]'::jsonb/);
 });
 
 test('an empty menu seed emits a valid availability update without an empty VALUES list', () => {
@@ -380,12 +380,13 @@ test('every seeded guest is unmistakably fictional', () => {
 });
 
 test('seeded orders use real menu prices and consistent totals', () => {
-  const prices = new Map(orderableFromConfig().map((item) => [item.name, item.price]));
+  const menu = new Map(orderableFromConfig().map((item) => [item.name, item]));
   for (const order of seedModule.createSeed(new Date()).orders) {
     let sum = 0;
     for (const item of order.order_items) {
-      assert.equal(item.unit_price, prices.get(item.name), `${order.order_no}: ${item.name} must match the menu`);
-      sum += item.qty * item.unit_price;
+      assert.equal(item.unit_price, menu.get(item.name).price, `${order.order_no}: ${item.name} must match the menu`);
+      for (const extra of item.extras) assert.deepEqual(menu.get(item.name).extras.find((offered) => offered.name === extra.name), extra, `${order.order_no}: ${extra.name} must be a real extra at its menu price`);
+      sum += item.qty * (item.unit_price + item.extras.reduce((total, extra) => total + extra.price, 0));
     }
     assert.equal(order.total, sum, `${order.order_no} total`);
   }

@@ -255,7 +255,15 @@ export const FoodDrinks: React.FC = () => {
             </button>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            {board === 'food' && (
+            {board === 'food' && (config.menu.pdf ? (
+              <a
+                href={config.menu.pdf}
+                download
+                className="inline-flex items-center gap-2 border border-ink/20 text-ink px-5 py-3 rounded-full font-display font-bold text-sm hover:bg-ink hover:text-surface transition-colors"
+              >
+                <Download size={16} /> Download PDF
+              </a>
+            ) : (
               <button
                 onClick={downloadMenu}
                 disabled={isGeneratingPdf}
@@ -264,7 +272,7 @@ export const FoodDrinks: React.FC = () => {
                 <Download size={16} />{' '}
                 {isGeneratingPdf ? 'Preparing…' : 'Download PDF'}
               </button>
-            )}
+            ))}
             <Link
               to="/order"
               className="inline-flex items-center gap-2 bg-accent text-ink px-5 py-3 rounded-full font-display font-bold text-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"

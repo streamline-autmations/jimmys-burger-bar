@@ -104,7 +104,7 @@ self.addEventListener('notificationclick', (event) => {
  * order page. Also the source PWABuilder reads to build the Android app file.
  *
  * `id` stays '/order': it is the installed app's identity, and changing it would
- * make every existing install a different app. Icons are the real logo on white
+ * make every existing install a different app. Icons are the supplied logo-on-starburst artwork
  * with the logo inside the maskable safe zone (the middle 80%), so one file
  * serves both purposes. Screenshots are listed only when the tenant has them.
  */

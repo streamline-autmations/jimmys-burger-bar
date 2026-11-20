@@ -13,8 +13,8 @@ const coldDrinks = [
   { name: "Coke", price: 22 },
   { name: "Sprite", price: 22 },
   { name: "Cappy", price: 22 },
-  { name: "Still Water", price: 22 },
-  { name: "Sparkling Water", price: 22 },
+  { name: "Still Water", price: 22, image: "/images/menu/drinks-cold-drinks/still-water.webp" },
+  { name: "Sparkling Water", price: 22, image: "/images/menu/drinks-cold-drinks/sparkling-water.webp" },
   { name: "Red Bull", price: 35 },
   { name: "Tonic", price: 17 },
   { name: "Pink Tonic", price: 17 },
@@ -26,11 +26,11 @@ const coldDrinks = [
 ];
 
 const icedDrinks = [
-  { name: "Iced Coffee", price: 45 },
-  { name: "Strawberry Milkshake (Small)", price: 35 },
-  { name: "Chocolate Milkshake (Small)", price: 35 },
-  { name: "Strawberry Milkshake (Large)", price: 45 },
-  { name: "Chocolate Milkshake (Large)", price: 45 },
+  { name: "Iced Coffee", price: 45, image: "/images/menu/drinks-iced-drinks/iced-coffee.webp" },
+  { name: "Strawberry Milkshake (Small)", price: 35, image: "/images/menu/drinks-iced-drinks/strawberry-milkshake-small.webp" },
+  { name: "Chocolate Milkshake (Small)", price: 35, image: "/images/menu/drinks-iced-drinks/chocolate-milkshake-small.webp" },
+  { name: "Strawberry Milkshake (Large)", price: 45, image: "/images/menu/drinks-iced-drinks/strawberry-milkshake-large.webp" },
+  { name: "Chocolate Milkshake (Large)", price: 45, image: "/images/menu/drinks-iced-drinks/chocolate-milkshake-large.webp" },
 ];
 
 const heinekenZero = { name: "Heineken Zero", price: 30 };
@@ -421,7 +421,12 @@ export const jimmys = defineRestaurant({
   drinks: {
     intro: "Cold drinks, coffee, shakes, beers, ciders, spirits and cocktails.",
     categories: [
-      { name: "Cold Drinks", items: coldDrinks },
+      {
+        name: "Cold Drinks",
+        // Cold Drinks water photos are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
+        items: coldDrinks,
+      },
       {
         name: "Beer & Ciders",
         items: [
@@ -447,31 +452,42 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Hot Drinks",
+        // Hot Drinks photos are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Cappuccino", price: 30 },
-          { name: "Latte", price: 35 },
-          { name: "Espresso", price: 25 },
-          { name: "Cortado", price: 28 },
-          { name: "Coffee", price: 25 },
-          { name: "Hot Chocolate", price: 40 },
-          { name: "Tea (Cup)", price: 20 },
-          { name: "Tea (Pot)", price: 40 },
+          { name: "Cappuccino", price: 30, image: "/images/menu/drinks-hot-drinks/cappuccino.webp" },
+          { name: "Latte", price: 35, image: "/images/menu/drinks-hot-drinks/latte.webp" },
+          { name: "Espresso", price: 25, image: "/images/menu/drinks-hot-drinks/espresso.webp" },
+          { name: "Cortado", price: 28, image: "/images/menu/drinks-hot-drinks/cortado.webp" },
+          { name: "Coffee", price: 25, image: "/images/menu/drinks-hot-drinks/coffee.webp" },
+          { name: "Hot Chocolate", price: 40, image: "/images/menu/drinks-hot-drinks/hot-chocolate.webp" },
+          { name: "Tea (Cup)", price: 20, image: "/images/menu/drinks-hot-drinks/tea-cup.webp" },
+          { name: "Tea (Pot)", price: 40, image: "/images/menu/drinks-hot-drinks/tea-pot.webp" },
         ]
       },
-      { name: "Iced Drinks", items: icedDrinks },
+      {
+        name: "Iced Drinks",
+        // Iced Drinks photos are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
+        items: icedDrinks,
+      },
       {
         name: "Mixed Drinks",
+        // Mixed Drinks photos are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Rock Shandy", detail: "Lemonade, bitters and sparkling water", price: 50 },
-          { name: "Steel Works", detail: "Ginger ale, cola tonic and bitters", price: 40 },
+          { name: "Rock Shandy", detail: "Lemonade, bitters and sparkling water", price: 50, image: "/images/menu/drinks-mixed-drinks/rock-shandy.webp" },
+          { name: "Steel Works", detail: "Ginger ale, cola tonic and bitters", price: 40, image: "/images/menu/drinks-mixed-drinks/steel-works.webp" },
         ]
       },
       {
         name: "Cordial",
+        // Cordial photos are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Passionfruit", price: 10 },
-          { name: "Lime", price: 10 },
-          { name: "Cola Tonic", price: 10 },
+          { name: "Passionfruit", price: 10, image: "/images/menu/drinks-cordial/passionfruit.webp" },
+          { name: "Lime", price: 10, image: "/images/menu/drinks-cordial/lime.webp" },
+          { name: "Cola Tonic", price: 10, image: "/images/menu/drinks-cordial/cola-tonic.webp" },
         ]
       },
       {
@@ -520,29 +536,33 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Shots",
+        // Shots photos on the pictured items are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         items: [
           { name: "Tequila", detail: "Gold or silver", price: 27 },
           { name: "Jägermeister", price: 27 },
-          { name: "Melktertjie", price: 20 },
-          { name: "Springbokkie", price: 22 },
+          { name: "Melktertjie", price: 20, image: "/images/menu/drinks-shots/melktertjie.webp" },
+          { name: "Springbokkie", price: 22, image: "/images/menu/drinks-shots/springbokkie.webp" },
           { name: "Cactus Jack Original", price: 20 },
-          { name: "Cactus Jack Bubblegum", price: 22 },
+          { name: "Cactus Jack Bubblegum", price: 22, image: "/images/menu/drinks-shots/cactus-jack-bubblegum.webp" },
           { name: "Oester", price: 25 },
-          { name: "Jägerbomb", price: 35, popular: true },
+          { name: "Jägerbomb", price: 35, popular: true, image: "/images/menu/drinks-shots/jagerbomb.webp" },
         ]
       },
       {
         name: "Cocktails",
+        // Cocktails photos are AI-generated (Codex, 2026-11-20)
+        // under the CLAUDE.md AI-imagery override and logged there. Swap for real photos when shot.
         items: [
-          { name: "Frikkie van Zyl", detail: "Vodka, gin, orange juice and grenadine", price: 70, popular: true },
-          { name: "Martini", detail: "Martini Blanco, vodka, lime and lemon juice", price: 80 },
-          { name: "Margarita", detail: "Bacardi, tequila, triple sec, fruit lagoon and lime", price: 85 },
-          { name: "Aperol Spritz", detail: "Aperol, Prosecco and soda water", price: 95 },
-          { name: "Tequila Sunrise", detail: "Tequila, orange juice and grenadine", price: 70 },
-          { name: "Purple Rain / Hurricane", detail: "Vodka, Malibu, Butlers Blue, grenadine and lemonade", price: 80 },
-          { name: "Strawberry Daiquiri", detail: "Vodka, Butlers Strawberry, fruit lagoon and strawberry juice", price: 80 },
-          { name: "Long Island Iced Tea", detail: "Malibu, Bacardi, vodka, gin, triple sec, tequila, lime and Coke", price: 145 },
-          { name: "Blue Lagoon", detail: "Butlers Blue, Malibu, vodka and Sprite", price: 85 },
+          { name: "Frikkie van Zyl", detail: "Vodka, gin, orange juice and grenadine", price: 70, popular: true, image: "/images/menu/drinks-cocktails/frikkie-van-zyl.webp" },
+          { name: "Martini", detail: "Martini Blanco, vodka, lime and lemon juice", price: 80, image: "/images/menu/drinks-cocktails/martini.webp" },
+          { name: "Margarita", detail: "Bacardi, tequila, triple sec, fruit lagoon and lime", price: 85, image: "/images/menu/drinks-cocktails/margarita.webp" },
+          { name: "Aperol Spritz", detail: "Aperol, Prosecco and soda water", price: 95, image: "/images/menu/drinks-cocktails/aperol-spritz.webp" },
+          { name: "Tequila Sunrise", detail: "Tequila, orange juice and grenadine", price: 70, image: "/images/menu/drinks-cocktails/tequila-sunrise.webp" },
+          { name: "Purple Rain / Hurricane", detail: "Vodka, Malibu, Butlers Blue, grenadine and lemonade", price: 80, image: "/images/menu/drinks-cocktails/purple-rain-hurricane.webp" },
+          { name: "Strawberry Daiquiri", detail: "Vodka, Butlers Strawberry, fruit lagoon and strawberry juice", price: 80, image: "/images/menu/drinks-cocktails/strawberry-daiquiri.webp" },
+          { name: "Long Island Iced Tea", detail: "Malibu, Bacardi, vodka, gin, triple sec, tequila, lime and Coke", price: 145, image: "/images/menu/drinks-cocktails/long-island-iced-tea.webp" },
+          { name: "Blue Lagoon", detail: "Butlers Blue, Malibu, vodka and Sprite", price: 85, image: "/images/menu/drinks-cocktails/blue-lagoon.webp" },
         ]
       },
     ]

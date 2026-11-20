@@ -282,6 +282,8 @@ export const jimmys = defineRestaurant({
   // ---- Food menu ----------------------------------------------------------
   // Jimmy's supplied menu board and price workbook.
   menu: {
+    // Jimmy's own designed menu. Without `pdf`, the site builds a plain PDF from the board.
+    pdf: "/jimmys-menu.pdf",
     categories: [
       {
         name: "Breakfast",

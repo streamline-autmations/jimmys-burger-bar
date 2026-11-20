@@ -18,6 +18,9 @@ import {
 } from '../lib/cartStore';
 import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage';
 import { collectionSlots, contactFieldErrors, latestTime, openDates, restaurantDate, restaurantInstant, slotFieldErrors, tradingHours } from '../lib/tradingHours';
+import { asapSlot, earliestSlot, openNow, type Slot } from '../lib/asap';
+import { CartScreen } from '../components/order/CartScreen';
+import { WhenField, type WhenMode } from '../components/order/WhenField';
 import { data as db, SubmissionError, type NewOrder, type OrderingState, type RefusalReason, type SubmissionFailure } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
 import { FormField } from '../components/forms/FormField';
@@ -35,7 +38,7 @@ import { useAppShell } from '../lib/appShell';
 import { TAB_BAR_HEIGHT } from '../components/AppShell';
 import { forgetEverything, orderAgain, readDetails, rememberOrder, useSavedOrders } from '../lib/orderHistory';
 
-type Step = 'browse' | 'checkout' | 'confirmed';
+type Step = 'browse' | 'cart' | 'checkout' | 'confirmed';
 type CheckoutField = 'cart' | 'name' | 'phone' | 'email' | 'date' | 'time' | 'table' | 'suburb' | 'address';
 
 const FIELD_IDS: Record<CheckoutField, string> = {
@@ -49,7 +52,8 @@ const FIELD_IDS: Record<CheckoutField, string> = {
   suburb: 'order-suburb',
   address: 'order-address',
 };
-const FIELD_ORDER: CheckoutField[] = ['cart', 'name', 'phone', 'email', 'date', 'time', 'table', 'suburb', 'address'];
+// The order the fields appear on the checkout screen, so the error summary reads top to bottom.
+const FIELD_ORDER: CheckoutField[] = ['cart', 'table', 'address', 'suburb', 'date', 'time', 'name', 'phone', 'email'];
 
 const PENDING_KEY = storageKey('order-reference');
 
@@ -77,7 +81,13 @@ const NOT_LISTED = '__not_listed';
 const deliveryBand = (suburb: string) => DELIVERY?.bands.find((band) => band.suburbs.includes(suburb));
 const inDeliveryHours = (slot: string) => !!DELIVERY && slot >= DELIVERY.hours.from && slot < DELIVERY.hours.until;
 const panel = 'bg-surface rounded-2xl p-6 md:p-8 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.04]';
+const section = 'mt-6 border-t border-ink/10 pt-6 first:mt-0 first:border-t-0 first:pt-0';
+// A legend on a fieldset with its own border straddles that border, so the divider is on a wrapper instead.
+const legend = 'mb-4 p-0 font-display text-lg font-extrabold text-primary';
 const noticeBox = 'rounded-2xl border-2 border-ink bg-accent/15 p-5 text-ink focus:outline-none';
+
+/** Dish photo by dish name, for the cart rows. */
+const dishPhotos = new Map(ORDER_CATEGORIES.flatMap((category) => category.items.map((item) => [item.name, item.image] as const)));
 
 /** Categories with an end time, e.g. breakfast until 12, keyed by item name. */
 const itemCutoffs = new Map(
@@ -97,22 +107,23 @@ export const Order: React.FC = () => {
   const appShell = useAppShell();
   const [params, setParams] = useSearchParams();
   const location = useLocation();
-  // Order again from the tracking page lands on checkout, as it does in the app.
-  const [localStep, setLocalStep] = useState<Step>(() => ((location.state as { reordered?: boolean } | null)?.reordered ? 'checkout' : 'browse'));
+  // Order again from the tracking page lands on the cart, as it does in the app.
+  const [localStep, setLocalStep] = useState<Step>(() => ((location.state as { reordered?: boolean } | null)?.reordered ? 'cart' : 'browse'));
   const [confirmationKey, setConfirmationKey] = useState<string | null>(null);
-  const tabStep = params.get('view') === 'cart' ? 'checkout' : 'browse';
+  const view = params.get('view');
+  const tabStep: Step = view === 'cart' ? 'cart' : view === 'checkout' ? 'checkout' : 'browse';
   const step: Step = !appShell ? localStep : confirmationKey === location.key ? 'confirmed' : tabStep;
   const setStep = (next: Step) => {
     setLocalStep(next);
     if (!appShell) return;
     setConfirmationKey(next === 'confirmed' ? location.key : null);
-    if (next !== 'confirmed' && next !== step) setParams(next === 'checkout' ? { view: 'cart' } : {});
+    if (next !== 'confirmed' && next !== step) setParams(next === 'cart' ? { view: 'cart' } : next === 'checkout' ? { view: 'checkout' } : {});
   };
   // Order again: the dishes My orders could not put back, named once on arrival.
   const arrival = location.state as { skipped?: string[]; reordered?: boolean } | null;
   // Shown only on the cart screen it arrived with: going back to the menu drops the navigation state.
   const [skippedNow, setSkippedNow] = useState<string[] | null>(null);
-  useEffect(() => { if (step !== 'checkout') setSkippedNow(null); }, [step]);
+  useEffect(() => { if (step !== 'cart') setSkippedNow(null); }, [step]);
   // Take the reorder hand-off once, then drop it from history, so a reload or Back
   // does not reopen checkout with the old notice.
   useEffect(() => {
@@ -142,6 +153,8 @@ export const Order: React.FC = () => {
   const datesKey = availableDates.join(',');
   const [requestedDate, setRequestedDate] = useState(() => availableDates[0] ?? '');
   const [requestedTime, setRequestedTime] = useState('');
+  // "As soon as possible" is the default. The slot behind it is worked out at submit, never stored here.
+  const [timing, setTiming] = useState<WhenMode>('asap');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [failure, setFailure] = useState<{ kind: SubmissionFailure; offline: boolean; message: string; reason?: RefusalReason } | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
@@ -175,7 +188,8 @@ export const Order: React.FC = () => {
   // a later refusal only proves the RETRY saved nothing, not the first send.
   const attemptWasUncertain = useRef(false);
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  // Set true on mount too: React StrictMode (dev) runs the cleanup once before the real mount, which left this false for good.
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const sending = useRef(false);
 
   const lines = useCartStore(useShallow(selectCartLines));
@@ -185,6 +199,7 @@ export const Order: React.FC = () => {
   const tableNumber = useCartStore((s) => s.tableNumber);
   const add = useCartStore((s) => s.add);
   const remove = useCartStore((s) => s.remove);
+  const setQty = useCartStore((s) => s.setQty);
   const setOrderType = useCartStore((s) => s.setOrderType);
   const setTableNumber = useCartStore((s) => s.setTableNumber);
   const clear = useCartStore((s) => s.clear);
@@ -199,7 +214,8 @@ export const Order: React.FC = () => {
   // If today closes while the page is open, move the selection to the next open day.
   useEffect(() => {
     const dates = datesKey ? datesKey.split(',') : [];
-    if (!dates.includes(requestedDate)) setRequestedDate(dates[0] ?? '');
+    // The old time belonged to the old day: clear it, so the guest is never moved to another day unseen.
+    if (!dates.includes(requestedDate)) { setRequestedDate(dates[0] ?? ''); setRequestedTime(''); }
   }, [datesKey, requestedDate]);
 
   const selectedHours = tradingHours(requestedDate);
@@ -207,13 +223,27 @@ export const Order: React.FC = () => {
   const slots = payFirst ? collectionSlots(requestedDate, LEAD_MINUTES).filter((slot) => !paidDelivery || inDeliveryHours(slot)) : [];
   const slotsKey = slots.join(',');
 
+  // The rules a slot must pass beyond trading hours: the delivery window, and the
+  // end time of any category in the cart (breakfast until 12:00).
+  const slotAllowed = ({ time }: Slot) =>
+    (!paidDelivery || inDeliveryHours(time)) && !lines.some((line) => { const cutoff = itemCutoffs.get(line.name); return !!cutoff && time >= cutoff.until; });
+  const slotQuery = (at: Date) => ({ now: at, daysAhead: ordering.maxDaysAhead, leadMinutes: LEAD_MINUTES, accept: slotAllowed });
+  const [clock, setClock] = useState(() => Date.now());
+  const earliest = earliestSlot(slotQuery(new Date(clock)));
+  const asap = asapSlot(slotQuery(new Date(clock)));
+  // ASAP only while it is honest; otherwise the scheduled picker is shown, already on the next open slot.
+  const wantsAsap = timing === 'asap' && !!asap;
+  /** The slot this order asks for, worked out from the clock it is given. ASAP is the earliest valid slot at that moment. */
+  const resolveSlot = (at: Date): Slot | null => (wantsAsap ? asapSlot(slotQuery(at)) : { date: requestedDate, time: requestedTime });
+
   // Validation reads the clock, so it is re-run at submit with a fresh time.
   const validate = (at: Date): Partial<Record<CheckoutField, string>> => {
+    const when = resolveSlot(at);
     const found: Partial<Record<CheckoutField, string>> = {
       ...contactFieldErrors(customerName, customerPhone, customerEmail),
       ...(availableDates.length === 0
         ? { date: `There are no open days to order for in the next ${ordering.maxDaysAhead + 1} days. Please contact ${config.venue.name}.` }
-        : slotFieldErrors(requestedDate, requestedTime, at)),
+        : when ? slotFieldErrors(when.date, when.time, at) : { time: 'As soon as possible is no longer available. Choose a time below.' }),
     };
     if (count === 0) found.cart = 'Add at least one item to your order.';
     const gone = lines.find((line) => soldOut.has(line.name));
@@ -223,13 +253,13 @@ export const Order: React.FC = () => {
     if (paidDelivery && DELIVERY) {
       if (!deliverySuburb) found.suburb = 'Choose your suburb.';
       else if (deliverySuburb === NOT_LISTED) found.suburb = 'Choose a listed suburb, or collect instead.';
-      if (!found.date && slots.length === 0) found.time = `Delivery runs ${DELIVERY.hours.from} to ${DELIVERY.hours.until}, and there are no delivery times left on this day. Choose another day or collect instead.`;
+      if (!found.date && !wantsAsap && slots.length === 0) found.time = `Delivery runs ${DELIVERY.hours.from} to ${DELIVERY.hours.until}, and there are no delivery times left on this day. Choose another day or collect instead.`;
       if (DELIVERY.minimumOrder && total < menuPrice(DELIVERY.minimumOrder)) found.cart = `Delivery needs at least ${formatMoney(menuPrice(DELIVERY.minimumOrder))} of food. Add something or collect instead.`;
     }
-    if (!found.time && requestedTime) {
+    if (!found.time && when) {
       const late = lines.find((line) => {
         const cutoff = itemCutoffs.get(line.name);
-        return cutoff && requestedTime >= cutoff.until;
+        return cutoff && when.time >= cutoff.until;
       });
       if (late) {
         const cutoff = itemCutoffs.get(late.name)!;
@@ -238,7 +268,6 @@ export const Order: React.FC = () => {
     }
     return found;
   };
-  const [clock, setClock] = useState(() => Date.now());
   const errors = validate(new Date(clock));
   const form = useFormErrors<CheckoutField>(errors);
   const summaryItems = FIELD_ORDER
@@ -247,12 +276,44 @@ export const Order: React.FC = () => {
 
   const locked = isSubmitting || redirecting || !!unpaid || failure?.kind === 'uncertain';
 
-  // The next valid slot is chosen for the guest, and re-chosen if theirs passes.
+  // A chosen time that has since passed moves to the first one left that day.
   useEffect(() => {
-    if (!payFirst || locked) return;
+    if (!payFirst || locked || !requestedTime) return;
     const open = slotsKey ? slotsKey.split(',') : [];
     if (!open.includes(requestedTime)) setRequestedTime(open[0] ?? '');
   }, [slotsKey, requestedTime, locked]);
+
+  // The scheduled picker starts on the next open slot, so a guest who only wants "later" never hunts for one.
+  const earliestKey = earliest ? `${earliest.date} ${earliest.time}` : '';
+  useEffect(() => {
+    if (wantsAsap || locked || requestedTime || !earliest) return;
+    setRequestedDate(earliest.date);
+    setRequestedTime(earliest.time);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsAsap, locked, requestedTime, earliestKey]);
+
+  // The estimate and the closed note follow the clock while checkout is open. They stop once an
+  // attempt is in flight, so what the guest saw is what was sent.
+  useEffect(() => {
+    if (step !== 'checkout' || locked) return;
+    setClock(Date.now());
+    const timer = setInterval(() => setClock(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, [step, locked]);
+
+  // Once ASAP has been off the table the guest is scheduling. The venue opening while the page is open must not silently turn that into ASAP.
+  useEffect(() => { if (!asap && timing === 'asap') setTiming('later'); }, [asap, timing]);
+
+  const chooseTiming = (next: WhenMode) => {
+    setTiming(next);
+    if (next === 'later' && earliest) { setRequestedDate(earliest.date); setRequestedTime(earliest.time); }
+  };
+  // A new day starts on its first slot the order can have, never on an empty time.
+  const chooseDay = (date: string) => {
+    setRequestedDate(date);
+    const slotsThatDay = collectionSlots(date, LEAD_MINUTES);
+    setRequestedTime(slotsThatDay.find((time) => slotAllowed({ date, time })) ?? slotsThatDay[0] ?? '');
+  };
 
   const loadShop = () => { void db.orderingState?.().then((state) => { if (mounted.current) setShop(state); }).catch(() => { /* The server still refuses a paused or sold-out order. */ }); };
   useEffect(() => {
@@ -270,7 +331,7 @@ export const Order: React.FC = () => {
   // an uncertain send is not, because it may still exist on the server.
   useEffect(() => {
     setFailure((current) => (current && current.kind !== 'uncertain' ? null : current));
-  }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, deliveryAddress, deliverySuburb, orderType, tableNumber, count]);
+  }, [customerName, customerPhone, customerEmail, requestedDate, requestedTime, timing, deliveryAddress, deliverySuburb, orderType, tableNumber, count]);
 
   const orderCategories = ORDER_CATEGORIES;
 
@@ -342,7 +403,7 @@ export const Order: React.FC = () => {
     }
   };
 
-  const send = async (payload: NewOrder) => {
+  const send = async (payload: NewOrder, when: Slot = { date: requestedDate, time: requestedTime }) => {
     if (sending.current) return;
     if (!navigator.onLine) {
       setFailure({
@@ -358,7 +419,7 @@ export const Order: React.FC = () => {
     setIsSubmitting(true);
     if (sentPayload.current?.orderNo !== payload.orderNo) {
       sentDetails.current = {
-        requestedDate, requestedTime, total, lines: [...lines], orderType, tableNumber,
+        requestedDate: when.date, requestedTime: when.time, total, lines: [...lines], orderType, tableNumber,
         address: deliveryAddress, name: payload.customerName, email: payload.email, phone: payload.phone,
       };
     }
@@ -439,6 +500,9 @@ export const Order: React.FC = () => {
     const now = Date.now();
     setClock(now);
     if (!form.attempt(validate(new Date(now)))) return;
+    // ASAP is the earliest valid slot at this moment. That exact time is sent, and a retry re-sends the same payload.
+    const when = resolveSlot(new Date(now));
+    if (!when) return;
     void send({
       orderNo: attemptRef.current,
       customerName: customerName.trim(),
@@ -449,7 +513,7 @@ export const Order: React.FC = () => {
       deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null,
       deliveryNotes: orderType === 'delivery' ? (deliveryNotes.trim() || null) : null,
       ...(paidDelivery ? { deliverySuburb } : {}),
-      requestedTime: restaurantInstant(requestedDate, requestedTime).toISOString(),
+      requestedTime: restaurantInstant(when.date, when.time).toISOString(),
       // The cart holds minor units; the orders table stores a decimal amount.
       total: toStoredAmount(total),
       marketingConsent: false,
@@ -458,7 +522,7 @@ export const Order: React.FC = () => {
         qty: line.qty,
         unit_price: toStoredAmount(line.price),
       })),
-    });
+    }, when);
   };
 
   const retry = () => { if (sentPayload.current) void send(sentPayload.current); };
@@ -484,6 +548,7 @@ export const Order: React.FC = () => {
     setCustomerName(details?.name ?? '');
     setCustomerPhone(details?.phone ?? ''); setCustomerEmail(details?.email ?? ''); setDeliveryAddress(''); setDeliveryNotes(''); setDeliverySuburb('');
     setRequestedTime('');
+    setTiming('asap');
     form.reset();
     setStep('browse');
   };
@@ -540,7 +605,7 @@ export const Order: React.FC = () => {
   const dayField = (
     <FormField id={FIELD_IDS.date} label="Day" required error={form.visible.date}>
       {(control) => (
-        <select {...control} value={requestedDate} onChange={(e) => { setRequestedDate(e.target.value); setRequestedTime(''); }} onBlur={() => form.blur('date')} className="form-input">
+        <select {...control} value={requestedDate} onChange={(e) => chooseDay(e.target.value)} onBlur={() => form.blur('date')} className="form-input">
           {availableDates.length === 0 && <option value="">No open days</option>}
           {availableDates.map((date) => <option key={date} value={date}>{dayLabel(date)}</option>)}
         </select>
@@ -548,74 +613,62 @@ export const Order: React.FC = () => {
     </FormField>
   );
 
-  // Pay-first: the next slot the kitchen can make is already chosen; a later one is one tap away.
-  const earliestDate = availableDates[0];
-  const earliestSlot = earliestDate ? collectionSlots(earliestDate, LEAD_MINUTES)[0] : undefined;
-  const slotFields = (
+  // "Schedule for later": the existing day and time pickers (up to maxDaysAhead). Pay-first offers quarter-hour
+  // slots; the pay-on-collection site keeps its free time field.
+  const earliestDate = earliest?.date;
+  const verb = orderType === 'delivery' ? 'Deliver' : 'Collect';
+  const pickers = (
     <>
-      {paidDelivery && DELIVERY ? (
+      {paidDelivery && DELIVERY && (
         <p className="flex items-center gap-2.5 rounded-xl bg-accent/20 px-4 py-3 text-sm text-ink ring-1 ring-accent/60">
           <Clock3 size={18} className="shrink-0" aria-hidden="true" />
           <span>Delivery runs <strong className="font-display text-base">{DELIVERY.hours.from} to {DELIVERY.hours.until}</strong>, example hours for this preview.</span>
         </p>
-      ) : earliestSlot && (
-        <p className="flex items-center gap-2.5 rounded-xl bg-accent/20 px-4 py-3 text-sm text-ink ring-1 ring-accent/60">
-          <Clock3 size={18} className="shrink-0" aria-hidden="true" />
-          <span>Next collection slot: <strong className="font-display text-base">{dayLabel(earliestDate)}, {earliestSlot}</strong></span>
-        </p>
       )}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-end">
         {dayField}
-        <FormField id={FIELD_IDS.time} label={paidDelivery ? 'Deliver at' : 'Collect at'} required error={form.visible.time} hint={`${config.venue.timeLabel}. Pick a later time if that suits you better.`}>
-          {(control) => (
-            <select {...control} disabled={slots.length === 0} value={requestedTime} onChange={(e) => setRequestedTime(e.target.value)} onBlur={() => form.blur('time')} className="form-input">
-              {slots.length === 0 && <option value="">No times left</option>}
-              {slots.map((slot) => <option key={slot} value={slot}>{slot}{!paidDelivery && requestedDate === earliestDate && slot === earliestSlot ? ' (earliest)' : ''}</option>)}
-            </select>
-          )}
-        </FormField>
+        {payFirst ? (
+          <FormField id={FIELD_IDS.time} label={`${verb} at`} required error={form.visible.time}>
+            {(control) => (
+              <select {...control} disabled={slots.length === 0} value={requestedTime} onChange={(e) => setRequestedTime(e.target.value)} onBlur={() => form.blur('time')} className="form-input">
+                {slots.length === 0 && <option value="">No times left</option>}
+                {slots.map((slot) => <option key={slot} value={slot}>{slot}{requestedDate === earliestDate && slot === earliest?.time ? ' (earliest)' : ''}</option>)}
+              </select>
+            )}
+          </FormField>
+        ) : (
+          <FormField
+            id={FIELD_IDS.time}
+            label="Ready by"
+            required
+            error={form.visible.time}
+            hint={selectedHours ? `Open ${selectedHours.open} to ${selectedHours.close === '24:00' ? 'midnight' : selectedHours.close}, ${config.venue.timeLabel}` : undefined}
+          >
+            {(control) => <input {...control} type="time" disabled={!selectedHours} min={selectedHours?.open} max={latestTime(selectedHours?.close)} value={requestedTime} onChange={(e) => setRequestedTime(e.target.value)} onBlur={() => form.blur('time')} className="form-input" />}
+          </FormField>
+        )}
       </div>
     </>
   );
 
+  // Why ASAP is not on offer, and when the next time is. Only built while it is not on offer.
+  const dayWord = (date: string) => { const label = dayLabel(date); return label === 'Today' || label === 'Tomorrow' ? label.toLowerCase() : label; };
+  const nextOpens = earliest ? tradingHours(earliest.date)?.open : undefined;
+  const unavailableNote = asap || !earliest ? undefined
+    : !openNow(new Date(clock)) && nextOpens ? `${config.venue.name} is closed right now. We open ${dayWord(earliest.date)} at ${nextOpens}.${earliest.time === nextOpens ? '' : ` The earliest ${orderType === 'delivery' ? 'delivery' : 'ready'} time is ${dayLabel(earliest.date)}, ${earliest.time}.`}`
+    : `The earliest time for this order is ${dayLabel(earliest.date)}, ${earliest.time}.`;
+  const timeSummary = wantsAsap && asap ? `As soon as possible, about ${asap.time}` : requestedTime ? `${dayLabel(requestedDate)}, ${requestedTime}` : 'Not chosen yet';
+
   const cartError = count > 0 ? form.visible.cart : undefined;
-  const orderSummary = (
-    <section aria-labelledby="order-summary-heading" className={panel}>
-      <h2 id="order-summary-heading" className="font-display text-lg font-extrabold text-primary mb-4">Your order</h2>
-      {count === 0 && (
-        <div id={FIELD_IDS.cart} tabIndex={-1} className="rounded-xl bg-paper/70 px-4 py-5 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
-          <p className="font-semibold text-ink">Your cart is empty.</p>
-          <button type="button" onClick={() => setStep('browse')} className="mt-2 min-h-11 font-display font-bold text-primary underline underline-offset-2">Choose something from the menu</button>
-        </div>
-      )}
-      {cartError && <p role="alert" className="mb-3 rounded-xl bg-accent/15 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/50">{cartError}</p>}
-      <ul id={count > 0 ? FIELD_IDS.cart : undefined} tabIndex={-1} className="space-y-2 focus:outline-none">
-        {lines.map((line) => (
-          <li key={line.name} className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center shrink-0 rounded-full bg-paper/80">
-              <button type="button" disabled={locked} aria-label={`Remove one ${line.name}`} onClick={() => remove(line.name)} className="min-w-11 min-h-11 font-bold disabled:opacity-40">−</button>
-              <span className="w-5 text-center font-display font-bold" aria-label={`${line.qty} of ${line.name}`}>{line.qty}</span>
-              <button type="button" disabled={locked || line.qty >= 99 || soldOut.has(line.name)} aria-label={`Add one more ${line.name}`} onClick={() => add(line.name, line.price)} className="min-w-11 min-h-11 font-bold disabled:opacity-40">+</button>
-            </span>
-            <h3 className="font-display font-bold text-ink leading-snug">{line.name}{soldOut.has(line.name) && <span className="ml-2 rounded-full bg-paper px-2 py-0.5 text-xs text-ink/70 ring-1 ring-ink/20">Sold out</span>}</h3>
-            <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" aria-hidden="true" />
-            <span className="font-display font-bold text-ink whitespace-nowrap">{formatCartMoney(line.qty * line.price)}</span>
-          </li>
-        ))}
-      </ul>
-      {paidDelivery && DELIVERY && (
-        <div className="mt-4 flex flex-wrap items-baseline gap-2 border-t border-ink/10 pt-4">
-          <span className="font-display font-bold text-ink">Delivery fee</span>
-          <span className="rounded-full bg-accent/25 px-2.5 py-0.5 text-xs font-bold text-ink ring-1 ring-accent/60">{DELIVERY.feeNote}</span>
-          <div className="flex-1 border-b-2 border-dotted border-ink/20 min-w-[24px] translate-y-[-4px]" aria-hidden="true" />
-          <span className="font-display font-bold text-ink whitespace-nowrap">{band ? formatCartMoney(deliveryFee) : 'Choose your suburb'}</span>
-        </div>
-      )}
-      <div className="flex items-baseline justify-between mt-6 pt-4 border-t border-ink/10">
-        <span className="font-display font-bold text-ink text-lg">Total</span>
-        <span className="font-display font-extrabold text-primary text-2xl">{formatCartMoney(payTotal)}</span>
+  // Checkout only recaps the cart; the cart screen is where it is changed.
+  const recap = (
+    <div className="mb-6">
+      <div id={FIELD_IDS.cart} tabIndex={-1} className="flex items-center justify-between gap-4 rounded-2xl bg-surface px-4 py-3 shadow-[0_8px_30px_-14px_rgb(var(--color-ink)/0.2)] ring-1 ring-ink/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+        <p className="font-display font-bold text-ink">{count} {count === 1 ? 'item' : 'items'}, <span className="text-primary">{formatCartMoney(total)}</span></p>
+        <button type="button" disabled={locked} onClick={() => setStep('cart')} className="min-h-11 font-display text-sm font-bold text-primary underline underline-offset-2 disabled:opacity-50">Edit cart</button>
       </div>
-    </section>
+      {cartError && <p role="alert" className="mt-3 rounded-xl bg-accent/15 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/50">{cartError}</p>}
+    </div>
   );
 
   const collectInstead = (
@@ -765,7 +818,7 @@ export const Order: React.FC = () => {
                   tableNumber={tableNumber}
                   onOrderTypeChange={setOrderType}
                   onTableNumberChange={setTableNumber}
-                  onCheckout={() => setStep('checkout')}
+                  onCheckout={() => setStep('cart')}
                 />
               </div>
             </div>
@@ -778,7 +831,7 @@ export const Order: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.25 }}
-                  onClick={() => setStep('checkout')}
+                  onClick={() => setStep('cart')}
                   {...(appShell ? { 'data-above-tabbar': '', style: { bottom: `calc(${TAB_BAR_HEIGHT + 12}px + env(safe-area-inset-bottom))` } } : {})}
                   className={`lg:hidden fixed ${appShell ? 'bg-primary ring-2 ring-accent' : 'bottom-6 bg-ink'} left-4 right-4 z-40 text-paper rounded-full py-4 px-6 flex items-center justify-between font-display font-bold shadow-xl shadow-ink/25`}
                 >
@@ -786,14 +839,41 @@ export const Order: React.FC = () => {
                     <ShoppingBag size={18} />
                     {count} item{count === 1 ? '' : 's'}
                   </span>
-                  <span>{formatCartMoney(total)} · Checkout</span>
+                  <span>{formatCartMoney(total)} · View cart</span>
                 </motion.button>
               )}
             </AnimatePresence>
           </motion.div>
         )}
 
-        {step === 'checkout' && appShell && count === 0 && (
+        {step === 'cart' && count > 0 && (
+          <motion.div
+            key="cart"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CartScreen
+              lines={lines}
+              count={count}
+              total={total}
+              photos={dishPhotos}
+              soldOut={soldOut}
+              appShell={appShell}
+              notice={skipped.length > 0 ? <SkippedNotice names={skipped} />
+                : reordered ? <p role="status" className="rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p> : null}
+              locked={locked}
+              onAdd={(line) => add(line.name, line.price)}
+              onRemoveOne={remove}
+              onRemoveLine={(name) => setQty(name, 0)}
+              onCheckout={() => setStep('checkout')}
+              onBack={() => setStep('browse')}
+            />
+          </motion.div>
+        )}
+
+        {(step === 'cart' || step === 'checkout') && count === 0 && (
           <motion.div
             key="empty-cart"
             initial={{ opacity: 0 }}
@@ -808,7 +888,7 @@ export const Order: React.FC = () => {
             <div className={`${panel} text-center`}>
               <ShoppingBag size={28} className="mx-auto text-primary" aria-hidden="true" />
               <p className="mt-3 text-ink/70">Add something from the menu and it shows up here.</p>
-              <Link to="/order" className="mt-5 inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-display font-bold text-surface">Browse the menu</Link>
+              <button type="button" onClick={() => setStep('browse')} className="mt-5 inline-flex min-h-12 items-center rounded-full bg-primary px-6 font-display font-bold text-surface">Browse the menu</button>
             </div>
             {savedOrders[0] && (
               <div className={`${panel} mt-6`}>
@@ -830,7 +910,7 @@ export const Order: React.FC = () => {
           </motion.div>
         )}
 
-        {step === 'checkout' && !(appShell && count === 0) && (
+        {step === 'checkout' && count > 0 && (
           <motion.form
             key="checkout"
             noValidate
@@ -844,157 +924,88 @@ export const Order: React.FC = () => {
           >
             <button type="button"
               disabled={locked}
-              onClick={() => setStep('browse')}
+              onClick={() => setStep('cart')}
               className="inline-flex min-h-11 items-center gap-1.5 text-ink/65 hover:text-ink font-medium text-sm mb-4 disabled:opacity-50"
             >
-              <ArrowLeft size={16} aria-hidden="true" /> Back to menu
+              <ArrowLeft size={16} aria-hidden="true" /> Back to cart
             </button>
 
             <span className="block font-script text-2xl text-primary">almost there</span>
             <h1 className="font-display text-3xl md:text-5xl font-extrabold text-ink mt-1 mb-8">{copy.order.checkoutHeading}</h1>
 
             <ErrorSummary ref={form.summaryRef} items={form.submitted ? summaryItems : []} />
-            {skipped.length > 0 ? <SkippedNotice names={skipped} className="mb-6" />
-              : reordered && <p role="status" className="mb-6 rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p>}
+            {recap}
 
-            {payFirst ? (
-              <>
-                <div className="my-6">{orderSummary}</div>
-                {DELIVERY && fulfilmentModes.length > 1 && (
-                  <fieldset disabled={locked} className={`${panel} mb-6 space-y-5`}>
-                    <legend className="sr-only">Collection or delivery</legend>
-                    <p id="order-type-label" className="font-display text-lg font-extrabold text-primary">How would you like it?</p>
-                    <OrderTypeToggle value={orderType} onChange={setOrderType} labelledBy="order-type-label" />
-                    {paidDelivery && (
-                      <>
-                        <FormField id={FIELD_IDS.suburb} label="Suburb" required error={form.visible.suburb} hint="We deliver to a short list of nearby suburbs.">
-                          {(control) => (
-                            <select {...control} value={deliverySuburb} onChange={(e) => setDeliverySuburb(e.target.value)} onBlur={() => form.blur('suburb')} className="form-input">
-                              <option value="">Choose your suburb</option>
-                              {DELIVERY.bands.map((zone) => (
-                                <optgroup key={zone.label} label={`${zone.label}, ${formatMoney(menuPrice(zone.fee))} example fee`}>
-                                  {zone.suburbs.map((name) => <option key={name} value={name}>{name}</option>)}
-                                </optgroup>
-                              ))}
-                              <option value={NOT_LISTED}>My suburb is not listed</option>
-                            </select>
-                          )}
-                        </FormField>
-                        {deliverySuburb === NOT_LISTED ? (
-                          <div role="status" className={noticeBox}>
-                            <p className="font-display text-lg font-bold">We cannot deliver to your area</p>
-                            <p className="mt-2 text-sm">Delivery only covers the suburbs listed. Your cart is kept, so you can collect from {config.venue.address} instead.</p>
-                            <div className="mt-4">{collectInstead}</div>
-                          </div>
-                        ) : (
-                          <>
-                            <FormField id={FIELD_IDS.address} label="Street address" required error={form.visible.address} hint={DELIVERY.addressSearch ? 'Type your house number and street, then tap the match.' : undefined}>
-                              {(control) => DELIVERY.addressSearch ? (
-                                <AddressSearch
-                                  control={control}
-                                  near={DELIVERY.addressSearch}
-                                  value={deliveryAddress}
-                                  onChange={setDeliveryAddress}
-                                  onBlur={() => form.blur('address')}
-                                  onPick={(picked) => {
-                                    setDeliveryAddress(picked.label);
-                                    const suburb = matchSuburb(picked, DELIVERY.bands.flatMap((zone) => zone.suburbs));
-                                    // Undo a suburb an earlier pick chose, so a new address never keeps the old fee.
-                                    if (suburb) setDeliverySuburb(suburb);
-                                    else if (autoSuburb.current === deliverySuburb) setDeliverySuburb('');
-                                    autoSuburb.current = suburb ?? '';
-                                  }}
-                                  placeholder="House number and street"
-                                />
-                              ) : <input {...control} type="text" autoComplete="address-line1" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="House number and street" className="form-input" />}
-                            </FormField>
-                            <FormField label="Notes for the rider" required={false}>
-                              {(control) => <input {...control} type="text" maxLength={250} value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="form-input" />}
-                            </FormField>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </fieldset>
-                )}
-                <fieldset disabled={locked} className={`${panel} mb-6 space-y-5`}>
-                  <legend className="sr-only">{paidDelivery ? 'Delivery time' : 'Collection time'}</legend>
-                  <h2 className="font-display text-lg font-extrabold text-primary" aria-hidden="true">{paidDelivery ? 'Delivery time' : 'Collection time'}</h2>
-                  {slotFields}
-                  {paidDelivery && slots.length === 0 && <div>{collectInstead}</div>}
-                </fieldset>
-                <fieldset disabled={locked} className={`${panel} mb-6 space-y-5`}>
-                  <legend className="sr-only">Your details</legend>
-                  <h2 className="font-display text-lg font-extrabold text-primary" aria-hidden="true">Your details</h2>
-                  {contactFields}
-                </fieldset>
-
-                <section aria-labelledby="pay-summary-heading" className="mb-6 rounded-2xl bg-ink p-6 text-paper md:p-8">
-                  <h2 id="pay-summary-heading" className="font-display text-lg font-extrabold text-accent">Before you pay</h2>
-                  <dl className="mt-4 space-y-3 text-sm">
-                    <div className="flex justify-between gap-6">
-                      <dt className="shrink-0 text-paper/70">{paidDelivery ? 'Deliver to' : 'Collect from'}</dt>
-                      <dd className="text-right font-display font-bold">{paidDelivery
-                        ? (band ? [deliveryAddress.trim(), deliverySuburb].filter(Boolean).join(', ') : 'Choose your suburb')
-                        : `${config.venue.name}, ${config.venue.address}`}</dd>
-                    </div>
-                    <div className="flex justify-between gap-6">
-                      <dt className="shrink-0 text-paper/70">{paidDelivery ? 'Delivery time' : 'Collection time'}</dt>
-                      <dd className="text-right font-display font-bold">{requestedTime ? `${dayLabel(requestedDate)}, ${requestedTime}` : 'Not chosen yet'}</dd>
-                    </div>
-                    {paidDelivery && DELIVERY && (
-                      <>
-                        <div className="flex justify-between gap-6 border-t border-paper/15 pt-3">
-                          <dt className="shrink-0 text-paper/70">Food</dt>
-                          <dd className="text-right font-display font-bold">{formatCartMoney(total)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-6">
-                          <dt className="text-paper/70">Delivery fee<span className="block text-xs text-accent">{DELIVERY.feeNote}</span></dt>
-                          <dd className="text-right font-display font-bold">{band ? formatCartMoney(deliveryFee) : 'Not chosen yet'}</dd>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex items-baseline justify-between gap-6 border-t border-paper/15 pt-3">
-                      <dt className="font-display text-base font-bold">Total to pay</dt>
-                      <dd className="font-display text-2xl font-extrabold text-accent">{formatCartMoney(payTotal)}</dd>
-                    </div>
-                  </dl>
-                </section>
-                <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. You pay now on Payfast, and your {paidDelivery ? 'delivery' : 'collection'} time is confirmed when {config.venue.name} accepts the order.</p>
-              </>
-            ) : (
-              <>
-                <fieldset disabled={locked} className={`${panel} my-6 space-y-5`}>
-                  <legend className="sr-only">Your details</legend>
-                  {contactFields}
-
-                  {fulfilmentModes.length > 1 && (
-                    <div>
-                      <p id="order-type-label" className="block font-display font-bold text-ink text-sm mb-2">How would you like it?</p>
-                      <OrderTypeToggle value={orderType} onChange={setOrderType} labelledBy="order-type-label" />
-                    </div>
-                  )}
-                  <p className="text-sm text-ink/75">{orderType === 'collection' ? ordering.collectionNote : orderType === 'delivery' ? ordering.deliveryNote : ordering.tableNote}</p>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {dayField}
-                    <FormField
-                      id={FIELD_IDS.time}
-                      label="Ready by"
-                      required
-                      error={form.visible.time}
-                      hint={selectedHours ? `Open ${selectedHours.open} to ${selectedHours.close === '24:00' ? 'midnight' : selectedHours.close}, ${config.venue.timeLabel}` : undefined}
-                    >
-                      {(control) => <input {...control} type="time" disabled={!selectedHours} min={selectedHours?.open} max={latestTime(selectedHours?.close)} value={requestedTime} onChange={(e) => setRequestedTime(e.target.value)} onBlur={() => form.blur('time')} className="form-input" />}
-                    </FormField>
-                  </div>
-
+            <div className={`${panel} mb-6`}>
+              {/* a. Collection or delivery, only the modes this venue offers. */}
+              {(fulfilmentModes.length > 1 || orderType === 'table' || (!payFirst && orderType !== 'delivery')) && (
+                <div className={section}><fieldset disabled={locked} className="min-w-0">
+                  <legend className={legend}>{fulfilmentModes.length > 1 ? 'How would you like it?' : 'Your order'}</legend>
+                  <div className="space-y-4">
+                  {fulfilmentModes.length > 1 && <OrderTypeToggle value={orderType} onChange={setOrderType} />}
+                  {!payFirst && orderType !== 'delivery' && <p className="text-sm text-ink/75">{orderType === 'collection' ? ordering.collectionNote : ordering.tableNote}</p>}
                   {orderType === 'table' && (
                     <FormField id={FIELD_IDS.table} label="Table number" required error={form.visible.table}>
                       {(control) => <input {...control} type="text" inputMode="numeric" maxLength={10} value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} onBlur={() => form.blur('table')} placeholder="e.g. 7" className="form-input" />}
                     </FormField>
                   )}
-                  {orderType === 'delivery' && (
+                  </div>
+                </fieldset></div>
+              )}
+
+              {/* b. Delivery: the address, with suggestions where the venue has set them up. */}
+              {orderType === 'delivery' && (
+                <div className={section}><fieldset disabled={locked} className="min-w-0">
+                  <legend className={legend}>Delivery address</legend>
+                  <div className="space-y-4">
+                  <p className="text-sm text-ink/75">{ordering.deliveryNote}</p>
+                  {paidDelivery && DELIVERY ? (
+                    <>
+                      <FormField id={FIELD_IDS.address} label="Street address" required error={form.visible.address} hint={DELIVERY.addressSearch ? 'Type your house number and street, then tap the match.' : undefined}>
+                        {(control) => DELIVERY.addressSearch ? (
+                          <AddressSearch
+                            control={control}
+                            near={DELIVERY.addressSearch}
+                            value={deliveryAddress}
+                            onChange={setDeliveryAddress}
+                            onBlur={() => form.blur('address')}
+                            onPick={(picked) => {
+                              setDeliveryAddress(picked.label);
+                              const suburb = matchSuburb(picked, DELIVERY.bands.flatMap((zone) => zone.suburbs));
+                              // Undo a suburb an earlier pick chose, so a new address never keeps the old fee.
+                              if (suburb) setDeliverySuburb(suburb);
+                              else if (autoSuburb.current === deliverySuburb) setDeliverySuburb('');
+                              autoSuburb.current = suburb ?? '';
+                            }}
+                            placeholder="House number and street"
+                          />
+                        ) : <input {...control} type="text" autoComplete="address-line1" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="House number and street" className="form-input" />}
+                      </FormField>
+                      <FormField id={FIELD_IDS.suburb} label="Suburb" required error={form.visible.suburb} hint="We fill this in from your address when we recognise it. We deliver to a short list of nearby suburbs.">
+                        {(control) => (
+                          <select {...control} value={deliverySuburb} onChange={(e) => setDeliverySuburb(e.target.value)} onBlur={() => form.blur('suburb')} className="form-input">
+                            <option value="">Choose your suburb</option>
+                            {DELIVERY.bands.map((zone) => (
+                              <optgroup key={zone.label} label={`${zone.label}, ${formatMoney(menuPrice(zone.fee))} example fee`}>
+                                {zone.suburbs.map((name) => <option key={name} value={name}>{name}</option>)}
+                              </optgroup>
+                            ))}
+                            <option value={NOT_LISTED}>My suburb is not listed</option>
+                          </select>
+                        )}
+                      </FormField>
+                      {deliverySuburb === NOT_LISTED && (
+                        <div role="status" className={noticeBox}>
+                          <p className="font-display text-lg font-bold">We cannot deliver to your area</p>
+                          <p className="mt-2 text-sm">Delivery only covers the suburbs listed. Your cart is kept, so you can collect from {config.venue.address} instead.</p>
+                          <div className="mt-4">{collectInstead}</div>
+                        </div>
+                      )}
+                      <FormField label="Notes for the rider" required={false}>
+                        {(control) => <input {...control} type="text" maxLength={250} value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="e.g. call at the gate" className="form-input" />}
+                      </FormField>
+                    </>
+                  ) : (
                     <>
                       <FormField id={FIELD_IDS.address} label="Delivery address" required error={form.visible.address}>
                         {(control) => <input {...control} type="text" autoComplete="street-address" maxLength={250} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} onBlur={() => form.blur('address')} placeholder="Street number and suburb" className="form-input" />}
@@ -1004,11 +1015,68 @@ export const Order: React.FC = () => {
                       </FormField>
                     </>
                   )}
-                </fieldset>
-                <div className="mb-6">{orderSummary}</div>
-                <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. Your requested time is subject to confirmation, and you pay when you collect.</p>
-              </>
-            )}
+                  </div>
+                </fieldset></div>
+              )}
+
+              {/* c. When: as soon as possible unless the guest schedules it. */}
+              <div className={section}><fieldset disabled={locked} className="min-w-0">
+                <legend className={legend}>When would you like it?</legend>
+                <WhenField
+                  mode={wantsAsap ? 'asap' : 'later'}
+                  asapTime={asap?.time}
+                  unavailableNote={unavailableNote}
+                  readyWord={orderType === 'delivery' ? 'delivery' : 'ready'}
+                  onChoose={chooseTiming}
+                >
+                  {pickers}
+                </WhenField>
+                {paidDelivery && !wantsAsap && slots.length === 0 && <div className="mt-4">{collectInstead}</div>}
+              </fieldset></div>
+
+              {/* d. Guest details. */}
+              <div className={section}><fieldset disabled={locked} className="min-w-0">
+                <legend className={legend}>Your details</legend>
+                <div className="space-y-5">{contactFields}</div>
+              </fieldset></div>
+            </div>
+
+            {/* e. Pay. */}
+            <section aria-labelledby="pay-summary-heading" className="mb-6 rounded-2xl bg-ink p-6 text-paper md:p-8">
+              <h2 id="pay-summary-heading" className="font-display text-lg font-extrabold text-accent">{payFirst ? 'Before you pay' : 'Check your order'}</h2>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex justify-between gap-6">
+                  <dt className="shrink-0 text-paper/70">{orderType === 'delivery' ? 'Deliver to' : orderType === 'table' ? 'Table' : 'Collect from'}</dt>
+                  <dd className="text-right font-display font-bold">{orderType === 'delivery'
+                    ? (paidDelivery ? (band ? [deliveryAddress.trim(), deliverySuburb].filter(Boolean).join(', ') : 'Choose your suburb') : deliveryAddress.trim() || 'Not entered yet')
+                    : orderType === 'table' ? (tableNumber.trim() || 'Not entered yet')
+                    : `${config.venue.name}, ${config.venue.address}`}</dd>
+                </div>
+                <div className="flex justify-between gap-6">
+                  <dt className="shrink-0 text-paper/70">{orderType === 'delivery' ? 'Delivery time' : 'Time'}</dt>
+                  <dd className="text-right font-display font-bold">{timeSummary}</dd>
+                </div>
+                {paidDelivery && DELIVERY && (
+                  <>
+                    <div className="flex justify-between gap-6 border-t border-paper/15 pt-3">
+                      <dt className="shrink-0 text-paper/70">Food</dt>
+                      <dd className="text-right font-display font-bold">{formatCartMoney(total)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-6">
+                      <dt className="text-paper/70">Delivery fee<span className="block text-xs text-accent">{DELIVERY.feeNote}</span></dt>
+                      <dd className="text-right font-display font-bold">{band ? formatCartMoney(deliveryFee) : 'Not chosen yet'}</dd>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-baseline justify-between gap-6 border-t border-paper/15 pt-3">
+                  <dt className="font-display text-base font-bold">{payFirst ? 'Total to pay' : 'Total, pay on collection'}</dt>
+                  <dd className="font-display text-2xl font-extrabold text-accent">{formatCartMoney(payTotal)}</dd>
+                </div>
+              </dl>
+            </section>
+            {payFirst
+              ? <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. You pay now on Payfast, and your {paidDelivery ? 'delivery' : 'collection'} time is confirmed when {config.venue.name} accepts the order.</p>
+              : <p className="mb-4 text-sm text-ink/75">We use your contact details to manage this order. Marketing is not opted in. Your requested time is subject to confirmation, and you pay when you collect.</p>}
 
             {!online && !failure && (
               <p role="status" className="mb-4 flex items-center gap-2 rounded-xl bg-accent/15 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/50">
@@ -1231,7 +1299,7 @@ const CartPanel: React.FC<{
           onClick={onCheckout}
           className="w-full bg-primary text-surface py-3.5 rounded-full font-display font-bold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20"
         >
-          Checkout
+          View cart
         </button>
       </>
     )}

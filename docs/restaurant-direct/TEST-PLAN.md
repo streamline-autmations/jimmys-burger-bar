@@ -32,9 +32,9 @@ Takes about 40 minutes for two people. Last full write-up: `MVP-STATUS.md`.
 
 | # | Step | Expected |
 |---|---|---|
-| B1 | Open `/order`, tap **Add** on Beef Burger | Bottom bar: **1 item, R90 · Checkout** |
-| B2 | Tap the bar | Checkout shows "Next collection slot", a Day list with no Sunday, a time list |
-| B3 | Fill name, phone, email. Read the *Before you pay* box | Address 57 Loch Street, the chosen time, **Total to pay R90** |
+| B1 | Open `/order`, tap **Add** on Beef Burger | Bottom bar: **1 item, R90 · View cart** |
+| B2 | Tap the bar, check the cart (photo, price, − qty +, Remove), tap **Checkout** | Checkout opens with **As soon as possible** selected and the estimated ready time. **Schedule for later** shows a Day list with no Sunday and a time list. When Jimmy's is closed there is no ASAP option: the note says when it opens and the next slot is already chosen |
+| B3 | Fill name, phone, email. Read the *Before you pay* box | Address 57 Loch Street, the time (ASAP shows "As soon as possible, about 12:15"), **Total to pay R90** |
 | B4 | Tap **Pay R90 with Payfast** | Payfast page with a yellow sandbox banner, R 90.00 |
 | B5 | Tap **Complete Payment** | Back on `/track?ref=JB-…` within a few seconds: **Payment received. Waiting for Jimmy's to accept your order.** with a PAID sticker. Write down the reference |
 

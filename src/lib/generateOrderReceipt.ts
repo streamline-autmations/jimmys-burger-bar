@@ -97,10 +97,12 @@ export async function generateOrderReceipt(order: {
 
   y += 31;
   order.lines.forEach((line, index) => {
-    if (y > 650) { doc.addPage(); y = 60; }
+    // The dish keeps its own amount and each extra gets a row of its own, so the lines add up to the total on the page.
+    const rowHeight = 28 + line.extras.length * 16;
+    if (y + rowHeight - 28 > 650) { doc.addPage(); y = 60; }
     if (index % 2 === 0) {
       doc.setFillColor(255, 252, 246);
-      doc.rect(margin, y - 18, width - margin * 2, 28, 'F');
+      doc.rect(margin, y - 18, width - margin * 2, rowHeight, 'F');
     }
 
     doc.setTextColor(...NAVY);
@@ -108,7 +110,14 @@ export async function generateOrderReceipt(order: {
     doc.setFontSize(11);
     doc.text(`${line.qty}x  ${line.name}`, margin + 10, y);
     doc.text(formatCartMoney(line.qty * line.price), width - margin - 10, y, { align: 'right' });
-    y += 28;
+    doc.setFontSize(9.5);
+    doc.setTextColor(74, 85, 105);
+    line.extras.forEach((extra, extraIndex) => {
+      const extraY = y + 17 + extraIndex * 16;
+      doc.text(`+ ${extra.name}`, margin + 34, extraY);
+      doc.text(formatCartMoney(line.qty * extra.price), width - margin - 10, extraY, { align: 'right' });
+    });
+    y += rowHeight;
   });
 
   if (y > 620) { doc.addPage(); y = 60; }

@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Minus, Plus } from 'lucide-react';
 import { MenuThumb } from '../MenuThumb';
 import { formatCartMoney, type CartLine } from '../../lib/cartStore';
+import { unitPrice } from '../../core/menu/extras';
 import { TAB_BAR_HEIGHT } from '../AppShell';
 
 /**
@@ -16,6 +17,8 @@ export const CartScreen: React.FC<{
   /** Dish photo by dish name. A dish without one keeps an empty tile. */
   photos: Map<string, string | undefined>;
   soldOut: Set<string>;
+  /** Dishes that offer extras today: only these get a Customise button. */
+  customisable: Set<string>;
   /** An order is being sent or waits on a retry: the cart it was built from is not edited here. */
   locked: boolean;
   /** The installed app has a tab bar the summary must clear. */
@@ -23,11 +26,13 @@ export const CartScreen: React.FC<{
   /** Notices that arrive with the cart, e.g. what Order again could not put back. */
   notice?: React.ReactNode;
   onAdd: (line: CartLine) => void;
-  onRemoveOne: (name: string) => void;
-  onRemoveLine: (name: string) => void;
+  /** The line's KEY, not the dish name: the same dish with different extras is a separate line. */
+  onRemoveOne: (key: string) => void;
+  onRemoveLine: (key: string) => void;
+  onCustomise: (line: CartLine) => void;
   onCheckout: () => void;
   onBack: () => void;
-}> = ({ lines, count, total, photos, soldOut, locked, appShell, notice, onAdd, onRemoveOne, onRemoveLine, onCheckout, onBack }) => {
+}> = ({ lines, count, total, photos, soldOut, customisable, locked, appShell, notice, onAdd, onRemoveOne, onRemoveLine, onCustomise, onCheckout, onBack }) => {
   return (
     <div className="mx-auto max-w-2xl px-4 md:px-8">
       <button type="button" onClick={onBack} className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink/65 hover:text-ink">
@@ -40,18 +45,23 @@ export const CartScreen: React.FC<{
         {lines.map((line) => {
           const gone = soldOut.has(line.name);
           return (
-            <li key={line.name} className="flex gap-3 py-4">
+            <li key={line.key} className="flex gap-3 py-4">
               <MenuThumb src={photos.get(line.name)} alt="" reserve />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="font-display font-bold leading-snug text-ink">{line.name}</h2>
-                  <span className="whitespace-nowrap font-display font-bold text-ink">{formatCartMoney(line.qty * line.price)}</span>
+                  <span className="whitespace-nowrap font-display font-bold text-ink">{formatCartMoney(line.qty * unitPrice(line))}</span>
                 </div>
-                {line.qty > 1 && <p className="text-sm font-medium text-ink/65">{formatCartMoney(line.price)} each</p>}
+                {line.extras.length > 0 && (
+                  <ul aria-label={`Extras on ${line.name}`} className="mt-0.5 text-sm font-medium text-ink/75">
+                    {line.extras.map((extra) => <li key={extra.name}>+ {extra.name} <span className="text-ink/60">{formatCartMoney(extra.price)}</span></li>)}
+                  </ul>
+                )}
+                {line.qty > 1 && <p className="text-sm font-medium text-ink/65">{formatCartMoney(unitPrice(line))} each</p>}
                 {gone && <p className="mt-1 text-sm font-semibold text-ink">Sold out. Remove it to continue.</p>}
                 <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 p-1">
-                    <button type="button" aria-label={`Remove one ${line.name}`} disabled={locked} onClick={() => onRemoveOne(line.name)} className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-primary shadow-sm active:scale-90 disabled:opacity-40">
+                    <button type="button" aria-label={`Remove one ${line.name}`} disabled={locked} onClick={() => onRemoveOne(line.key)} className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-primary shadow-sm active:scale-90 disabled:opacity-40">
                       <Minus size={14} aria-hidden="true" />
                     </button>
                     <span className="w-6 text-center font-display text-sm font-bold text-ink" aria-label={`${line.qty} of ${line.name}`}>{line.qty}</span>
@@ -59,8 +69,12 @@ export const CartScreen: React.FC<{
                       <Plus size={14} aria-hidden="true" />
                     </button>
                   </span>
-                  {/* A "Customise" link for this dish goes here in a later task; the row already has room beside the stepper. */}
-                  <button type="button" disabled={locked} onClick={() => onRemoveLine(line.name)} className="ml-auto min-h-11 font-display text-sm font-bold text-ink/70 underline underline-offset-2 hover:text-ink disabled:opacity-40">
+                  {customisable.has(line.name) && (
+                    <button type="button" disabled={locked || gone} onClick={() => onCustomise(line)} className="min-h-11 font-display text-sm font-bold text-primary underline underline-offset-2 hover:text-ink disabled:opacity-40">
+                      Customise<span className="sr-only"> {line.name}</span>
+                    </button>
+                  )}
+                  <button type="button" disabled={locked} onClick={() => onRemoveLine(line.key)} className="ml-auto min-h-11 font-display text-sm font-bold text-ink/70 underline underline-offset-2 hover:text-ink disabled:opacity-40">
                     Remove<span className="sr-only"> {line.name}</span>
                   </button>
                 </div>

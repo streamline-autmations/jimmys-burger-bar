@@ -131,7 +131,7 @@ function slotFor(date: string, preferred: string): string {
 
 /** The earliest serving cut-off among what is in the cart, e.g. breakfast until 12:00. */
 function cartCutoff(): { until: string; category: string } | null {
-  const inCart = new Set(Object.keys(useCartStore.getState().lines));
+  const inCart = new Set(Object.values(useCartStore.getState().lines).map((line) => line.name));
   let earliest: { until: string; category: string } | null = null;
   for (const category of config.menu.categories) {
     if (!category.availableUntil || !category.items.some((item) => inCart.has(item.name))) continue;

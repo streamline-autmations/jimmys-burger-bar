@@ -2,16 +2,17 @@ import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { config } from '../config';
 import { formatCartMoney } from '../lib/cartStore';
+import { describeLine } from '../core/menu/extras';
 
 /**
  * The way out when online payment is not working for a guest. The label and
  * the message both say what this is: a message asking for an order, with no
  * payment behind it. It must never read as a paid or confirmed order.
  */
-export const WhatsAppFallback: React.FC<{ lines: { name: string; qty: number }[]; total?: number; className?: string }> = ({ lines, total, className = '' }) => {
+export const WhatsAppFallback: React.FC<{ lines: { name: string; qty: number; extras?: unknown }[]; total?: number; className?: string }> = ({ lines, total, className = '' }) => {
   const text = [
     'Hi, I would like to order for collection. I have NOT paid online, so this is a request and not a paid order.',
-    ...(lines.length ? ['', ...lines.map((line) => `${line.qty}x ${line.name}`)] : []),
+    ...(lines.length ? ['', ...lines.map((line) => describeLine(line, 'x'))] : []),
     ...(lines.length && total !== undefined ? ['', `Website total: ${formatCartMoney(total)}`] : []),
   ].join('\n');
   return (

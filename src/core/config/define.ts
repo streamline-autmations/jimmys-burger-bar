@@ -1,4 +1,5 @@
 import type { RestaurantConfig } from './types';
+import { extrasProblems } from '../menu/extras';
 
 /**
  * Validates a tenant at module load.
@@ -75,7 +76,9 @@ export function defineRestaurant(config: RestaurantConfig): RestaurantConfig {
       if (item.price !== undefined && typeof item.price !== 'number') {
         problems.push(`menu item "${item.name}" price must be a number, not a string`);
       }
+      problems.push(...extrasProblems(`menu item "${item.name}"`, item.extras));
     }
+    problems.push(...extrasProblems(`menu category "${category.name}"`, category.extras));
   }
 
   if (/[^\d]/.test(config.venue?.whatsapp ?? '')) {

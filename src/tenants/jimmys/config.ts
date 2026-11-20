@@ -36,6 +36,51 @@ const icedDrinks = [
 const heinekenZero = { name: "Heineken Zero", price: 30 };
 const savannah = { name: "Savannah", detail: "Dry, Lite, Neat or Non-Alcoholic", price: 35 };
 
+// Jimmy's printed Extras and Extra Sauces boards, in board order. One list: the
+// two board categories show it, and the Customise sheet offers a subset per
+// category through extrasNamed, so a price can never differ between the two.
+const extraBoard = [
+  { name: "Extra Bacon", price: 25 },
+  { name: "Extra Egg", price: 20 },
+  { name: "Extra Toast", price: 15 },
+  { name: "Extra Cheese Griller", price: 30 },
+  { name: "Extra Hashbrown", price: 30 },
+  { name: "Extra Vienna", price: 25 },
+  { name: "Extra Pork Banger", price: 30 },
+  { name: "Extra Patty", price: 35 },
+  { name: "Extra Russian", price: 35 },
+  { name: "Extra Cheese Slice", price: 15 },
+  { name: "Extra Cheddar", price: 30 },
+  { name: "Extra Mozzarella", price: 30 },
+  { name: "Extra Feta", price: 30 },
+  { name: "Extra Cream Cheese", price: 35 },
+  { name: "Extra Jalapeños", price: 20 },
+  { name: "Extra Avocado", description: "Seasonal", price: 30 },
+  { name: "Extra Mushroom", price: 30 },
+  { name: "Extra Guacamole", price: 30 },
+  { name: "Extra Tomato", price: 10 },
+];
+const sauceBoard = [
+  { name: "Extra Cheese Sauce", price: 30 },
+  { name: "Extra Pepper Sauce", price: 30 },
+  { name: "Extra Mushroom Sauce", price: 30 },
+];
+const extrasNamed = (...names: string[]) =>
+  names.map((name) => {
+    const found = [...extraBoard, ...sauceBoard].find((extra) => extra.name === name);
+    if (!found) throw new Error(`extrasNamed: "${name}" is not on the Extras boards`);
+    return { name: found.name, price: found.price };
+  });
+
+// UNCONFIRMED (tell Christiaan before go-live): Jimmy's has not said which extras
+// go with which dishes. This split follows the board's own wording (breakfast
+// items, burger toppings, sauces with steak and chicken) and is an assumption to
+// confirm with them. Categories not listed here (Wraps, Toasted Sandwiches,
+// Salads, Small Plates, Platters) offer no Customise until Jimmy's says what applies.
+const breakfastExtras = extrasNamed("Extra Bacon", "Extra Egg", "Extra Toast", "Extra Cheese Griller", "Extra Hashbrown", "Extra Vienna", "Extra Pork Banger", "Extra Tomato");
+const burgerExtras = extrasNamed("Extra Patty", "Extra Bacon", "Extra Egg", "Extra Cheese Slice", "Extra Cheddar", "Extra Mozzarella", "Extra Feta", "Extra Cream Cheese", "Extra Jalapeños", "Extra Avocado", "Extra Mushroom", "Extra Guacamole", "Extra Tomato");
+const sauceExtras = extrasNamed("Extra Cheese Sauce", "Extra Pepper Sauce", "Extra Mushroom Sauce");
+
 export const jimmys = defineRestaurant({
   slug: "jimmys",
   // ---- Locale ---------------------------------------------------------------
@@ -236,6 +281,7 @@ export const jimmys = defineRestaurant({
     categories: [
       {
         name: "Breakfast",
+        extras: breakfastExtras,
         note: "Served until 12pm",
         availableUntil: "12:00",
         items: [
@@ -252,6 +298,7 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Burgers",
+        extras: burgerExtras,
         note: "With chips · served all day",
         items: [
           { name: "Beef Burger", description: "180g beef patty, cheese, tomato, lettuce and Jimmy's sauce", price: 100, image: "/images/menu/burgers/beef-burger.webp" },
@@ -292,6 +339,7 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Steaks",
+        extras: sauceExtras,
         note: "With chips and onion rings or salad",
         items: [
           { name: "200g Rump Steak", price: 140, popular: true, image: "/images/menu/steaks/rump-steak.webp" },
@@ -303,6 +351,7 @@ export const jimmys = defineRestaurant({
       },
       {
         name: "Chicken Meals",
+        extras: sauceExtras,
         note: "With chips, salad or vegetables",
         items: [
           { name: "Chicken Wings", description: "3 wings with sweet chilli sauce", price: 100, popular: true },
@@ -350,38 +399,8 @@ export const jimmys = defineRestaurant({
           { name: "Affogato", description: "Ice cream and espresso", price: 50, popular: true, image: "/images/menu/desserts/affogato.webp" },
         ]
       },
-      {
-        name: "Extras",
-        items: [
-          { name: "Extra Bacon", price: 25 },
-          { name: "Extra Egg", price: 20 },
-          { name: "Extra Toast", price: 15 },
-          { name: "Extra Cheese Griller", price: 30 },
-          { name: "Extra Hashbrown", price: 30 },
-          { name: "Extra Vienna", price: 25 },
-          { name: "Extra Pork Banger", price: 30 },
-          { name: "Extra Patty", price: 35 },
-          { name: "Extra Russian", price: 35 },
-          { name: "Extra Cheese Slice", price: 15 },
-          { name: "Extra Cheddar", price: 30 },
-          { name: "Extra Mozzarella", price: 30 },
-          { name: "Extra Feta", price: 30 },
-          { name: "Extra Cream Cheese", price: 35 },
-          { name: "Extra Jalapeños", price: 20 },
-          { name: "Extra Avocado", description: "Seasonal", price: 30 },
-          { name: "Extra Mushroom", price: 30 },
-          { name: "Extra Guacamole", price: 30 },
-          { name: "Extra Tomato", price: 10 },
-        ]
-      },
-      {
-        name: "Extra Sauces",
-        items: [
-          { name: "Extra Cheese Sauce", price: 30 },
-          { name: "Extra Pepper Sauce", price: 30 },
-          { name: "Extra Mushroom Sauce", price: 30 },
-        ]
-      },
+      { name: "Extras", items: extraBoard },
+      { name: "Extra Sauces", items: sauceBoard },
     ],
     // The old featured Smash Burger photo predates the menu's peppers and onions.
     featured: [

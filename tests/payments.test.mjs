@@ -34,6 +34,28 @@ test('pending cannot be accepted; paid once; duplicate ITN emits one kitchen not
  assert.equal((await one(`select count(*)::int n from public.notification_log where reference=$1`,[o.ref])).n,1);
  assert.equal((await state(o)).payment_status,'paid');
 });
+test('extras are paid for: the Payfast amount is the server total, and a changed extra price stops payment',async()=>{
+ seq++; const ref=`JB-PAY-X${seq}`; const email=`pay${seq}@example.com`;
+ let day=new Date(Date.now()+86400000*2); while(day.getUTCDay()===0) day=new Date(+day+86400000);
+ const time=day.toISOString().slice(0,10)+'T12:00:00+02:00';
+ const extras=[{name:'Extra Bacon',price:25},{name:'Extra Egg',price:20}];
+ await db.query(`select * from public.create_order($1,'Test Guest',$2,$3,'collection',null,null,null,$4,145,false,$5::jsonb)`,[ref,email,`082${String(seq).padStart(7,'0')}`,time,JSON.stringify([{name:'Beef Burger',qty:1,unit_price:100,extras}])]);
+ const o={ref,email};
+ assert.equal((await begin(o)).result.amount,'145.00','Payfast is asked for dish + extras');
+ await assert.rejects(paid(o,'7'+seq,'COMPLETE',100),/PAYMENT_AMOUNT_MISMATCH/,'the dish price alone is not enough');
+ await db.exec(`update public.menu_items set extras='[{"name":"Extra Bacon","price":30},{"name":"Extra Egg","price":20}]'::jsonb where name='Beef Burger'`);
+ try { await assert.rejects(begin(o),/PAYMENT_UNAVAILABLE/,'an extra that changed price since the order'); }
+ finally { await db.exec(fs.readFileSync('supabase/seed/menu.jimmys-staging.sql','utf8')); }
+ assert.equal((await begin(o)).result.amount,'145.00');
+ // Staging ships with no order webhook; give it one for this order so the payload can be read.
+ await db.exec(`insert into public.app_settings(key,value) values('webhook.order','https://example.com/order-hook')`);
+ try {
+  assert.equal((await paid(o,'7'+seq,'COMPLETE',145)).result.result,'paid');
+  const queued=await one(`select q.body from public.notification_log l join net.http_request_queue q on q.id=l.request_id where l.reference=$1`,[ref]);
+  assert.deepEqual(queued.body.items[0].extras,extras,'the paid-order webhook carries the extras');
+  assert.equal(Number(queued.body.total),145);
+ } finally { await db.exec(`delete from public.app_settings where key='webhook.order'`); }
+});
 test('repeated create-payment for same reference persists one pending attempt',async()=>{
  const o=await order(); const first=await begin(o); assert.deepEqual(await begin(o),first);
  assert.equal((await one(`select count(*)::int n from public.payment_events e join public.orders o on o.id=e.order_id where o.order_no=$1`,[o.ref])).n,1);

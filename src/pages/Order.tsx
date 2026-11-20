@@ -20,6 +20,8 @@ import { buildOrderWhatsAppUrl, generateOrderNumber } from '../lib/orderMessage'
 import { collectionSlots, contactFieldErrors, latestTime, openDates, restaurantDate, restaurantInstant, slotFieldErrors, tradingHours } from '../lib/tradingHours';
 import { asapSlot, earliestSlot, openNow, type Slot } from '../lib/asap';
 import { CartScreen } from '../components/order/CartScreen';
+import { CustomiseSheet } from '../components/order/CustomiseSheet';
+import { extrasOf, unitPrice } from '../core/menu/extras';
 import { WhenField, type WhenMode } from '../components/order/WhenField';
 import { data as db, SubmissionError, type NewOrder, type OrderingState, type RefusalReason, type SubmissionFailure } from '../core/data';
 import { useStickyHeaderOffset } from '../lib/useStickyHeaderOffset';
@@ -88,6 +90,12 @@ const noticeBox = 'rounded-2xl border-2 border-ink bg-accent/15 p-5 text-ink foc
 
 /** Dish photo by dish name, for the cart rows. */
 const dishPhotos = new Map(ORDER_CATEGORIES.flatMap((category) => category.items.map((item) => [item.name, item.image] as const)));
+
+/** What each dish offers as extras, by dish name. Only dishes in here get a Customise button. */
+const dishExtras = new Map(
+  ORDER_CATEGORIES.flatMap((category) => category.items.map((item) => [item.name, extrasOf(item, category)] as const)).filter(([, offered]) => offered.length > 0),
+);
+const customisableDishes = new Set(dishExtras.keys());
 
 /** Categories with an end time, e.g. breakfast until 12, keyed by item name. */
 const itemCutoffs = new Map(
@@ -203,6 +211,9 @@ export const Order: React.FC = () => {
   const setOrderType = useCartStore((s) => s.setOrderType);
   const setTableNumber = useCartStore((s) => s.setTableNumber);
   const clear = useCartStore((s) => s.clear);
+  const setExtras = useCartStore((s) => s.setExtras);
+  // The Customise sheet: `key` is the cart line being edited, or null when adding a dish from the menu.
+  const [customising, setCustomising] = useState<{ name: string; price: number; key: string | null } | null>(null);
 
   // A cart restored from an earlier session may hold a mode this venue has since switched off.
   const orderType: OrderType = fulfilmentModes.includes(storedOrderType) ? storedOrderType : fulfilmentModes[0];
@@ -435,7 +446,7 @@ export const Order: React.FC = () => {
       attemptWasUncertain.current = false;
       if (appShell && sentDetails.current) {
         rememberOrder(
-          { reference: created.order_no, email: payload.email, placedAt: created.created_at, orderType: payload.orderType, total: sentDetails.current.total + (paidDelivery ? deliveryFee : 0), items: payload.items.map(({ name, qty }) => ({ name, qty })) },
+          { reference: created.order_no, email: payload.email, placedAt: created.created_at, orderType: payload.orderType, total: sentDetails.current.total + (paidDelivery ? deliveryFee : 0), items: payload.items.map(({ name, qty, extras }) => ({ name, qty, ...(extras ? { extras: extras.map((extra) => extra.name) } : {}) })) },
           { name: payload.customerName, phone: payload.phone, email: payload.email },
         );
       }
@@ -521,6 +532,8 @@ export const Order: React.FC = () => {
         name: line.name,
         qty: line.qty,
         unit_price: toStoredAmount(line.price),
+        // Left out when empty, so a plain order is byte-for-byte what it was before extras existed.
+        ...(line.extras.length ? { extras: line.extras.map((extra) => ({ name: extra.name, price: toStoredAmount(extra.price) })) } : {}),
       })),
     }, when);
   };
@@ -750,7 +763,10 @@ export const Order: React.FC = () => {
                     <div className="space-y-4 mt-4">
                       {category.items.map((item) => {
                         const price = menuPrice(item.price);
-                        const qty = lines.find((l) => l.name === item.name)?.qty ?? 0;
+                        // The stepper counts the plain dish; customised versions are lines of their own in the cart.
+                        const qty = lines.find((l) => l.key === item.name)?.qty ?? 0;
+                        const customisedQty = lines.filter((l) => l.name === item.name && l.key !== item.name).reduce((sum, l) => sum + l.qty, 0);
+                        const canCustomise = customisableDishes.has(item.name) && !soldOut.has(item.name) && price > 0;
                         return (
                           <div key={item.name} className="group flex items-center gap-3">
                             <MenuThumb src={item.image} alt={item.name} />
@@ -799,6 +815,16 @@ export const Order: React.FC = () => {
                                     </motion.button>
                                   </div>
                                 )}
+                                {canCustomise && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCustomising({ name: item.name, price, key: null })}
+                                    className="mt-1 flex min-h-11 w-full items-center justify-end font-display text-sm font-bold text-primary underline underline-offset-2 hover:text-ink"
+                                  >
+                                    Customise<span className="sr-only"> {item.name}</span>
+                                  </button>
+                                )}
+                                {customisedQty > 0 && <p className="text-right text-xs font-semibold text-ink/65">{customisedQty} customised in cart</p>}
                               </div>
                             </div>
                           </div>
@@ -860,13 +886,15 @@ export const Order: React.FC = () => {
               total={total}
               photos={dishPhotos}
               soldOut={soldOut}
+              customisable={customisableDishes}
               appShell={appShell}
               notice={skipped.length > 0 ? <SkippedNotice names={skipped} />
                 : reordered ? <p role="status" className="rounded-xl bg-accent/20 px-4 py-3 text-sm font-semibold text-ink ring-1 ring-accent/60">Added from your earlier order, at today's menu prices.</p> : null}
               locked={locked}
-              onAdd={(line) => add(line.name, line.price)}
+              onAdd={(line) => add(line.name, line.price, line.extras)}
               onRemoveOne={remove}
-              onRemoveLine={(name) => setQty(name, 0)}
+              onRemoveLine={(key) => setQty(key, 0)}
+              onCustomise={(line) => setCustomising({ name: line.name, price: line.price, key: line.key })}
               onCheckout={() => setStep('checkout')}
               onBack={() => setStep('browse')}
             />
@@ -1198,6 +1226,25 @@ export const Order: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {customising && (
+          <CustomiseSheet
+            key="customise"
+            dish={{ name: customising.name, price: customising.price }}
+            offered={dishExtras.get(customising.name) ?? []}
+            initial={customising.key ? (lines.find((line) => line.key === customising.key)?.extras ?? []).map((extra) => extra.name) : []}
+            qty={customising.key ? (lines.find((line) => line.key === customising.key)?.qty ?? 1) : 1}
+            mode={customising.key ? 'edit' : 'add'}
+            onClose={() => setCustomising(null)}
+            onConfirm={(extras) => {
+              if (customising.key) setExtras(customising.key, extras);
+              else add(customising.name, customising.price, extras);
+              setCustomising(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -1205,7 +1252,7 @@ export const Order: React.FC = () => {
 /** Order again could not put every dish back: say which, so nothing is silently dropped. */
 const SkippedNotice: React.FC<{ names: string[]; className?: string }> = ({ names, className = '' }) => (
   <div role="status" className={`${noticeBox} ${className}`}>
-    <p className="font-display text-base font-bold">{names.length === 1 ? '1 dish is no longer on the menu' : `${names.length} dishes are no longer on the menu`}</p>
+    <p className="font-display text-base font-bold">{names.length === 1 ? '1 item is no longer on the menu' : `${names.length} items are no longer on the menu`}</p>
     <p className="mt-1 text-sm">Left out of your cart: {names.join(', ')}. Everything else from that order is in your cart at today's menu prices.</p>
   </div>
 );
@@ -1268,11 +1315,14 @@ const CartPanel: React.FC<{
       <>
         <div className="space-y-3 mb-4 max-h-[280px] overflow-y-auto pr-1 pb-1">
           {lines.map((line) => (
-            <div key={line.name} className="flex items-baseline gap-2 text-sm">
-              <span className="font-display font-bold text-ink shrink-0">{line.qty}x</span>
-              <span className="text-ink/80 truncate">{line.name}</span>
-              <div className="flex-1 border-b border-dotted border-ink/15 min-w-[8px] translate-y-[-3px]" />
-              <span className="font-display font-bold text-ink whitespace-nowrap">{formatCartMoney(line.qty * line.price)}</span>
+            <div key={line.key} className="text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="font-display font-bold text-ink shrink-0">{line.qty}x</span>
+                <span className="text-ink/80 truncate">{line.name}</span>
+                <div className="flex-1 border-b border-dotted border-ink/15 min-w-[8px] translate-y-[-3px]" />
+                <span className="font-display font-bold text-ink whitespace-nowrap">{formatCartMoney(line.qty * unitPrice(line))}</span>
+              </div>
+              {line.extras.length > 0 && <p className="pl-7 text-xs font-medium text-ink/65">+ {line.extras.map((extra) => extra.name).join(', ')}</p>}
             </div>
           ))}
         </div>

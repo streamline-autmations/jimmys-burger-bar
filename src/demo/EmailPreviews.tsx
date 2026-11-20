@@ -20,6 +20,7 @@ import { toMinor } from '../core/domain/money';
 import { restaurantDate, restaurantInstant } from '../core/tenant';
 import { config, REVIEW_REQUEST_TIME } from './config';
 import { readRecords, subscribeRecords } from './store';
+import { describeLine } from '../core/menu/extras';
 
 interface Preview {
   id: string;
@@ -70,7 +71,7 @@ function orderPreviews(order: OrderWithItems, side: 'guest' | 'staff'): Preview[
     to: 'The restaurant inbox',
     lines: [
       `${order.customer_name}, ${order.order_no}`,
-      order.order_items.map((item) => `${item.qty}x ${item.name}`).join(', '),
+      order.order_items.map((item) => describeLine(item, 'x')).join(', '),
       `${summary}, for ${when(order.requested_time)}`,
     ],
   }];

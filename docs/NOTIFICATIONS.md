@@ -36,10 +36,10 @@ the same reference is not sent again.
   "delivery_address": null,
   "delivery_notes": null,
   "requested_time": "2026-09-15T16:00:00+00:00",
-  "total": 225,
+  "total": 275,
   "items": [
-    { "name": "Smash Burger", "qty": 2, "unit_price": 100 },
-    { "name": "Coke", "qty": 1, "unit_price": 25 }
+    { "name": "Smash Burger", "qty": 2, "unit_price": 100, "extras": [{ "name": "Extra Bacon", "price": 25 }] },
+    { "name": "Coke", "qty": 1, "unit_price": 25, "extras": [] }
   ]
 }
 ```
@@ -47,6 +47,13 @@ the same reference is not sent again.
 - `order_type` is `collection`, `delivery` or `table`.
 - `requested_time` is UTC. Format it in the restaurant's timezone for the email.
 - `total` and `unit_price` are the **menu** prices, as charged, not what the browser sent.
+- `unit_price` is the **dish** price only. Each entry in `extras` is an add-on the guest chose
+  ("Extra Bacon"), at the price the database charges for it, per unit. A line costs
+  `qty * (unit_price + sum of extras.price)`, and `total` is the sum of the lines (plus the
+  delivery fee on a paid delivery). `extras` is always present, an empty list when there are none.
+  Added 2026-11-20 (migration `20261120120000_order_extras`); a template that predates it still
+  shows the right `total` but not the extras until it lists them.
+- The same shape is sent when a paid order's payment is confirmed (pay-first restaurants).
 
 ## Booking: `webhook.booking`
 

@@ -1,5 +1,6 @@
 import type { Database } from '../../lib/database.types';
 import type { OrderReportRow } from './report';
+import type { StoredExtra } from '../menu/extras';
 
 export type Booking = Database['public']['Tables']['bookings']['Row'];
 export type Customer = Database['public']['Tables']['customers']['Row'];
@@ -40,7 +41,8 @@ export interface NewOrder {
   /** Decimal amount, as the orders table stores it - not minor units. */
   total: number;
   marketingConsent: boolean;
-  items: { name: string; qty: number; unit_price: number }[];
+  /** `unit_price` is the dish; each extra carries the price the guest saw, which the server checks against its own list. */
+  items: { name: string; qty: number; unit_price: number; extras?: StoredExtra[] }[];
 }
 
 export interface NewBooking {
@@ -73,7 +75,7 @@ export type LookupResult =
       total: number;
       created_at: string;
       updated_at: string;
-      items: { name: string; qty: number }[];
+      items: { name: string; qty: number; extras?: StoredExtra[] }[];
     }
   | {
       kind: 'booking';

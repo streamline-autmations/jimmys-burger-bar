@@ -14,6 +14,7 @@
 import type { Booking, Customer, OrderWithItems } from '../core/data';
 import { copy, restaurantDate, restaurantInstant } from '../core/tenant';
 import { orderableCategories, orderableItems } from '../core/menu/orderable';
+import { storedLineTotal, type StoredExtra } from '../core/menu/extras';
 import { addDays, latestTime, tradingHours } from '../lib/tradingHours';
 import { config } from './config';
 
@@ -58,16 +59,23 @@ const idFor = (prefix: 'c' | 'o' | 'b' | 'i', n: number): string =>
   `d${{ c: '1', o: '2', b: '3', i: '4' }[prefix]}000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
 // Real menu prices, looked up rather than typed, so a price change cannot leave the demo charging the old one.
-const prices = new Map(
+const orderable = new Map(
   orderableItems(orderableCategories(config.menu.categories, {
     label: copy.order.softDrinksLabel,
     note: copy.order.softDrinksNote,
     items: config.ordering.nonAlcoholicDrinks,
-  })).map((item) => [item.name, item.price]),
+  })).map((item) => [item.name, item]),
 );
-const price = (name: string): number => {
-  const found = prices.get(name);
+const dish = (name: string) => {
+  const found = orderable.get(name);
   if (found === undefined) throw new Error(`demo seed: "${name}" is not on the orderable menu`);
+  return found;
+};
+const price = (name: string): number => dish(name).price;
+/** An extra the dish really offers, at its menu price. */
+const offeredExtra = (name: string, extraName: string): StoredExtra => {
+  const found = dish(name).extras.find((candidate) => candidate.name === extraName);
+  if (!found) throw new Error(`demo seed: "${name}" does not offer "${extraName}"`);
   return found;
 };
 
@@ -96,7 +104,7 @@ function generator(seedText: string) {
   return { next, int, pick };
 }
 
-type Line = [name: string, qty: number];
+type Line = [name: string, qty: number, extras?: string[]];
 
 const toMinutes = (time: string) => { const [h, m] = time.split(':').map(Number); return h * 60 + m; };
 const toTime = (minutes: number) => `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
@@ -115,7 +123,7 @@ export function createSeed(now: Date = new Date()): DemoRecords {
   ): OrderWithItems => {
     const id = idFor('o', n);
     const who = guest(key);
-    const items = lines.map(([name, qty]) => ({ id: idFor('i', ++itemCounter), order_id: id, name, qty, unit_price: price(name) }));
+    const items = lines.map(([name, qty, extraNames = []]) => ({ id: idFor('i', ++itemCounter), order_id: id, name, qty, unit_price: price(name), extras: extraNames.map((extraName) => offeredExtra(name, extraName)) }));
     return {
       id,
       payment_status: 'not_required', paid_at: null, payment_expires_at: null, provider_payment_id: null, payment_review_required: false, refund_amount: 0, eta: null, delivery_fee: 0, delivery_suburb: null,
@@ -129,7 +137,7 @@ export function createSeed(now: Date = new Date()): DemoRecords {
       delivery_address: null,
       delivery_notes: null,
       requested_time: requestedAt,
-      total: items.reduce((sum, item) => sum + item.qty * item.unit_price, 0),
+      total: items.reduce((sum, item) => sum + storedLineTotal(item), 0),
       status,
       marketing_consent: false,
       created_at: createdAt,
@@ -142,7 +150,7 @@ export function createSeed(now: Date = new Date()): DemoRecords {
   // The live queue: one order at each stage, timed around the moment the demo opens.
   // JB-DEMO-0003 is Lerato's, which the presenter's "Track an order" jump opens.
   const orders: OrderWithItems[] = [
-    order(1, 'new', 'pieter', [['Smash Burger', 2], ['Loaded Fries', 1]], minutes(25), minutes(-3)),
+    order(1, 'new', 'pieter', [['Smash Burger', 2, ['Extra Bacon', 'Extra Cheese Slice']], ['Loaded Fries', 1]], minutes(25), minutes(-3)),
     order(2, 'new', 'sam', [['Chicken Burger', 1], ['Coke', 1]], minutes(40), minutes(-1)),
     order(3, 'accepted', 'lerato', [['Gourmet Beef Burger', 1], ['Plate of Chips', 1], ['Cappy', 1]], minutes(15), minutes(-12)),
     order(4, 'preparing', 'johan', [['Warrior Platter', 1]], minutes(10), minutes(-25), { order_type: 'table', table_number: '7' }),

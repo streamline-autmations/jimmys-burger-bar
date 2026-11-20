@@ -4,6 +4,7 @@ import { ChevronRight, RotateCcw, RotateCw, ShieldCheck } from 'lucide-react';
 import { config } from '../config';
 import { formatMoney, orderCtaLabel } from '../core/tenant';
 import { toMinor } from '../core/domain/money';
+import { describeLine } from '../core/menu/extras';
 import { data as db, type LookupResult } from '../core/data';
 import { forgetEverything, orderAgain, useSavedDetails, useSavedOrders, type SavedOrder } from '../lib/orderHistory';
 import { useAppShell } from '../lib/appShell';
@@ -80,7 +81,7 @@ const OrderCard: React.FC<{ order: SavedOrder; live: Live; onAgain: () => void }
         {live.phase === 'unknown' && <span className="text-sm text-ink/60">Status not available right now.</span>}
       </div>
 
-      <p className="mt-3 text-sm leading-relaxed text-ink/75">{items.map((item) => `${item.qty}× ${item.name}`).join(', ')}</p>
+      <p className="mt-3 text-sm leading-relaxed text-ink/75">{items.map((item) => describeLine(item)).join(', ')}</p>
 
       <div className="mt-4 flex flex-wrap gap-2.5 border-t border-ink/10 pt-4">
         <button type="button" onClick={onAgain} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 font-display text-sm font-bold text-ink">

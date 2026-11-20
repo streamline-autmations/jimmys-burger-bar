@@ -1,39 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { config } from '../../config';
 import { copy } from '../../core/tenant';
 import { STAMP_EASE } from '../../lib/motion';
 
-/**
- * The app's menu screen opens on one quiet picture: the same real chicken-burger
- * clip the website's Food & Drinks header uses, muted and looping, with the
- * brand line written once on top of it. It is the only place the tagline appears
- * in the app. Promo posters (config.pages.menu.promos) are pinned across its
- * bottom edge like the posters on Jimmy's wall; tapping one opens it full size.
- * It all scrolls away with the page, so the menu is never pushed far.
- *
- * Poster first (it is the LCP and the reduced-motion still). The video is
- * mounted only after the page has settled, never with reduced motion or Data
- * Saver, and carries no audio track.
- */
 const TILTS = [-1.4, 1.2, -0.8, 1.4];
 
 export const MenuIntro: React.FC<{ heading: string; caption?: string }> = ({ heading, caption }) => {
-  const food = config.pages.menu.food;
   const promos = config.pages.menu.promos ?? [];
-  const reduceMotion = useReducedMotion();
-  const [mountVideo, setMountVideo] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-    if (reduceMotion || saveData || !food.video) return;
-    const id = window.setTimeout(() => setMountVideo(true), 600);
-    return () => window.clearTimeout(id);
-  }, [reduceMotion, food.video]);
 
   useEffect(() => {
     const el = dialog.current;
@@ -46,46 +23,19 @@ export const MenuIntro: React.FC<{ heading: string; caption?: string }> = ({ hea
     <div className="-mt-3 md:mt-0">
       <section
         aria-label={heading}
-        className="relative h-[clamp(176px,25svh,224px)] overflow-hidden bg-ink md:mx-8 md:mt-4 md:h-60 md:rounded-3xl lg:mx-auto lg:max-w-7xl"
+        className={`bg-ink px-4 pt-5 md:mx-8 md:mt-4 md:rounded-3xl md:px-8 md:pt-7 lg:mx-auto lg:max-w-7xl ${promos.length ? 'pb-9 md:pb-11' : 'pb-5 md:pb-7'}`}
       >
-        <img
-          src={food.image.src}
-          alt=""
-          width={1280}
-          height={720}
-          fetchPriority="high"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        {mountVideo && food.video && (
-          <video
-            src={food.video}
-            aria-hidden="true"
-            muted
-            loop
-            playsInline
-            autoPlay
-            preload="auto"
-            onPlaying={() => setPlaying(true)}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${playing ? 'opacity-100' : 'opacity-0'}`}
-          />
-        )}
-        {/* Navy scrim keeps the words readable over any frame of the loop. */}
-        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-ink/85 via-ink/35 to-ink/10" />
-
-        <div className="relative px-4 pt-4 md:px-8 md:pt-6">
-          <h1 className="font-display text-[2rem] font-extrabold leading-none text-paper md:text-5xl">{heading}</h1>
-          <p className="mt-1 font-script text-[1.3rem] leading-tight text-accent [text-shadow:0_1px_12px_rgb(var(--color-ink)/0.7)] md:text-3xl">
-            {copy.brand.tagline.toLowerCase()}
-          </p>
-          {caption && <p className="mt-1.5 max-w-[26ch] text-[13px] font-semibold leading-snug text-paper/90 md:max-w-md md:text-base">{caption}</p>}
-        </div>
+        <h1 className="font-display text-[2rem] font-extrabold leading-none text-paper md:text-5xl">{heading}</h1>
+        <p className="mt-1 font-script text-[1.3rem] leading-tight text-accent md:text-3xl">
+          {copy.brand.tagline.toLowerCase()}
+        </p>
+        {caption && <p className="mt-1.5 max-w-[34ch] text-[13px] font-semibold leading-snug text-paper/90 md:max-w-md md:text-base">{caption}</p>}
       </section>
 
       {promos.length > 0 && (
         <ul
           aria-label="Specials"
-          className="relative -mt-10 flex snap-x snap-mandatory scroll-pl-4 gap-3 overflow-x-auto px-4 pb-3 pt-3 scrollbar-hide md:mx-auto md:-mt-12 md:max-w-7xl md:scroll-pl-8 md:px-8"
+          className="relative -mt-7 flex snap-x snap-mandatory scroll-pl-4 gap-3 overflow-x-auto px-4 pb-3 pt-3 scrollbar-hide md:mx-auto md:-mt-8 md:max-w-7xl md:scroll-pl-8 md:px-8"
         >
           {promos.map((promo, index) => (
             <li key={promo.src} className="shrink-0 snap-start">

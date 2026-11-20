@@ -187,6 +187,8 @@ export interface PhotoRef {
   /** Path under the tenant's public folder, e.g. "/images/team.jpg". */
   src: string;
   alt: string;
+  /** Focal point for cropped placements, using CSS object-position syntax. */
+  objectPosition?: string;
 }
 
 /**
@@ -194,6 +196,8 @@ export interface PhotoRef {
  * copy stays in the components; only what belongs to one restaurant is here.
  */
 export interface PagesConfig {
+  /** Optional photo for the browser ordering header. */
+  order?: { image: PhotoRef };
   visit: {
     script: string;
     heading: string;

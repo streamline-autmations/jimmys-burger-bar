@@ -9,6 +9,12 @@ import { ZAR } from "../../core/domain/money";
 import { defineRestaurant } from "../../core/config/define";
 import { jimmysSections } from "./sections";
 
+const smashBurgerPhoto = {
+  src: "/images/gallery/smash-burger.jpg",
+  alt: "Jimmy's Smash Burger with chips",
+  objectPosition: "50% 27%",
+};
+
 const coldDrinks = [
   { name: "Coke", price: 22 },
   { name: "Sprite", price: 22 },
@@ -613,6 +619,7 @@ export const jimmys = defineRestaurant({
 
   // Words and photographs on the fixed pages that belong to Jimmy's alone.
   pages: {
+    order: { image: smashBurgerPhoto },
     visit: {
       script: "your night out, sorted",
       heading: "Meet you at Jimmy’s.",
@@ -634,10 +641,7 @@ export const jimmys = defineRestaurant({
       food: {
         description: "Breakfast, 180g burgers, plates for the table and the full kitchen board.",
         caption: "Fresh off the grill.",
-        // Real chicken burger, a muted ping-pong loop of Christiaan's iPhone clip
-        // (2026-11-19). The poster is its first frame and the reduced-motion still.
-        image: { src: "/images/chicken-burger-poster.jpg", alt: "Jimmy's chicken burger with chips" },
-        video: "/videos/chicken-burger-loop.mp4",
+        image: smashBurgerPhoto,
       },
       drinks: {
         description: "Cold drinks, local beers, ciders, cocktails and coffee.",

@@ -51,6 +51,7 @@ export const FoodDrinks: React.FC = () => {
   const stickyBelowHeader = useStickyHeaderOffset();
   const categoryRailRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
+  const boardImage = boardMeta[board].image;
 
   const categories = useMemo(
     () => (board === 'food' ? foodCategories : drinksCategories),
@@ -191,8 +192,9 @@ export const FoodDrinks: React.FC = () => {
                   />
                 ) : board === 'food' || !boardMeta.drinks.video ? (
                   <img
-                    src={board === 'food' ? boardMeta.food.image.src : boardMeta.drinks.image?.src}
-                    alt={board === 'food' ? boardMeta.food.image.alt : boardMeta.drinks.image?.alt ?? ''}
+                    src={boardImage?.src}
+                    alt={boardImage?.alt ?? ''}
+                    style={{ objectPosition: boardImage?.objectPosition }}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (

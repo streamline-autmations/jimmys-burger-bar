@@ -627,7 +627,9 @@ export const jimmys = defineRestaurant({
       food: {
         description: "Breakfast, 180g burgers, plates for the table and the full kitchen board.",
         caption: "Fresh off the grill.",
-        image: smashBurgerPhoto,
+        // AI-generated from the real Smash Burger photo (2026-11-21), logged in CLAUDE.md.
+        image: { src: "/images/menu/food-header/food-header-desktop.webp", alt: "Jimmy's Smash Burger with chips on the bar" },
+        imageMobile: "/images/menu/food-header/food-header-mobile.webp",
       },
       drinks: {
         description: "Cold drinks, local beers, ciders, cocktails and coffee.",

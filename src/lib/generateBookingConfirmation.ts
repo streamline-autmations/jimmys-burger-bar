@@ -1,22 +1,14 @@
-import { jsPDF } from 'jspdf';
 import { config } from '../config';
 import { copy } from '../core/tenant';
-import { docInk as NAVY, docAccent as GOLD, docWordmark } from '../core/documents/brand';
+import { GuestPdf, M, CW, NAVY, MUTED } from '../core/documents/guestPdf';
 
-
-
-async function loadLogoDataUrl(): Promise<string> {
-  const response = await fetch(config.assets.logo);
-  if (!response.ok) throw new Error(`Unable to load logo (${response.status})`);
-
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error(`Unable to read logo`));
-    reader.readAsDataURL(blob);
-  });
-}
+/** "2026-11-21" -> "Sat, 21 Nov 2026"; anything else is shown as submitted. */
+const formatDate = (value: string): string => {
+  const date = new Date(`${value}T12:00:00Z`);
+  // Only a real calendar date is reformatted (2026-02-30 would otherwise roll into March).
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return value;
+  return new Intl.DateTimeFormat('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
+};
 
 export async function generateBookingConfirmation(booking: {
   reference: string;
@@ -29,72 +21,50 @@ export async function generateBookingConfirmation(booking: {
   seating: string;
   notes: string;
 }): Promise<void> {
-  const logoDataUrl = await loadLogoDataUrl();
-  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
-  const width = doc.internal.pageSize.getWidth();
-  const margin = 48;
+  const pdf = await GuestPdf.create({ reference: booking.reference, refLabel: 'Booking', headline: 'Table request received' });
+  const { doc } = pdf;
 
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, width, 100, 'F');
-  doc.addImage(logoDataUrl, 'PNG', margin, 17, 69, 36);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.text(docWordmark, 134, 42);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('TABLE BOOKING REQUEST', 134, 64);
-  doc.setFillColor(...GOLD);
-  doc.rect(0, 100, width, 3, 'F');
+  pdf.status('PENDING', copy.booking.pendingNote);
 
-  doc.setTextColor(...NAVY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('BOOKING REFERENCE', margin, 130);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text(`#${booking.reference}`, margin, 153);
+  // Date, time and party size are what the host checks first, so they get the big type.
+  const facts: [string, string, number][] = [
+    ['DATE', formatDate(booking.date), 0.5],
+    ['TIME', booking.time, 0.25],
+    ['GUESTS', booking.guests, 0.25],
+  ];
+  pdf.rule(pdf.y, 1.5);
+  let x = M;
+  facts.forEach(([label, value, share], i) => {
+    const width = CW * share;
+    if (i > 0) { doc.setDrawColor(...NAVY); doc.setLineWidth(0.75); doc.line(x - 12, pdf.y + 10, x - 12, pdf.y + 66); }
+    pdf.font(9, 'bold', MUTED);
+    doc.text(label, x, pdf.y + 24);
+    pdf.font(pdf.fitSize(value, width - 24, 26), 'bold');
+    doc.text(value, x, pdf.y + 54);
+    x += width;
+  });
+  pdf.y += 76;
+  pdf.rule(pdf.y, 1.5);
+  pdf.font(9, 'normal', MUTED);
+  doc.text(`Times are ${config.venue.timeLabel}.`, M, pdf.y + 16);
+  pdf.y += 30;
 
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(1.5);
-  doc.line(margin, 170, margin + 64, 170);
-
-  doc.setFontSize(13);
-  doc.text(
-    `${booking.guests} guest${booking.guests === '1' ? '' : 's'} · ${booking.date} · ${booking.time}`,
-    margin,
-    203,
-  );
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.text(`Preferred seating: ${booking.seating}`, margin, 230);
-
-  doc.setFont('helvetica', 'bold');
-  doc.text(booking.name, margin, 270);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(74, 85, 105);
-  doc.text(`${booking.email} · ${booking.phone}`, margin, 290);
+  pdf.row('Seating preference', booking.seating);
+  pdf.row('Name', booking.name);
+  pdf.row('Email', booking.email);
+  pdf.row('Phone', booking.phone);
 
   if (booking.notes) {
-    doc.setTextColor(...NAVY);
-    doc.setFont('helvetica', 'bold');
-    doc.text('NOTES', margin, 330);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(74, 85, 105);
-    doc.text(booking.notes, margin, 350, { maxWidth: width - margin * 2 });
+    pdf.y += 26;
+    pdf.heading('Notes');
+    pdf.font(11, 'normal');
+    pdf.wrap(booking.notes, CW).forEach((line) => {
+      pdf.ensure(16);
+      pdf.font(11, 'normal');
+      doc.text(line, M, pdf.y + 12);
+      pdf.y += 16;
+    });
   }
 
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(1);
-  doc.line(margin, 706, width - margin, 706);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(92, 101, 119);
-  doc.text(config.venue.address, margin, 730);
-  doc.text(config.venue.phone, width - margin, 730, { align: 'right' });
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...NAVY);
-  doc.text(`Pending: ${copy.booking.pendingNote}`, margin, 757);
-
-  doc.save(`${copy.documents.filePrefix}-booking-${booking.reference}.pdf`);
+  pdf.save(`${copy.documents.filePrefix}-booking-${booking.reference}.pdf`);
 }

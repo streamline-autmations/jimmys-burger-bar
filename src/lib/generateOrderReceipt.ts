@@ -1,23 +1,9 @@
-import { jsPDF } from 'jspdf';
 import { config } from '../config';
 import { copy } from '../core/tenant';
-import { docInk as NAVY, docAccent as GOLD, docWordmark } from '../core/documents/brand';
+import { GuestPdf, M, PAGE_W, GOLD, MUTED, MAX_BLOCK } from '../core/documents/guestPdf';
 import { formatCartMoney, type CartLine, type OrderType } from './cartStore';
 
-
-
-async function loadLogoDataUrl(): Promise<string> {
-  const response = await fetch(config.assets.logo);
-  if (!response.ok) throw new Error(`Unable to load logo (${response.status})`);
-
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error(`Unable to read logo`));
-    reader.readAsDataURL(blob);
-  });
-}
+const METHOD: Record<OrderType, string> = { collection: 'Collection', delivery: 'Delivery', table: 'Table service' };
 
 export async function generateOrderReceipt(order: {
   orderNo: string;
@@ -32,115 +18,85 @@ export async function generateOrderReceipt(order: {
   requestedTime?: string;
   placedAt?: string;
 }): Promise<void> {
-  const logoDataUrl = await loadLogoDataUrl();
-  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
-  const width = doc.internal.pageSize.getWidth();
-  const margin = 48;
+  const pdf = await GuestPdf.create({ reference: order.orderNo, refLabel: 'Order', headline: 'Order request received' });
+  const { doc } = pdf;
 
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, width, 100, 'F');
-  doc.addImage(logoDataUrl, 'PNG', margin, 17, 69, 36);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.text(docWordmark, 134, 42);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('ORDER CONFIRMATION', 134, 64);
-  doc.setFillColor(...GOLD);
-  doc.rect(0, 100, width, 3, 'F');
+  pdf.status('REQUEST', 'Request received. Subject to acceptance. Not proof of payment.');
 
-  doc.setTextColor(...NAVY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('ORDER REFERENCE', margin, 130);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.text(`#${order.orderNo}`, margin, 153);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(92, 101, 119);
-  doc.text(`Requested ${order.requestedTime ?? 'Time to be confirmed'} (SAST)`, margin, 173);
+  pdf.row('Order type', METHOD[order.orderType]);
+  if (order.orderType === 'collection') pdf.row('Collect from', config.venue.address);
+  if (order.orderType === 'delivery') pdf.row('Deliver to', order.deliveryAddress);
+  if (order.orderType === 'table') pdf.row('Table', order.tableNumber);
+  if (order.requestedTime) pdf.row('Requested time', `${order.requestedTime} (${config.venue.timeLabel})`);
+  pdf.row('Name', order.name);
+  pdf.row('Email', order.email);
+  pdf.row('Phone', order.phone);
 
-  const fulfilment = order.orderType === 'delivery'
-    ? `Delivery: ${order.deliveryAddress}`
-    : order.orderType === 'table'
-      ? `Table service: Table ${order.tableNumber}`
-      : `Collection from ${config.venue.address}`;
+  pdf.y += 26;
+  // Title, column headings and the first dish move to the next page together.
+  pdf.ensure(24 + 17 + 50);
+  pdf.heading('Order summary');
 
-  doc.setTextColor(...NAVY);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(order.name, margin, 211);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(74, 85, 105);
-  doc.text(`${order.email} · ${order.phone}`, margin, 231);
-  doc.text(fulfilment, margin, 251, { maxWidth: width - margin * 2 });
+  const qtyX = M;
+  const itemX = M + 40;
+  const amountX = PAGE_W - M;
+  const itemW = amountX - 84 - itemX;
+  const columns = () => {
+    pdf.font(9, 'bold', MUTED);
+    doc.text('QTY', qtyX, pdf.y + 10);
+    doc.text('ITEM', itemX, pdf.y + 10);
+    doc.text('AMOUNT', amountX, pdf.y + 10, { align: 'right' });
+    pdf.y += 17;
+    pdf.rule(pdf.y, 1.5);
+  };
+  pdf.ensure(17 + 40);
+  columns();
+  pdf.onPageBreak = columns;
 
-  let y = 294;
-  doc.setTextColor(...NAVY);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text('YOUR ORDER', margin, y);
-
-  y += 18;
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(1.5);
-  doc.line(margin, y, width - margin, y);
-
-  y += 25;
-  doc.setFillColor(244, 246, 249);
-  doc.rect(margin, y - 17, width - margin * 2, 26, 'F');
-  doc.setFontSize(9);
-  doc.text('ITEM', margin + 10, y);
-  doc.text('AMOUNT', width - margin - 10, y, { align: 'right' });
-
-  y += 31;
   order.lines.forEach((line, index) => {
     // The dish keeps its own amount and each extra gets a row of its own, so the lines add up to the total on the page.
-    const rowHeight = 28 + line.extras.length * 16;
-    if (y + rowHeight - 28 > 650) { doc.addPage(); y = 60; }
-    if (index % 2 === 0) {
-      doc.setFillColor(255, 252, 246);
-      doc.rect(margin, y - 18, width - margin * 2, rowHeight, 'F');
-    }
+    pdf.font(11, 'bold');
+    const nameLines = pdf.wrap(line.name, itemW);
+    pdf.font(10, 'normal');
+    const extraLines = line.extras.map((extra) => pdf.wrap(`+ ${extra.name}`, itemW - 12));
+    const height = 20 + nameLines.length * 15 + extraLines.reduce((sum, lines) => sum + lines.length * 14, 0);
+    // Kept together when it fits; the last line travels with the total so the total never sits alone on a page.
+    const block = index === order.lines.length - 1 ? height + 54 : height;
+    pdf.ensure(block <= MAX_BLOCK ? block : 40);
+    pdf.y += 10;
 
-    doc.setTextColor(...NAVY);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`${line.qty}x  ${line.name}`, margin + 10, y);
-    doc.text(formatCartMoney(line.qty * line.price), width - margin - 10, y, { align: 'right' });
-    doc.setFontSize(9.5);
-    doc.setTextColor(74, 85, 105);
-    line.extras.forEach((extra, extraIndex) => {
-      const extraY = y + 17 + extraIndex * 16;
-      doc.text(`+ ${extra.name}`, margin + 34, extraY);
-      doc.text(formatCartMoney(line.qty * extra.price), width - margin - 10, extraY, { align: 'right' });
+    nameLines.forEach((text, i) => {
+      pdf.ensure(15);
+      pdf.font(11, 'bold');
+      if (i === 0) {
+        doc.text(`${line.qty}×`, qtyX, pdf.y + 12);
+        doc.text(formatCartMoney(line.qty * line.price), amountX, pdf.y + 12, { align: 'right' });
+      }
+      doc.text(text, itemX, pdf.y + 12);
+      pdf.y += 15;
     });
-    y += rowHeight;
+    line.extras.forEach((extra, i) => {
+      extraLines[i].forEach((text, j) => {
+        pdf.ensure(14);
+        pdf.font(10, 'normal', MUTED);
+        if (j === 0) doc.text(formatCartMoney(line.qty * extra.price), amountX, pdf.y + 11, { align: 'right' });
+        doc.text(text, itemX + 12, pdf.y + 11);
+        pdf.y += 14;
+      });
+    });
+
+    pdf.y += 10;
+    pdf.rule(pdf.y, 0.75);
   });
+  pdf.onPageBreak = null;
 
-  if (y > 620) { doc.addPage(); y = 60; }
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(1.5);
-  doc.line(margin, y, width - margin, y);
-  y += 31;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('TOTAL', margin, y);
-  doc.text(formatCartMoney(order.total), width - margin, y, { align: 'right' });
+  pdf.ensure(54);
+  pdf.y += 8;
+  pdf.rule(pdf.y, 2.5, GOLD);
+  pdf.font(18, 'bold');
+  doc.text('Total', M, pdf.y + 28);
+  doc.text(formatCartMoney(order.total), amountX, pdf.y + 28, { align: 'right' });
+  pdf.y += 40;
 
-  doc.setDrawColor(220, 224, 231);
-  doc.setLineWidth(0.75);
-  doc.line(margin, 706, width - margin, 706);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(92, 101, 119);
-  doc.text(config.venue.address, margin, 730);
-  doc.text(config.venue.phone, width - margin, 730, { align: 'right' });
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...NAVY);
-  doc.text("Request received. Subject to acceptance. Not proof of payment.", margin, 757);
-
-  doc.save(`${copy.documents.filePrefix}-order-${order.orderNo}.pdf`);
+  pdf.save(`${copy.documents.filePrefix}-order-${order.orderNo}.pdf`);
 }

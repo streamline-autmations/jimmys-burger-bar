@@ -210,8 +210,8 @@ export interface PagesConfig {
   };
   menu: {
     script: string;
-    /** `video` loops over `image`; reduced-motion visitors get `image` only. */
-    food: { description: string; caption: string; image: PhotoRef; video?: string };
+    /** `video` loops over `image`; reduced-motion visitors get `image` only. `imageMobile` is a 4:3 crop served below md. */
+    food: { description: string; caption: string; image: PhotoRef; imageMobile?: string; video?: string };
     drinks: { description: string; caption: string; video?: string; image?: PhotoRef };
     /** Promo posters shown as a strip on the installed app's menu. `src` is the small card, `full` opens on tap. Omit for none. */
     promos?: { src: string; full: string; alt: string }[];

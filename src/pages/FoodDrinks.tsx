@@ -191,12 +191,17 @@ export const FoodDrinks: React.FC = () => {
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : board === 'food' || !boardMeta.drinks.video ? (
-                  <img
-                    src={boardImage?.src}
-                    alt={boardImage?.alt ?? ''}
-                    style={{ objectPosition: boardImage?.objectPosition }}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
+                  <picture>
+                    {board === 'food' && boardMeta.food.imageMobile && (
+                      <source media="(max-width: 767px)" srcSet={boardMeta.food.imageMobile} />
+                    )}
+                    <img
+                      src={boardImage?.src}
+                      alt={boardImage?.alt ?? ''}
+                      style={{ objectPosition: boardImage?.objectPosition }}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  </picture>
                 ) : (
                   <video
                     src={boardMeta.drinks.video}

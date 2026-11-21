@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8">
+  <title>Jimmy's demo run card</title>
+  <style>
+    :root { --navy: #172544; --gold: #F2A93B; --rule: #c9c9c9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #111; font: 10.5pt/1.35 Arial, sans-serif; }
+    h1, h2, p, ol, ul { margin: 0; }
+    h1 { color: var(--navy); font: bold 22pt/1.1 Georgia, serif; }
+    .sub { margin-top: 1mm; color: #444; font-size: 10pt; }
+    .bar { border-top: 1.4mm solid var(--navy); padding-top: 3mm; margin-bottom: 3.5mm; }
+    h2 { color: #fff; background: var(--navy); font-size: 11.5pt; padding: 1.2mm 3mm; margin: 3.5mm 0 2mm; }
+    h2 span { color: var(--gold); font-weight: normal; font-size: 9.5pt; float: right; }
+    ol, ul { padding-left: 5mm; }
+    li + li { margin-top: 1mm; }
+    li b { color: var(--navy); }
+    ul.check { list-style: none; padding-left: 0; }
+    ul.check li::before { content: "\2610  "; }
+    .warn { border-left: 1.2mm solid var(--gold); background: #fff7e6; padding: 1.5mm 3mm; margin-top: 2mm; }
+    .cols { display: flex; gap: 5mm; }
+    .cols > div { flex: 1; }
+    .say { color: #555; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <h1>Jimmy's: demo run card</h1>
+    <p class="sub">Sat 21 Nov. Live site (they scroll), then the demo (you drive), then the money.</p>
+  </div>
+
+  <h2>Before you walk in</h2>
+  <ul class="check">
+    <li><b>Window A:</b> the live site, opened fresh just before (so they see the intro).</li>
+    <li><b>Window B:</b> the demo, zoom 75%. Tab 1 <b>/admin/kitchen</b> (tap <b>Enable sound</b>). Tab 2 <b>/order</b>: Controls, <b>Reset demo records</b>, <b>Show as installed app</b>.</li>
+    <li>Phone charged, Do Not Disturb on, screen timeout off. Wifi and phone data both tested.</li>
+    <li>Prep PDF open in another window. For your eyes only, never on the shared screen.</li>
+  </ul>
+
+  <h2>1. Jimmy's live site <span>3 to 5 min, their pace</span></h2>
+  <p><b>jimmys-burger-bar.vercel.app</b>. Hand it over and let them scroll. Don't narrate.</p>
+  <div class="warn"><b>Never place an order here.</b> It is the real site: it writes to Jimmy's real database and emails the real inbox. If they want to try ordering, give them the demo.</div>
+  <p class="say" style="margin-top:2mm">Then: "Now let me show you what you'd see on your side when a customer orders."</p>
+
+  <h2>2. The demo <span>2 min, your pace</span></h2>
+  <p style="margin-bottom:1.5mm"><b>restaurant-direct-demo.vercel.app</b></p>
+  <ol>
+    <li>Menu opens on Breakfast. Tap <b>Burgers</b>.</li>
+    <li><b>Add</b> Smash Burger and Beef Burger.</li>
+    <li><b>View cart</b>, then <b>Checkout</b>.</li>
+    <li>Controls, <b>Fill guest details on this page</b>, <b>Place order</b>.</li>
+    <li>Switch to the <b>kitchen</b>. Scroll or zoom: the new order sits at the bottom of <i>To accept</i>.</li>
+    <li>Tap a time, <b>Start preparing</b>, <b>Mark ready</b>.</li>
+    <li>Guest side: <b>Track this order</b>, <b>Tell me when it is ready</b>. The alert is simulated.</li>
+    <li>Kitchen: <b>Collected</b>. Guest: <b>My orders</b>, <b>Order again</b>.</li>
+    <li>Controls, <b>Order report</b>, <b>Download CSV</b>.</li>
+    <li>Controls, <b>The week in numbers</b>. "That's commission you keep."</li>
+  </ol>
+  <p style="margin-top:1.5mm">Lost? Controls, <b>Jump to</b>. Wifi dead? Tether your phone.</p>
+
+  <h2>3. Money and questions <span>use the prep PDF</span></h2>
+  <div class="cols">
+    <div>
+      <p><b>Ask first</b></p>
+      <ul>
+        <li>Their Mr D statement (rate, fees, payouts).</li>
+        <li>Phone or WhatsApp collection orders in the last 30 days.</li>
+        <li>Who accepts orders? Does the till PC run a browser?</li>
+        <li>Driver hours? Fridays?</li>
+      </ul>
+    </div>
+    <div>
+      <p><b>Don't say</b></p>
+      <ul>
+        <li>"Customise" (not on Jimmy's yet; don't tap it).</li>
+        <li>Any "commission kept" figure as theirs. 25% is a placeholder.</li>
+        <li>That the ready alert works on every phone. Say "simulated".</li>
+        <li>Delivery prices as agreed. R39/R49 is provisional.</li>
+        <li>If asked about food photos: many are AI stand-ins until a real shoot.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -77,18 +77,25 @@ const NotFound: React.FC = () => (
 // Scroll to top on route change. Delayed until the curtain fully covers the
 // viewport (exit duration below) so the jump is never visible.
 const ScrollToTop = () => {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, key } = useLocation();
+  const lastPathname = React.useRef<string | null>(null);
   useEffect(() => {
+    const samePage = lastPathname.current === pathname;
+    lastPathname.current = pathname;
     if (pathname === '/privacy' && hash === '#delete') return;
+    const scrollToHash = pathname === '/visit' && hash;
+    // A link to the page already open (e.g. "Book a table" while at /visit#book)
+    // changes only the location key; there is no curtain to wait for.
+    if (samePage && !scrollToHash) return;
     const t = window.setTimeout(() => {
-      if (pathname === '/visit' && hash) {
+      if (scrollToHash) {
         document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         window.scrollTo(0, 0);
       }
-    }, 560);
+    }, samePage ? 0 : 560);
     return () => window.clearTimeout(t);
-  }, [pathname, hash]);
+  }, [pathname, hash, key]);
   return null;
 };
 

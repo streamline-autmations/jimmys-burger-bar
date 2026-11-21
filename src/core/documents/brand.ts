@@ -22,6 +22,7 @@ const toRgb = (hex: string): Rgb => {
 
 export const docInk: Rgb = toRgb(config.theme.colors.ink);
 export const docAccent: Rgb = toRgb(config.theme.colors.accent);
+export const docPaper: Rgb = toRgb(config.theme.colors.paper);
 export const docGray: Rgb = [140, 148, 165];
 
 /** Uppercase wordmark used in document headers. */

@@ -187,7 +187,7 @@ export const rehearsalGrill = defineRestaurant({
   copy: {
     brand: {
       tagline: 'Fictional rehearsal tagline',
-      builtBy: 'Website by Streamline Automations.',
+      builtBy: 'Designed & built by Streamline Automations.',
     },
 
     marquee: ['Fictional rehearsal fact one', 'Fictional rehearsal fact two', 'Fictional rehearsal address'],

@@ -574,7 +574,7 @@ export const jimmys = defineRestaurant({
   copy: {
     brand: {
       tagline: "Good food. Good people.",
-      builtBy: "Website by Streamline Automations.",
+      builtBy: "Designed & built by Streamline Automations.",
     },
     notFound: {
       cta: "Back to Jimmy's",

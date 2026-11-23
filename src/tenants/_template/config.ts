@@ -203,7 +203,7 @@ export const template = defineRestaurant({
   copy: {
     brand: {
       tagline: 'PLACEHOLDER tagline',
-      builtBy: 'Website by Streamline Automations.',
+      builtBy: 'Designed & built by Streamline Automations.',
     },
     // Real claims only: menu, specials, address.
     marquee: ['PLACEHOLDER fact one', 'PLACEHOLDER fact two', 'PLACEHOLDER address'],

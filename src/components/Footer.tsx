@@ -85,7 +85,19 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-paper/15 text-center text-sm text-paper/70">
-        <p>© {new Date().getFullYear()} {config.venue.name} {config.venue.nameSuffix}. {copy.brand.builtBy}</p>
+        <p>© {new Date().getFullYear()} {config.venue.name} {config.venue.nameSuffix}.{' '}
+          {/* Link only the studio name; tenants without it render plain text. */}
+          {copy.brand.builtBy.split('Streamline Automations').map((part, i, parts) => (
+            <React.Fragment key={i}>
+              {part}
+              {i < parts.length - 1 && (
+                <a href="https://streamline-automations.co.za/" target="_blank" rel="noopener" className="underline-offset-2 hover:underline hover:text-paper transition-colors">
+                  Streamline Automations
+                </a>
+              )}
+            </React.Fragment>
+          ))}
+        </p>
       </div>
     </footer>
   );

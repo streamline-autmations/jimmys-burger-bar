@@ -358,7 +358,7 @@ const App: React.FC = () => {
       <BuildOverlay />
       <Routes>
         <Route path="/admin/*" element={<ErrorBoundary variant="console"><Suspense fallback={<div role="status" className="p-8 text-ink">Loading staff console…</div>}><AdminApp /></Suspense></ErrorBoundary>} />
-        {!STAFF_ONLY && <Route path="/*" element={<ErrorBoundary><PublicApp /></ErrorBoundary>} />}
+        <Route path="/*" element={STAFF_ONLY ? <Navigate to="/admin/kitchen" replace /> : <ErrorBoundary><PublicApp /></ErrorBoundary>} />
       </Routes>
     </Router>
   );

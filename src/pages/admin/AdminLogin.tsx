@@ -34,7 +34,8 @@ export const AdminLogin: React.FC = () => {
       return;
     }
 
-    navigate('/admin', { replace: true });
+    // The Kitchen-only deploy is installed as the kitchen screen, so staff land there, not on the dashboard.
+    navigate(import.meta.env.VITE_APP_MODE === 'staff' ? '/admin/kitchen' : '/admin', { replace: true });
   };
 
   return (

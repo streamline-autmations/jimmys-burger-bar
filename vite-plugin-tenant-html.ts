@@ -254,7 +254,7 @@ export function tenantHtml({ slug, entry }: { slug: string; entry?: string }): P
           : '',
       };
 
-      let output = slug === 'jimmys-staging'
+      let output = slug === 'jimmys-staging' || process.env.VITE_APP_MODE === 'staff'
         ? html.replace('</head>', '<meta name="robots" content="noindex,nofollow" /></head>')
         : html;
       for (const [token, value] of Object.entries(tokens)) {

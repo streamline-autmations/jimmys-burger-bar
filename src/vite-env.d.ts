@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_PUBLISHABLE_KEY: string;
   /** Geoapify key for delivery address suggestions. Unset: Photon is used instead. */
   readonly VITE_GEOAPIFY_KEY?: string;
+  readonly VITE_APP_MODE?: string;
 }
 
 interface ImportMeta {

@@ -338,6 +338,11 @@ const BrowserSite: React.FC = () => {
   );
 };
 
+// Kitchen-only deploy (its own Vercel project, VITE_APP_MODE=staff): a separate origin, so the
+// installed Kitchen app is independent of the customer app. Anything outside /admin lands on the kitchen screen.
+const STAFF_ONLY = import.meta.env.VITE_APP_MODE === 'staff';
+if (STAFF_ONLY && !window.location.pathname.startsWith('/admin')) window.history.replaceState(null, '', '/admin/kitchen');
+
 const App: React.FC = () => {
   // The admin tool renders no BrandIntro, so nothing else would ever clear the
   // pre-paint boot layer on those routes. A layout effect runs after children
@@ -353,7 +358,7 @@ const App: React.FC = () => {
       <BuildOverlay />
       <Routes>
         <Route path="/admin/*" element={<ErrorBoundary variant="console"><Suspense fallback={<div role="status" className="p-8 text-ink">Loading staff console…</div>}><AdminApp /></Suspense></ErrorBoundary>} />
-        <Route path="/*" element={<ErrorBoundary><PublicApp /></ErrorBoundary>} />
+        {!STAFF_ONLY && <Route path="/*" element={<ErrorBoundary><PublicApp /></ErrorBoundary>} />}
       </Routes>
     </Router>
   );

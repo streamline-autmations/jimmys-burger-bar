@@ -5,6 +5,15 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+let active: Lenis | null = null;
+
+// A plain window.scrollTo loses to Lenis while it is still gliding: on the next
+// frame it carries on to its old target, which lands the new page mid-way down.
+export function jumpToTop() {
+  if (active) active.scrollTo(0, { immediate: true, force: true });
+  else window.scrollTo(0, 0);
+}
+
 // Inertia smooth scroll for the whole site. Skipped entirely under
 // prefers-reduced-motion so those users get native, instant scrolling.
 //
@@ -23,6 +32,7 @@ export function useLenis() {
       prevent: (node) => node.classList?.contains('horizontal-rail') ?? false,
     });
 
+    active = lenis;
     lenis.on('scroll', ScrollTrigger.update);
 
     const tickerCallback = (time: number) => {
@@ -33,6 +43,7 @@ export function useLenis() {
 
     return () => {
       gsap.ticker.remove(tickerCallback);
+      if (active === lenis) active = null;
       lenis.destroy();
     };
   }, []);

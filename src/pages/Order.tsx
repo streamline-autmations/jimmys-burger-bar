@@ -40,6 +40,7 @@ import { WhatsAppFallback } from '../components/WhatsAppFallback';
 import { InstallApp } from '../components/InstallApp';
 import { paymentStartMessage, readPending, submitHostedForm, writePending } from '../lib/payment';
 import { useAppShell } from '../lib/appShell';
+import { jumpToTop } from '../lib/useLenis';
 import { TAB_BAR_HEIGHT } from '../components/AppShell';
 import { forgetEverything, orderAgain, readDetails, rememberOrder, useSavedOrders } from '../lib/orderHistory';
 
@@ -367,7 +368,7 @@ export const Order: React.FC = () => {
   useEffect(() => {
     // The app's tabs jump; the browser site keeps its own scrolling, unchanged.
     if (appShell) window.scrollTo({ top: 0, behavior: 'instant' });
-    else window.scrollTo(0, 0);
+    else jumpToTop();
   }, [step, appShell]);
 
   useEffect(() => {

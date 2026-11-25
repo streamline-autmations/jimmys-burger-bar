@@ -11,7 +11,7 @@ const Track = lazy(() => import('./pages/Track').then((module) => ({ default: mo
 const MyOrders = lazy(() => import('./pages/MyOrders').then((module) => ({ default: module.MyOrders })));
 const Privacy = lazy(() => import('./pages/Privacy').then((module) => ({ default: module.Privacy })));
 const AdminApp = lazy(() => import('./pages/admin/AdminApp').then((module) => ({ default: module.AdminApp })));
-import { useLenis } from './lib/useLenis';
+import { jumpToTop, useLenis } from './lib/useLenis';
 import { EASE, STAMP_EASE } from './lib/motion';
 import { TextCursor } from './components/TextCursor';
 import { BrandIntro } from './components/BrandIntro';
@@ -91,7 +91,7 @@ const ScrollToTop = () => {
       if (scrollToHash) {
         document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
-        window.scrollTo(0, 0);
+        jumpToTop();
       }
     }, samePage ? 0 : 560);
     return () => window.clearTimeout(t);
